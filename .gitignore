@@ -1,0 +1,6 @@
+# artefatos de sessão / tooling
+new-session-*.json
+
+# OS
+.DS_Store
+Thumbs.db

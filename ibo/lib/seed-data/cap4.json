@@ -1,0 +1,209 @@
+{
+  "id": "cap-4",
+  "type": "capitulo",
+  "numero": "IV",
+  "titulo": "DAS SESSÕES DA ASSEMBLEIA DOS MEMBROS",
+  "textoVigente": "CAPÍTULO IV\nDAS SESSÕES DA ASSEMBLEIA DOS MEMBROS",
+  "propostaInicial": "CAPÍTULO IV\nDA DIRETORIA E DAS SESSÕES DA ASSEMBLEIA DOS MEMBROS",
+  "justificativa": "Esse capítulo também inclui dispositivos relativos à Diretoria e precisa estar explicitado.",
+  "alteracaoTipo": "alteracao_redacional",
+  "filhos": [
+    {
+      "id": "art-11",
+      "type": "artigo",
+      "numero": "11",
+      "titulo": null,
+      "textoVigente": "A Igreja Batista Olaria se reunirá mensalmente em sessão ordinária para tratar de assuntos referentes à prestação de contas da Tesouraria, relatórios e assuntos administrativos e, extraordinariamente quando necessário, conforme descrito no parágrafo 3º.",
+      "propostaInicial": "A Igreja Batista Olaria se reunirá trimestralmente em sessão ordinária para tratar de assuntos referentes à prestação de contas da Tesouraria, relatórios e assuntos administrativos e, extraordinariamente quando necessário, conforme descrito no parágrafo 3º.",
+      "justificativa": "Assembleias passam a ser trimestrais e não mais mensais pois assim se condensam os assuntos em período maior, até mesmo porque para casos urgentes já estão previstas as assembleias extraordinárias.",
+      "alteracaoTipo": "alteracao_material",
+      "filhos": [
+        {
+          "id": "art-11-p1",
+          "type": "paragrafo",
+          "numero": "1º",
+          "textoVigente": "A eleição do Pastor, que será o Presidente da Igreja, dar-se-á em Assembleia Geral Ordinária, convocada para este fim, por meio de edital fixado na sede ou em outros meios de comunicação, por escrutínio secreto ou por aclamação, em que votem 3/5 (três quintos) dos membros da Igreja em primeira convocação, ou 2/3 e, segunda convocação decorridos 7 (sete) dias após a primeira.",
+          "propostaInicial": "A eleição do Pastor, que não será automático ou compulsoriamente o Presidente da Igreja, dar-se-á em Assembleia Geral Ordinária, convocada para este fim, por meio de edital fixado na sede ou em outros meios de comunicação, por escrutínio secreto ou por aclamação, em que votem 3/5 (três quintos) dos membros da Igreja em primeira convocação, ou 2/3 e, segunda convocação decorridos 7 (sete) dias após a primeira.",
+          "justificativa": "O fato de o pastor não ser compulsoriamente o presidente da Igreja, podendo sê-lo caso a igreja e/ou ele queira, o libera para tratar das coisas espirituais o desincumbindo das tarefas burocráticas e administrativas.",
+          "alteracaoTipo": "alteracao_material"
+        },
+        { "id": "art-11-p2", "type": "paragrafo", "numero": "2º", "textoVigente": "A eleição da Diretoria e do Conselho Fiscal dar-se-á em Assembleia Geral Ordinária, convocada para este fim, por meio de edital fixado na sede ou em outros meios de comunicação da Igreja, sendo a Agenda Anual documento oficial das respectivas convocações.", "propostaInicial": "", "justificativa": "Manter a redação. Redação adequada.", "alteracaoTipo": "mantido" },
+        {
+          "id": "art-11-p3",
+          "type": "paragrafo",
+          "numero": "3º",
+          "textoVigente": "As sessões extraordinárias, devidamente justificadas, podem ser convocadas a qualquer momento pelo Pastor Presidente, respeitado o prazo mínimo de 15 (quinze) dias de antecedência, após a convocação que sempre será ampla pelos meios de comunicação da Igreja Batista Olaria, especialmente o púlpito durante os cultos. A sessão extraordinária tratará apenas de 01 (um) assunto, exceto a sessão extraordinária para eleição anual da Diretoria e do Conselho Fiscal.",
+          "propostaInicial": "As sessões extraordinárias, devidamente justificadas, podem ser convocadas a qualquer momento pelo Presidente da Igreja, respeitado o prazo mínimo de 15 (quinze) dias de antecedência, após a convocação que sempre será ampla pelos meios de comunicação da Igreja Batista Olaria, especialmente o púlpito durante os cultos. A sessão extraordinária tratará apenas de 01 (um) assunto, exceto a sessão extraordinária para eleição anual da Diretoria e do Conselho Fiscal.",
+          "justificativa": "Na hipótese do pastor não ser o Presidente.",
+          "alteracaoTipo": "alteracao_redacional"
+        },
+        {
+          "id": "art-11-p4",
+          "type": "paragrafo",
+          "numero": "4º",
+          "textoVigente": "São tratados exclusivamente em sessões extraordinárias:",
+          "propostaInicial": "",
+          "justificativa": "Manter a redação. Redação adequada.",
+          "alteracaoTipo": "mantido",
+          "filhos": [
+            { "id": "art-11-p4-inc-1", "type": "inciso", "numero": "I", "textoVigente": "Compra, venda ou outro tipo de alienação de bens imóveis da Igreja Batista Olaria;", "propostaInicial": "", "justificativa": "Manter a redação. Redação adequada.", "alteracaoTipo": "mantido" },
+            { "id": "art-11-p4-inc-2", "type": "inciso", "numero": "II", "textoVigente": "Exoneração do Pastor Presidente através de edital fixado na sede ou em outros meios de comunicação, por escrutínio secreto ou por aclamação, em que votem 3/5 (três quintos) dos membros da Igreja em primeira convocação, ou 2/3 e, segunda convocação decorridos 7 (sete) dias após a primeira.", "propostaInicial": "", "justificativa": "Manter a redação. Redação adequada.", "alteracaoTipo": "mantido" },
+            { "id": "art-11-p4-inc-3", "type": "inciso", "numero": "III", "textoVigente": "Reforma do Estatuto;", "propostaInicial": "", "justificativa": "Manter a redação. Redação adequada.", "alteracaoTipo": "mantido" },
+            { "id": "art-11-p4-inc-4", "type": "inciso", "numero": "IV", "textoVigente": "Criação ou reforma do Regimento Interno.", "propostaInicial": "", "justificativa": "Manter a redação. Redação adequada.", "alteracaoTipo": "mantido" }
+          ]
+        },
+        {
+          "id": "art-11-p5",
+          "type": "paragrafo",
+          "numero": "5º",
+          "textoVigente": "A sessão extraordinária para ouvir candidatos ao Batismo, em profissão pública de fé, poderá ser convocada pelo Pastor Presidente em qualquer culto, sem a exigência de nenhum prazo, desde que acertado anteriormente com os candidatos e comunicado à Diretoria da Igreja.",
+          "propostaInicial": "A sessão extraordinária para ouvir candidatos ao Batismo, em profissão pública de fé, poderá ser convocada pelo Presidente da Igreja em qualquer culto, sem a exigência de nenhum prazo, desde que acertado anteriormente com os candidatos e comunicado à Diretoria da Igreja.",
+          "justificativa": "Na hipótese do pastor não ser o presidente",
+          "alteracaoTipo": "alteracao_redacional"
+        }
+      ]
+    },
+    {
+      "id": "art-12",
+      "type": "artigo",
+      "numero": "12",
+      "titulo": null,
+      "textoVigente": "A Diretoria da Igreja será composta de Presidente, Primeiro Vice-Presidente; Segundo Vice-Presidente; Primeiro Secretário; Segundo Secretário; Primeiro Tesoureiro; Segundo Tesoureiro, nesta ordem.",
+      "propostaInicial": "",
+      "justificativa": "Manter a redação. Redação adequada.",
+      "alteracaoTipo": "mantido",
+      "filhos": [
+        {
+          "id": "art-12-p1",
+          "type": "paragrafo",
+          "numero": "1º",
+          "textoVigente": "A presidência da Igreja Batista Olaria será do Pastor Presidente, que terá mandato por tempo indeterminado, e receberá sustento pelo exercício das funções pastorais e não pela função que ocupa na Diretoria da Igreja como Presidente.",
+          "propostaInicial": "A presidência da Igreja Batista Olaria não será automática ou compulsoriamente do Pastor Titular da Igreja, podendo, caso a igreja ou o Pastor assim desejar, assumir a Presidência por prazo indeterminado, a juízo da Assembleia dos Membros, sendo aprovado por maioria de votos em Assembleia dos Membros, recebendo sustento por meio de prebendas pelo exercício das funções pastorais e não pela função que venha a ocupar na Diretoria da Igreja como Presidente.",
+          "justificativa": "Aqui abre-se três opções para a igreja. a) A igreja quer que o pastor titular seja o presidente, ele será; b) O pastor titular quer ser o presidente, ele será, a critério da Assembleia dos membros; c) Nem a igreja nem o pastor querem o pastor titular como presidente, ele não será. Dessa forma, caso ele não seja presidente, fica livre das funções administrativas e burocráticas dedicando-se exclusivamente às funções pastorais. Na prática, a única coisa que sai é a compulsoriedade do pastor ser o presidente da igreja.",
+          "alteracaoTipo": "alteracao_material"
+        },
+        {
+          "id": "art-12-p2",
+          "type": "paragrafo",
+          "numero": "2º",
+          "textoVigente": "Na falta do Pastor Presidente, assumirá a presidência da Igreja Batista Olaria o Primeiro Vice-Presidente e, na sua ausência, os demais diretores na ordem deste Artigo, sucessivamente, não sendo nenhum deles remunerado pelo exercício da presidência e nem de função na Diretoria.",
+          "propostaInicial": "Na falta do Presidente, assumirá a presidência da Igreja Batista Olaria o Primeiro Vice-Presidente, caso o Pastor titular seja o Presidente, o Segundo Vice-Presidente, Primeiro Secretário, Segundo Secretário, Primeiro Tesoureiro e segundo tesoureiro, nessa ordem.",
+          "justificativa": "Na hipótese de o pastor não ser o presidente",
+          "alteracaoTipo": "alteracao_material"
+        },
+        { "id": "art-12-p3", "type": "paragrafo", "numero": "3º", "origem": "proposta_inicial", "textoVigente": "", "propostaInicial": "Por tratar-se de cargos de atividades voluntárias de demonstração de fé, nenhum membro da Diretoria, nessa condição, será remunerado pelo exercício de suas atribuições, salvo o Pastor Titular e os componentes de Ministérios Auxiliares, previstos no parágrafo 4º do art. 4º deste Estatuto que poderão receber prebendas da Igreja pelas funções pastorais e ministeriais.", "justificativa": "Cria-se um parágrafo para explicitar o caráter voluntário dos membros da diretoria. Aqui também se abre a possibilidade de remunerar por meio de contratos específicos a prestação dos serviços do ministro de música, educador cristão e administrador eclesiástico.", "alteracaoTipo": "novo" },
+        { "id": "art-12-p4", "type": "paragrafo", "numero": "4º", "origem": "proposta_inicial", "textoVigente": "", "propostaInicial": "As Prebendas, pela natureza de suas atividades, nunca serão relacionadas aos atos administrativos, e jamais gerarão vínculo empregatício com a igreja, nos termos da Lei 14.647 de 07 de agosto de 2023, uma vez que as atividades do pastor e dos demais componentes citados neste capítulo são ministérios de vidas consagradas a Deus.", "justificativa": "Para proteger a igreja de ações na justiça do trabalho, por exemplo", "alteracaoTipo": "novo" },
+        { "id": "art-12-p5", "type": "paragrafo", "numero": "5º", "origem": "proposta_inicial", "textoVigente": "", "propostaInicial": "O valor das prebendas do Pastor titular e dos Ministérios Auxiliares, previstos no parágrafo 4º do art. 4º deste Estatuto, serão definidas entre os ministros e a igreja local, considerando-se o fato de não terem vínculos empregatícios, consoante Lei 14.647 de 07 de agosto de 2023, e a própria natureza das prebendas.", "justificativa": "Para proteger a igreja de ações na justiça do trabalho, por exemplo, e para não onerar em demasia os cofres da igreja.", "alteracaoTipo": "novo" },
+        { "id": "art-12-p6", "type": "paragrafo", "numero": "6º", "origem": "proposta_inicial", "textoVigente": "", "propostaInicial": "As prebendas aos Ministérios Auxiliares, previstos no parágrafo 4º do art. 4º deste Estatuto, e ao Pastor Titular, serão oferecidas de acordo com as reais possibilidades financeiras da Igreja local, podendo-se conceder acréscimos para o sustento ministerial conforme ocorra acréscimos sustentáveis das entradas financeiras da igreja, ficando o acordo registrado em Ata.", "justificativa": "Para não onerar em demasia os cofres da igreja.", "alteracaoTipo": "novo" }
+      ]
+    },
+    {
+      "id": "art-13",
+      "type": "artigo",
+      "numero": "13",
+      "titulo": null,
+      "textoVigente": "O mandato da Diretoria é de um ano, podendo os membros diretores serem reeleitos, exceto o cargo de Presidente, conforme Art. 12, parágrafo 1º.",
+      "propostaInicial": "O mandato da Diretoria Administrativa será de 02 (dois) anos, eleitos, em Assembleia Geral ordinária convocada para este fim, sendo permitida uma recondução ao mesmo cargo da Diretoria Administrativa, exceto quando o Presidente da Igreja for o Pastor Titular que será por prazo indeterminado, nos termos do parágrafo 1º do art. 12.",
+      "justificativa": "Um mandato mais longo da diretoria traz mais previsibilidade e economia com registros e cartórios e evita bloquear as contas da igreja no final de cada ano em razão de mudanças na diretoria.",
+      "alteracaoTipo": "alteracao_material"
+    },
+    {
+      "id": "art-14",
+      "type": "artigo",
+      "numero": "14",
+      "titulo": null,
+      "textoVigente": "As deliberações da Igreja Batista Olaria serão tomadas pela Assembleia dos Membros, reunida em sessões ordinárias e extraordinárias, por meio de votação espontânea dos membros presentes, seguindo-se as regras parlamentares adotadas pela Convenção Batista Brasileira; e no interregno das sessões, pela Diretoria da Igreja.",
+      "propostaInicial": "",
+      "justificativa": "Manter a redação. Redação adequada.",
+      "alteracaoTipo": "mantido",
+      "filhos": [
+        {
+          "id": "art-14-pu",
+          "type": "paragrafo",
+          "numero": "Único",
+          "textoVigente": "O quórum para as sessões ordinárias e extraordinárias será de no mínimo 1/5 (um quinto) do total atualizado dos membros da Igreja Batista Olaria, em primeira convocação; e por qualquer número de membros presentes após 15 (quinze) minutos da convocação anterior; com exceção do que preceitua o Parágrafo 1º do Artigo 11.",
+          "propostaInicial": "O quórum para as sessões ordinárias e extraordinárias será de no mínimo 50% (cinquenta por cento) mais um dos membros da Igreja, em primeira convocação, de 20% (vinte por cento) dos membros em segunda convocação e de 10% (dez por cento) dos membros em terceira convocação, com intervalo mínimo de 15 (quinze) minutos entre uma convocação e outra, sendo as decisões tomadas pelo voto favorável de maioria simples, exceto nas situações especiais previstas neste Estatuto.",
+          "justificativa": "A expressão 'qualquer' número leva a tomada de decisão por quórum diminuto ou mesmo de uma única pessoa sem representatividade.",
+          "alteracaoTipo": "alteracao_material"
+        }
+      ]
+    },
+    {
+      "id": "art-15",
+      "type": "artigo",
+      "numero": "15",
+      "titulo": null,
+      "textoVigente": "As datas para a realização das sessões ordinárias, bem como a data para a realização da sessão extraordinária para eleição da Diretoria da Igreja Batista Olaria e do Conselho Fiscal serão fixadas na Agenda Anual da Igreja Batista Olaria, sendo este registro na Agenda Anual documento de convocação dos membros legal e suficiente.",
+      "propostaInicial": "",
+      "justificativa": "Manter a redação. Redação adequada.",
+      "alteracaoTipo": "mantido",
+      "filhos": [
+        { "id": "art-15-p1", "type": "paragrafo", "numero": "1º", "origem": "proposta_inicial", "textoVigente": "", "propostaInicial": "A Igreja reunir-se-á em sessão Administrativa Ordinária em dia e hora previamente conhecidos no calendário de atividades da igreja e, quando necessário, em Assembleia Geral Extraordinária, convocada pelo Presidente, ou por seu substituto legal ou, ainda, por 20% (vinte por cento) dos membros, sendo as convocações através de Edital fixado na sede e ou enviado por meio eletrônico no prazo mínimo de sete (07) dias.", "justificativa": "Regulamentar a possibilidade de convocação pela própria igreja", "alteracaoTipo": "novo" },
+        { "id": "art-15-p2", "type": "paragrafo", "numero": "2º", "origem": "proposta_inicial", "textoVigente": "", "propostaInicial": "A Diretoria deverá acolher representação que lhe seja dirigida por um mínimo de 20% (vinte por cento) dos membros da Igreja solicitando convocação da Assembleia Administrativa, para apreciar assuntos expressos na representação", "justificativa": "Regulamentar a possibilidade de convocação pela própria igreja", "alteracaoTipo": "novo" },
+        { "id": "art-15-p3", "type": "paragrafo", "numero": "3º", "origem": "proposta_inicial", "textoVigente": "", "propostaInicial": "Em nenhuma hipótese, o membro da igreja poderá se fazer representar ou substituir por outro, outorgar procurações ou mandatos nas Assembleias Gerais", "justificativa": "Assegurar a representação pessoal.", "alteracaoTipo": "novo" },
+        { "id": "art-15-p4", "type": "paragrafo", "numero": "4º", "origem": "proposta_inicial", "textoVigente": "", "propostaInicial": "Será garantida, em situações especiais decididas pela Assembleia Administrativa, a votação remota ou em trânsito, mediante o uso de tecnologia disponível que assegure o sigilo, se o tema a ser votado exigir e a legitimidade do voto.", "justificativa": "Assegurar o uso de técnicas modernas, especialmente em tempos de pandemia.", "alteracaoTipo": "novo" },
+        { "id": "art-15-p5", "type": "paragrafo", "numero": "5º", "origem": "proposta_inicial", "textoVigente": "", "propostaInicial": "Em casos excepcionais, restando comprovada a impossibilidade de realizar assembleia geral presencial, poderá ser realizada assembleia por meio eletrônico utilizando de plataforma eletrônica a ser definida pela Diretoria da Igreja, e que permita a ampla participação da membresia, bem como o registro de presença.", "justificativa": "Assegurar o funcionamento da igreja em tempos de pandemia.", "alteracaoTipo": "novo" },
+        { "id": "art-15-p6", "type": "paragrafo", "numero": "6º", "origem": "proposta_inicial", "textoVigente": "", "propostaInicial": "De todas as decisões da Assembleia Administrativa cabem impugnações, que deverão ser apresentadas à Diretoria, sendo esta obrigada a pautar a impugnação em Assembleia Geral Extraordinária convocada exclusivamente para este fim com prazo de 15 (quinze) dias a contar do recebimento da impugnação.", "justificativa": "Em nome da segurança jurídica", "alteracaoTipo": "novo" },
+        { "id": "art-15-p7", "type": "paragrafo", "numero": "7º", "origem": "proposta_inicial", "textoVigente": "", "propostaInicial": "Em caso de Abuso de Poder, Administração Temerária, ou Decisão Ilegal na Forma da Lei ou deste Estatuto, o membro que se sentir coagido ou obrigado a acatar as decisões tomadas, poderá interpor representação à Convenção Batista do Estado de Rondônia para a resolução da Lide/demanda. No caso de Divergência Doutrinária, deverá proceder-se conforme o rito previsto no Capítulo VI do presente Estatuto.", "justificativa": "Em nome da segurança jurídica", "alteracaoTipo": "novo" },
+        { "id": "art-15-p8", "type": "paragrafo", "numero": "8º", "origem": "proposta_inicial", "textoVigente": "", "propostaInicial": "Para tratar de assuntos que envolvem o Presidente da Igreja, a Assembleia dos Membros deve ser convocada e dirigida pelo Vice-Presidente. Na falta ou impedimento desse, outro membro da diretoria o faz, na ordem de eleição, ou por decisão em Assembleia dos Membros, que nesse caso elege um dirigente para a Assembleia.", "justificativa": "No caso que envolve o Presidente.", "alteracaoTipo": "novo" }
+      ]
+    },
+    {
+      "id": "art-16",
+      "type": "artigo",
+      "numero": "16",
+      "titulo": null,
+      "textoVigente": "Compete ao Pastor Presidente da Igreja Batista Olaria:",
+      "propostaInicial": "Compete ao Presidente da Igreja Batista Olaria:",
+      "justificativa": "Na hipótese do presidente não ser o pastor.",
+      "alteracaoTipo": "alteracao_redacional",
+      "filhos": [
+        { "id": "art-16-inc-1", "type": "inciso", "numero": "I", "textoVigente": "Administrar a Igreja Batista Olaria, juntamente com a Diretoria da Igreja, cumprindo e fazendo cumprir este Estatuto e o Regimento Interno da Igreja Batista Olaria.", "propostaInicial": "", "justificativa": "Manter a redação. Redação adequada.", "alteracaoTipo": "mantido" },
+        { "id": "art-16-inc-2", "type": "inciso", "numero": "II", "textoVigente": "Representar a Igreja Batista Olaria ativa, passiva, judicial e extrajudicialmente.", "propostaInicial": "", "justificativa": "Manter a redação. Redação adequada.", "alteracaoTipo": "mantido" },
+        { "id": "art-16-inc-3", "type": "inciso", "numero": "III", "textoVigente": "Convocar e presidir as sessões ordinárias e extraordinárias, assinando as Atas juntamente com o Secretário da Igreja Batista Olaria, bem como as reuniões com a Diretoria da Igreja.", "propostaInicial": "", "justificativa": "Manter a redação. Redação adequada.", "alteracaoTipo": "mantido" },
+        { "id": "art-16-inc-4", "type": "inciso", "numero": "IV", "textoVigente": "Assinar os documentos emitidos pela Igreja Batista Olaria.", "propostaInicial": "", "justificativa": "Manter a redação. Redação adequada.", "alteracaoTipo": "mantido" },
+        { "id": "art-16-inc-5", "type": "inciso", "numero": "V", "textoVigente": "Participar das reuniões de qualquer área da Igreja Batista Olaria, na qualidade de membro ex-officio.", "propostaInicial": "", "justificativa": "Manter a redação. Redação adequada.", "alteracaoTipo": "mantido" },
+        { "id": "art-16-inc-6", "type": "inciso", "numero": "VI", "textoVigente": "Abrir, movimentar e encerrar contas bancárias, juntamente com o Tesoureiro e devidamente ordenado no Regimento Interno.", "propostaInicial": "", "justificativa": "Manter a redação. Redação adequada.", "alteracaoTipo": "mantido" },
+        { "id": "art-16-inc-8", "type": "inciso", "numero": "VIII", "textoVigente": "Tomar decisões, juntamente com a Diretoria da Igreja, nos casos comprovadamente excepcionais ou de extrema urgência.", "propostaInicial": "", "justificativa": "Manter a redação. Redação adequada.", "alteracaoTipo": "mantido" }
+      ]
+    },
+    {
+      "id": "art-17",
+      "type": "artigo",
+      "numero": "17",
+      "titulo": null,
+      "textoVigente": "São essas as competências dos demais Diretores da Igreja Batista Olaria, de acordo com o disposto no Regimento Interno:",
+      "propostaInicial": "São essas as competências dos demais Diretores da Igreja Batista Olaria.",
+      "justificativa": "O Regimento interno será revogado.",
+      "alteracaoTipo": "alteracao_material",
+      "filhos": [
+        {
+          "id": "art-17-p1",
+          "type": "paragrafo",
+          "numero": "1º",
+          "textoVigente": "Ao Primeiro Vice-Presidente e ao Segundo Vice-Presidente, pela ordem de eleição, compete substituir o Pastor Presidente em sua falta ou impedimentos.",
+          "propostaInicial": "Ao Primeiro Vice-Presidente e ao Segundo Vice-Presidente, pela ordem de eleição, compete substituir o Presidente da Igreja em sua falta ou impedimentos.",
+          "justificativa": "Na hipótese de o pastor não ser o presidente.",
+          "alteracaoTipo": "alteracao_redacional"
+        },
+        { "id": "art-17-p2", "type": "paragrafo", "numero": "2º", "textoVigente": "Ao Primeiro Secretário compete redigir as Atas das sessões ordinárias e extraordinárias, em livro próprio físico ou digitalizado, e assinar essas Atas juntamente com o Pastor Presidente; além de desempenhar as atribuições inerentes ao cargo; e ao Segundo Secretário compete auxiliar o Primeiro Secretário e substituí-lo nas suas faltas e impedimentos.", "propostaInicial": "", "justificativa": "Manter a redação. Redação adequada.", "alteracaoTipo": "mantido" },
+        { "id": "art-17-p3", "type": "paragrafo", "numero": "3º", "textoVigente": "Ao Primeiro Tesoureiro compete receber e escriturar as contribuições da Igreja Batista Olaria; efetuar pagamentos por ela autorizados, prestando relatórios mensais e balancetes anuais à Assembleia dos Membros; efetuar transações bancárias, observando o disposto no Art. 16, VI; e ao Segundo Tesoureiro compete auxiliar o Primeiro Tesoureiro e substituí-lo em suas faltas e impedimentos.", "propostaInicial": "", "justificativa": "Manter a redação. Redação adequada.", "alteracaoTipo": "mantido" }
+      ]
+    },
+    {
+      "id": "art-18",
+      "type": "artigo",
+      "numero": "18",
+      "titulo": null,
+      "textoVigente": "Ao Conselho Fiscal da Igreja Batista Olaria, composto no mínimo por 03 (três) membros e seus respectivos suplentes, todos membros da Igreja Batista Olaria, maiores e capazes perante a lei, compete assessorar a Assembleia dos Membros por meio da:",
+      "propostaInicial": "",
+      "justificativa": "Manter a redação. Redação adequada.",
+      "alteracaoTipo": "mantido",
+      "filhos": [
+        { "id": "art-18-inc-1", "type": "inciso", "numero": "I", "textoVigente": "Fiscalização sistemática das finanças da Igreja Batista Olaria.", "propostaInicial": "", "justificativa": "Manter a redação. Redação adequada.", "alteracaoTipo": "mantido" },
+        { "id": "art-18-inc-2", "type": "inciso", "numero": "II", "textoVigente": "Apresentação de parecer escrito sobre o relatório da Tesouraria da Igreja nas sessões ordinárias ou quando se fizer necessário.", "propostaInicial": "", "justificativa": "Manter a redação. Redação adequada.", "alteracaoTipo": "mantido" },
+        { "id": "art-18-inc-3", "type": "inciso", "numero": "III", "textoVigente": "Orientação e apoio à crescente qualidade das ações da Tesouraria da Igreja.", "propostaInicial": "", "justificativa": "Manter a redação. Redação adequada.", "alteracaoTipo": "mantido" }
+      ]
+    }
+  ]
+}

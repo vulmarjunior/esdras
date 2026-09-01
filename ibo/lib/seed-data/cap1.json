@@ -1,0 +1,91 @@
+{
+  "id": "cap-1",
+  "type": "capitulo",
+  "numero": "I",
+  "titulo": "DA DENOMINAÇÃO, SEDE, NATUREZA, COMPOSIÇÃO E FINS",
+  "textoVigente": "CAPÍTULO I\nDA DENOMINAÇÃO, SEDE, NATUREZA, COMPOSIÇÃO E FINS",
+  "propostaInicial": "CAPÍTULO I\nDA DENOMINAÇÃO, SEDE, NATUREZA, COMPOSIÇÃO E FINS",
+  "justificativa": "Manter a redação. Capitulação adequada.",
+  "alteracaoTipo": "mantido",
+  "filhos": [
+    {
+      "id": "art-1",
+      "type": "artigo",
+      "numero": "1º",
+      "titulo": null,
+      "textoVigente": "A Igreja Batista Olaria, com sede à Rua Julio de Castilho, Nº 1368, CEP 76801-282 Bairro Olaria, e foro na cidade de Porto Velho, Estado de Rondônia, organizada em 1º de junho de 1969, é constituída uma Associação civil de caráter religioso, sem fins econômico-financeiros, por tempo indeterminado, e número ilimitado de membros.",
+      "propostaInicial": "A Igreja Batista Olaria, inscrita no Cadastro Nacional de Pessoas Jurídicas (CNPJ) sob o nº 04.771.507/0001-08, com sede na rua Júlio de Castilho, nº 1368, CEP 76.801-282, Bairro Olaria, Porto Velho, estado de Rondônia, organizada em 1º de junho de 1969, é constituída como organização religiosa, sem fins lucrativos, por tempo indeterminado e número ilimitado de pessoas.",
+      "justificativa": "Considerando que o inciso IV do art. 44 da Lei nº 10.406, de 10 de janeiro de 2002 (Código Civil), criou a figura jurídica 'IV - as organizações religiosas'; considerando que quando da inscrição da entidade no CNPJ não havia tal denominação específica para as entidades religiosas, visto que tal previsão legal fora incluída pela Lei nº 10.825, de 22.12.2003; considerando que, em razão da inexistência à época de tal figura, restou consignado em seu cadastro junto à Receita Federal como natureza Associação Privada, codificada no código 399-9; considerando que a natureza jurídica adequada para igrejas e templos de qualquer culto no Brasil é 322-0 - Organização Religiosa, com base no inciso IV do art. 44 da Lei nº 10.406, de 10 de janeiro de 2002 (Código Civil) e no seu Estatuto Social.",
+      "alteracaoTipo": "alteracao_material"
+    },
+    {
+      "id": "art-2",
+      "type": "artigo",
+      "numero": "2º",
+      "titulo": null,
+      "textoVigente": "A Igreja Batista Olaria proclama Jesus Cristo como seu único e suficiente Salvador; aceita a Bíblia Sagrada como única regra de fé e prática; e reconhece e adota a Declaração Doutrinária da Convenção Batista Brasileira como fiel interpretação das Escrituras Sagradas.",
+      "propostaInicial": "",
+      "justificativa": "Manter a redação. Redação adequada.",
+      "alteracaoTipo": "mantido"
+    },
+    {
+      "id": "art-3",
+      "type": "artigo",
+      "numero": "3º",
+      "titulo": null,
+      "textoVigente": "A Igreja Batista Olaria, em seu ideário, organização, cultos e demais atividades, tem por finalidade:",
+      "propostaInicial": "Manter a redação.",
+      "justificativa": "Redação adequada.",
+      "alteracaoTipo": "mantido",
+      "filhos": [
+        { "id": "art-3-inc-1", "type": "inciso", "numero": "I", "textoVigente": "Adorar a Deus e proclamar o Evangelho de Jesus Cristo, segundo prescrito na Bíblia Sagrada.", "propostaInicial": "", "justificativa": "Manter a redação. Redação adequada.", "alteracaoTipo": "mantido" },
+        { "id": "art-3-inc-2", "type": "inciso", "numero": "II", "textoVigente": "Edificar vidas, fortalecer a família e incentivar o exercício da cidadania, por meio do ensino e da vivência da Palavra de Deus registrada na Bíblia Sagrada.", "propostaInicial": "", "justificativa": "Manter a redação. Redação adequada.", "alteracaoTipo": "mantido" },
+        { "id": "art-3-inc-3", "type": "inciso", "numero": "III", "textoVigente": "Promover a comunhão, a solidariedade, o respeito à vida sustentável e o estado democrático de direito.", "propostaInicial": "", "justificativa": "Manter a redação. Redação adequada.", "alteracaoTipo": "mantido" },
+        { "id": "art-3-inc-4", "type": "inciso", "numero": "IV", "textoVigente": "Realizar missões locais, estaduais, nacionais e mundiais.", "propostaInicial": "", "justificativa": "Manter a redação. Redação adequada.", "alteracaoTipo": "mantido" },
+        { "id": "art-3-inc-5", "type": "inciso", "numero": "V", "textoVigente": "Cooperar com a Convenção Batista Brasileira e com a Convenção Batista do Estado de Rondônia.", "propostaInicial": "", "justificativa": "Manter a redação. Redação adequada.", "alteracaoTipo": "mantido" }
+      ]
+    },
+    {
+      "id": "art-4",
+      "type": "artigo",
+      "numero": "4º",
+      "titulo": null,
+      "textoVigente": "A Igreja Batista Olaria é autônoma e soberana em suas decisões e não está subordinada a qualquer outra igreja, instituição ou autoridade denominacional; antes reconhece a autoridade de Nosso Senhor e Salvador Jesus Cristo, expressa nas Escrituras Sagradas.",
+      "propostaInicial": "Manter a redação.",
+      "justificativa": "Redação adequada.",
+      "alteracaoTipo": "mantido",
+      "filhos": [
+        { "id": "art-4-p1", "type": "paragrafo", "numero": "1º", "textoVigente": "A Igreja Batista Olaria será administrada soberanamente pela Assembleia dos Membros, constituída por seus membros reunidos em sessões ordinárias e extraordinárias.", "propostaInicial": "", "justificativa": "Manter a redação. Redação adequada.", "alteracaoTipo": "mantido" },
+        {
+          "id": "art-4-p2",
+          "type": "paragrafo",
+          "numero": "2º",
+          "textoVigente": "No interregno das sessões, a administração da Igreja Batista Olaria será feita pela Diretoria da Igreja, sob a presidência do Pastor Presidente, que tem por finalidade cumprir e fazer cumprir este Estatuto e o Regimento Interno.",
+          "propostaInicial": "No interregno das sessões, a administração da Igreja Batista Olaria será feita pela Diretoria da Igreja, sob a presidência do Presidente da Igreja, que tem por finalidade cumprir e fazer cumprir este Estatuto e o Regimento Interno.",
+          "justificativa": "A proposta que será detalhada mais à frente é que o pastor não seja compulsoriamente o Presidente da igreja. Para além disso, o Presidente da igreja poderá vir a ser substituído por outro membro da diretoria em seus impedimentos ou vacância deste cargo.",
+          "alteracaoTipo": "alteracao_material"
+        },
+        { "id": "art-4-p3", "type": "paragrafo", "numero": "3º", "textoVigente": "A Assembleia dos Membros é assessorada pelo Conselho Fiscal cuja principal finalidade é emitir parecer mensal à Assembleia dos Membros sobre os trabalhos da Tesouraria da Igreja Batista Olaria.", "propostaInicial": "", "justificativa": "Manter a redação. Redação adequada.", "alteracaoTipo": "mantido" },
+        {
+          "id": "art-4-p4",
+          "type": "paragrafo",
+          "numero": "4º",
+          "textoVigente": "Mediante aprovação da Assembleia dos Membros, o Pastor Presidente poderá criar ou extinguir áreas, assessorias, ministérios, coordenações ou similares, com o objetivo de auxiliarem o exercício do Ministério Pastoral na Igreja Batista Olaria.",
+          "propostaInicial": "Mediante aprovação da Assembleia dos Membros, o Presidente da Igreja poderá criar ou extinguir áreas, assessorias, ministérios, coordenações ou similares, com o objetivo de auxiliarem o exercício do Ministério Pastoral na Igreja Batista Olaria.",
+          "justificativa": "A proposta que será detalhada mais à frente é que o pastor não seja compulsoriamente o Presidente da igreja. Para além disso, o Presidente da igreja poderá vir a ser substituído por outro membro da diretoria em seus impedimentos ou vacância deste cargo.",
+          "alteracaoTipo": "alteracao_material"
+        }
+      ]
+    },
+    {
+      "id": "art-5",
+      "type": "artigo",
+      "numero": "5",
+      "titulo": null,
+      "textoVigente": "A Igreja Batista Olaria poderá criar associações e/ou similares a ela vinculadas, com personalidade jurídica própria, para a efetivação de suas finalidades descritas no Art. 32",
+      "propostaInicial": "A Igreja Batista Olaria poderá criar associações, fundações e projetos filantrópicos, a ela vinculados, com personalidade jurídica própria, usufruindo das garantias e prerrogativas do art. 5º da Constituição da República Federativa do Brasil de 1988 e dos Artigos 53 ao 69 do Novo Código Civil Brasileiro, com fins de atender, incentivar e efetivar a educação, a saúde e a assistência social para a comunidade.",
+      "justificativa": "Além de ampliar e fundamentar esse direito da igreja, corrige a remissão ao art. 32 do Estatuto pois este nada tem a ver com associações, fundações e sim fala do regimento interno.",
+      "alteracaoTipo": "alteracao_material"
+    }
+  ]
+}

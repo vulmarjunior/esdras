@@ -1,0 +1,26 @@
+{
+  "id": "cap-dissolucao",
+  "type": "capitulo",
+  "numero": "VII",
+  "titulo": "DA DISSOLUÇÃO",
+  "textoVigente": "",
+  "propostaInicial": "CAPÍTULO VII\nDA DISSOLUÇÃO",
+  "justificativa": "Novo capítulo. Reorganiza o dispositivo sobre dissolução, atualmente alocado no Capítulo VI.",
+  "alteracaoTipo": "reorganizado",
+  "origem": "proposta_inicial",
+  "filhos": [
+    {
+      "id": "art-27",
+      "type": "artigo",
+      "numero": "27",
+      "titulo": null,
+      "textoVigente": "Em caso de dissolução da Igreja, o que só poderá acontecer com a votação de (80%) oitenta por cento de todos os seus membros, em Assembleia Geral Extraordinária convocada exclusivamente para este fim, se for para unir-se a outra Igreja da mesma fé e ordem, fiel ao que dispõe o Artigo 3º Inciso V, seus bens e haveres remanescentes serão incorporados ao patrimônio de outra igreja; em qualquer outra circunstância, o patrimônio será incorporado ao patrimônio da Convenção Batista do Estado de Rondônia, e na sua falta, à Convenção Batista Brasileira.",
+      "propostaInicial": "",
+      "justificativa": "Manter a redação. Redação adequada.",
+      "alteracaoTipo": "reorganizado",
+      "filhos": [
+        { "id": "art-27-pu", "type": "paragrafo", "numero": "Único", "textoVigente": "A transferência do patrimônio a que se refere o Artigo 27, deverá ocorrer antes da dissolução da Igreja.", "propostaInicial": "", "justificativa": "Manter a redação. Redação adequada.", "alteracaoTipo": "mantido" }
+      ]
+    }
+  ]
+}

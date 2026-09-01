@@ -1,0 +1,134 @@
+{
+  "id": "cap-3",
+  "type": "capitulo",
+  "numero": "III",
+  "titulo": "DOS DIREITOS E DEVERES DOS MEMBROS",
+  "textoVigente": "CAPÍTULO III\nDOS DIREITOS E DEVERES DOS MEMBROS",
+  "propostaInicial": "",
+  "justificativa": "Manter a redação. Redação adequada.",
+  "alteracaoTipo": "mantido",
+  "filhos": [
+    {
+      "id": "art-9",
+      "type": "artigo",
+      "numero": "9º",
+      "titulo": null,
+      "textoVigente": "São direitos do membro da Igreja Batista Olaria:",
+      "propostaInicial": "",
+      "justificativa": "Manter a redação. Redação adequada.",
+      "alteracaoTipo": "mantido",
+      "filhos": [
+        {
+          "id": "art-9-inc-1",
+          "type": "inciso",
+          "numero": "I",
+          "textoVigente": "Participar dos cultos e das atividades da Igreja Batista Olaria, inclusive exercendo seus dons espirituais e habilidades socioculturais.",
+          "propostaInicial": "Participar das atividades da Igreja Batista Olaria, inclusive exercendo seus dons espirituais e habilidades socioculturais, sendo essas atividades religiosas, civis ou sociais.",
+          "justificativa": "Traz esclarecimentos quanto às atividades em que o membro pode ser inserido",
+          "alteracaoTipo": "alteracao_material"
+        },
+        {
+          "id": "art-9-inc-2",
+          "type": "inciso",
+          "numero": "II",
+          "textoVigente": "Participar das sessões ordinárias e extraordinárias da Assembleia dos Membros, com direito ao uso da palavra e ao exercício do voto.",
+          "propostaInicial": "Participar das sessões ordinárias e extraordinárias da Assembleia dos Membros, com direito ao uso da palavra, votar e ser votado, ser credenciado a representar a igreja nas assembleias de associações e convenções municipais, estaduais, nacionais e internacionais, desde que respeitados seus respectivos estatutos, sendo observada a maioridade civil quando legalmente exigido;",
+          "justificativa": "Nova redação ampliando os direitos.",
+          "alteracaoTipo": "alteracao_material"
+        },
+        { "id": "art-9-inc-3", "type": "inciso", "numero": "III", "textoVigente": "Expressar suas ideias livre e civilizadamente, discutindo os assuntos em reuniões próprias.", "propostaInicial": "", "justificativa": "Manter a redação. Redação adequada.", "alteracaoTipo": "mantido" },
+        {
+          "id": "art-9-inc-4",
+          "type": "inciso",
+          "numero": "IV",
+          "textoVigente": "Receber assistência e educação bíblica, espiritual e cidadã.",
+          "propostaInicial": "Receber assistência e educação bíblica e espiritual.",
+          "justificativa": "Sai a palavra cidadã pois está fora de contexto.",
+          "alteracaoTipo": "alteracao_redacional"
+        },
+        {
+          "id": "art-9-inc-5",
+          "type": "inciso",
+          "numero": "V",
+          "textoVigente": "Ter acesso aos documentos financeiros e contábeis da Igreja Batista Olaria, sem causar constrangimentos a terceiros.",
+          "propostaInicial": "Ter acesso às informações contábeis, movimentação de membros e demais documentos da Igreja, respeitada a Lei 13.709/18, Lei Geral de Proteção de Dados Pessoais (LGPD), (Redação dada pela Lei 13.853/19).",
+          "justificativa": "Atualizar o disposto à LGPD",
+          "alteracaoTipo": "alteracao_material"
+        },
+        { "id": "art-9-inc-6", "type": "inciso", "numero": "VI", "textoVigente": "Usufruir dos serviços e bens patrimoniais da Igreja Batista Olaria, por eles também sendo corresponsável.", "propostaInicial": "", "justificativa": "Manter a redação. Redação adequada.", "alteracaoTipo": "mantido" },
+        {
+          "id": "art-9-inc-8",
+          "type": "inciso",
+          "numero": "VIII",
+          "textoVigente": "Endereçar ao Pastor Presidente opiniões que favoreçam o bem-estar da Igreja Batista Olaria, bem como sua manifestação do princípio do contraditório e da ampla defesa.",
+          "propostaInicial": "Endereçar ao Presidente da Igreja opiniões que favoreçam o bem-estar da Igreja Batista Olaria, bem como sua manifestação do princípio do contraditório e da ampla defesa, previsto no Parágrafo 1º do art. 8º.",
+          "justificativa": "Considerando a possibilidade de o pastor não ser o Presidente da Igreja.",
+          "alteracaoTipo": "alteracao_redacional"
+        },
+        {
+          "id": "art-9-p1",
+          "type": "paragrafo",
+          "numero": "1º",
+          "textoVigente": "Quando a decisão em Assembleia Geral envolver aspectos legais, os votos dos membros civilmente incapazes, não serão computados, sendo necessária a orientação do Pastor Presidente sobre este assunto.",
+          "propostaInicial": "Quando a decisão em Assembleia Geral envolver aspectos legais, os votos dos membros civilmente incapazes, não serão computados, sendo necessária a orientação do Presidente da Igreja sobre este assunto.",
+          "justificativa": "Considerando a possibilidade de o pastor não ser o Presidente da Igreja.",
+          "alteracaoTipo": "alteracao_redacional"
+        }
+      ]
+    },
+    {
+      "id": "art-10",
+      "type": "artigo",
+      "numero": "10",
+      "titulo": null,
+      "textoVigente": "São deveres do membro da Igreja Batista Olaria:",
+      "propostaInicial": "",
+      "justificativa": "Manter a redação. Redação adequada.",
+      "alteracaoTipo": "mantido",
+      "filhos": [
+        {
+          "id": "art-10-inc-1",
+          "type": "inciso",
+          "numero": "I",
+          "textoVigente": "Manter um comportamento pessoal compatível com os princípios éticos prescritos em o Novo Testamento, defendidos pela Igreja Batista Olaria, bem como sua clara identidade como Batista.",
+          "propostaInicial": "Manter um comportamento pessoal compatível com os princípios éticos prescritos na Bíblia Sagrada, defendidos pela Igreja Batista Olaria, bem como sua clara identidade como Batista.",
+          "justificativa": "Amplia do Novo Testamento para Bíblia Sagrada.",
+          "alteracaoTipo": "alteracao_redacional"
+        },
+        { "id": "art-10-inc-2", "type": "inciso", "numero": "II", "textoVigente": "Participar dos cultos e das atividades da Igreja Batista Olaria, como prioridade em sua vida, inclusive exercendo seus dons espirituais e habilidades socioculturais para o bem-estar da Igreja Batista Olaria e da sociedade em geral.", "propostaInicial": "", "justificativa": "Manter a redação. Redação adequada.", "alteracaoTipo": "mantido" },
+        {
+          "id": "art-10-inc-3",
+          "type": "inciso",
+          "numero": "III",
+          "textoVigente": "Participar das sessões ordinárias e extraordinárias da Assembleia dos Membros, com direito ao uso da palavra e ao exercício do voto.",
+          "propostaInicial": "Participar das sessões ordinárias e extraordinárias da Assembleia dos Membros, com direito ao uso da palavra e ao exercício do voto, respeitado o parágrafo 1º do art. 9º.",
+          "justificativa": "Lembra da capacidade civil.",
+          "alteracaoTipo": "alteracao_redacional"
+        },
+        { "id": "art-10-inc-4", "type": "inciso", "numero": "IV", "textoVigente": "Contribuir para a manutenção das atividades da Igreja, entregando sistematicamente o dízimo e ofertas alçadas, conforme orientação bíblica.", "propostaInicial": "", "justificativa": "Manter a redação. Redação adequada.", "alteracaoTipo": "mantido" },
+        { "id": "art-10-inc-5", "type": "inciso", "numero": "V", "textoVigente": "Exercer com zelo e dedicação os cargos para os quais for eleito.", "propostaInicial": "", "justificativa": "Manter a redação. Redação adequada.", "alteracaoTipo": "mantido" },
+        { "id": "art-10-inc-6", "type": "inciso", "numero": "VI", "textoVigente": "Ser aluno assíduo e pontual da Escola Bíblica Dominical.", "propostaInicial": "", "justificativa": "Manter a redação. Redação adequada.", "alteracaoTipo": "mantido" },
+        { "id": "art-10-inc-7", "type": "inciso", "numero": "VII", "textoVigente": "Cumprir e fazer cumprir este Estatuto e o Regimento Interno.", "propostaInicial": "", "justificativa": "Manter a redação. Redação adequada.", "alteracaoTipo": "mantido" },
+        {
+          "id": "art-10-inc-8",
+          "type": "inciso",
+          "numero": "VIII",
+          "textoVigente": "Acatar as decisões tomadas pela Assembleia dos Membros, bem como orientações do Pastor Presidente.",
+          "propostaInicial": "Acatar as decisões tomadas pela Assembleia dos Membros, bem como orientações do Presidente da Igreja.",
+          "justificativa": "Na hipótese de o pastor não ser o presidente.",
+          "alteracaoTipo": "alteracao_redacional"
+        },
+        {
+          "id": "art-10-inc-9",
+          "type": "inciso",
+          "numero": "IX",
+          "textoVigente": "Comunicarão Pastor Presidente e/ou caso precise ausentar-se por mais de trinta dias consecutivos dos cultos e atividades da Igreja Batista Olaria.",
+          "propostaInicial": "Comunicarão Presidente da Igreja e/ou caso precise ausentar-se por mais de trinta dias consecutivos dos cultos e atividades da Igreja Batista Olaria.",
+          "justificativa": "Na hipótese de o pastor não ser o presidente.",
+          "alteracaoTipo": "alteracao_redacional"
+        },
+        { "id": "art-10-inc-10", "type": "inciso", "numero": "X", "textoVigente": "Promover o zelo e a ampliação do patrimônio da Igreja Batista Olaria.", "propostaInicial": "", "justificativa": "Manter a redação. Redação adequada.", "alteracaoTipo": "mantido" }
+      ]
+    }
+  ]
+}
