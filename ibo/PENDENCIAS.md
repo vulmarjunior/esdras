@@ -1,49 +1,29 @@
 # PENDÊNCIAS DE PAUTA — ESDRAS
 
-Pauta de trabalho para o próximo agente/dev. Estado do projeto: **MVP funcional e rodando** (Next.js 16 + SQLite local). Especificação: `../PRD_ESDRAS.md`.
+Pauta de trabalho para o próximo agente/dev. Estado do projeto: **MVP completo e rodando em produção** (Next.js 16 + Supabase Postgres). Especificação: `../PRD_ESDRAS.md`.
 
-## Entregas recentes (nesta sessão)
+## 1. Decisões do usuário (já tomadas — não implementar)
 
-- **Troca de senha obrigatória no primeiro acesso**: coluna `must_change_password`; login redireciona para `/trocar-senha`; `proxy.ts` + layout + `requireUser` bloqueiam o app até a troca; admin pode forçar troca ao redefinir senha. Migração do banco existente: `node scripts/migrate-users-phone-password.mjs` (pendente de rodar — rede corporativa bloqueando o Supabase).
-- **Telefone com link WhatsApp**: coluna `phone` (normalização em `lib/phone.ts` puro: `normalizarTelefone`/`formatarTelefone`/`whatsappLink`); cadastro/edição no Admin; link "WhatsApp" na lista de usuários do Admin e na presença da reunião; ação `updateMyPhone`.
-- **Reordenação física de artigos (PRD §17 — 2ª etapa)**: mover artigos entre capítulos/seções/raiz e reordenar irmãos (`parent_id`/`ordem_pai`), com validação de hierarquia/ciclos em módulo puro (`lib/reorder-core.ts`), ação `moveProvision` (auditoria + evento de reunião), UI em `/renumeracao` e testes.
-- **Perfis centralizados** (`lib/permissions.ts`) + controle de concorrência testado (`lib/version-guard.ts`). Testes Vitest: 50.
-- Base limpa: removido o **seed da proposta inicial** (erro de projeto) — origem agora é só `original | novo`; raiz = Estatuto registrado (Cap. I–VI + Art. 27 dissolução + Cap. VII), artigos 1º–33.
-- **Editor de texto rico** (zero dependência) em Redação/Proposta/Justificativa; versionamento grava o texto salvo; navegação estrutural com colapse; helpers por campo; revogar original; contador por artigos.
-- **§18 Referências cruzadas — UI**: vincular/desvincular dispositivos (card na tela do dispositivo).
-- **§17 Renumeração — 2ª etapa**: botão "Aplicar numeração" (confirmação + auditoria + evento de reunião). Obs.: grava números conforme a ordem ATUAL da árvore; a reordenação física entre capítulos é etapa separada.
-- **§31 IA "Comparar versões"** (compara redação de trabalho x vigente).
-- **Votação de sugestões** (`votes.suggestion_id`) — consulta aos membros em cada sugestão.
-- **§23 Aprovar dispositivo dentro da reunião** (atalho na tela da reunião).
-- **§29 Ata — retificação**: ata aprovada fica bloqueada; correções viram retificação (nova tabela `minutes_retifications`).
-- **Auditoria — paginação** (100/página).
-- **§33 Análise de coerência com IA** (página /coerencia, só alerta).
-- **Testes automatizados** (Vitest, 13 testes: renumeração + sanitização de rich text) — `npm test`.
-- **Migração Supabase**: backend agora é **Postgres** (`lib/db.ts` → `pg` async; conversor SQLite→Postgres em runtime). `scripts/migrate-to-pg.mjs` porta schema+dados (idempotente). App verificado end-to-end contra o Supabase.
-- Groq: `GROQ_API_KEY` preenchida; `.env.local` com `DATABASE_URL` (shared pooler IPv4).
+- [x] **Supabase Auth/RLS/Realtime** — **DECIDIDO**: autenticação fica como está (JWT local). Sistema temporário, sem necessidade de complexificar. Realtime já implementado (Broadcast + Presence, sem Auth/RLS). Não migrar para Supabase Auth/RLS.
+- [x] **Deploy Vercel** — concluído (em produção: `esdrasibo.vercel.app`).
+- [x] **Nomes reais dos 9 membros** — já cadastrados pelo usuário.
 
-## 1. Decisões pendentes do usuário (perguntar antes de implementar)
+## 2. Funcionalidades previstas no PRD — status final
 
-- [ ] **Supabase Auth/RLS/Realtime** (PRD §37–43) — backend já está em **Postgres (Supabase)** com auth local (JWT). Opcional evoluir para Supabase Auth + RLS + Realtime; requer Service Role key/decidir escopo.
-- [ ] **Deploy Vercel** — configurar env vars no painel Vercel (`DATABASE_URL`, `SESSION_SECRET`, `GROQ_API_KEY`) e publicar.
-- [ ] **Nomes reais dos 9 membros da comissão** — usuários seed são fictícios. Editar no painel Admin ou via SQL no Postgres.
-
-## 2. Funcionalidades previstas no PRD, ainda não implementadas
-
-- [x] **Renumeração** (PRD §17): simulador + "Aplicar numeração" (números + auditoria) + **reordenação física de artigos entre capítulos** (mover, com validação e auditoria).
+- [x] **Renumeração** (PRD §17): simulador + "Aplicar numeração" + **reordenação física de artigos entre capítulos** (mover, com validação e auditoria).
 - [x] **Análise de coerência com IA** (PRD §33): página `/coerencia`, só alerta.
-- [ ] **Supabase Auth/RLS** (evolução do backend já migrado para Postgres). Realtime **já implementado** (Broadcast + Presence, sem Auth/RLS).
-- [ ] **Votação formal da comissão** (votação consultiva de sugestões já implementada).
-- [ ] **Importação de novos documentos** (PRD §36): requer definição do formato de entrada (PDF/texto) antes de implementar.
+- [x] **Realtime** (PRD §40): Broadcast (refresh automático) + Presence (Modo Reunião).
+- [x] **Votação** — **DECIDIDO**: votação consultiva é suficiente (não implementar votação formal).
+- [x] **Importação de novos documentos** (PRD §36) — **DECIDIDO**: desnecessária (importação inicial via seed já cobre).
 
 ## 3. Melhorias conhecidas / dívidas técnicas
 
-- [x] **Testes automatizados** — Vitest, 42 testes (renumeração, sanitização rich text, reordenação, **versão/conflito §41 e perfis**). Perfis centralizados em `lib/permissions.ts` (usado pelos actions).
-- [x] **Deploy Vercel** — backend migrado para Supabase Postgres (`pg`); falta só publicar (env vars + deploy).
-- [x] **Numeração/ordem final dos dispositivos novos** — mecanismo completo: mover artigo para a posição desejada e "Aplicar numeração" (item §17 acima).
-- [ ] **`docs/` ou wiki do projeto** — manter `AGENTS.md` atualizado a cada mudança relevante.
+- [x] **Testes automatizados** — Vitest, 50 testes (renumeração, sanitização rich text, reordenação, versão/conflito §41, perfis, telefone).
+- [x] **Deploy Vercel** — em produção.
+- [x] **Numeração/ordem final dos dispositivos novos** — mecanismo completo (mover + aplicar numeração).
 - [x] **Índices/paginação de auditoria** — paginação implementada (100/página).
-- [ ] **Append de eventos em `meeting_events`** — log factual e não editável (PRD §24) — comportamento já correto; não adicionar edição.
+- [x] **`meeting_events`** — log factual e não editável (PRD §24) — comportamento já correto.
+- [ ] **`docs/` ou wiki do projeto** — manter `AGENTS.md`/`PENDENCIAS.md` atualizados (contínuo).
 
 ## 4. Documentação/observações de código
 
