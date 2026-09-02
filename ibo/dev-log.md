@@ -49,6 +49,13 @@
 
 ### Funcionalidades PRD
 
+#### Tela do dispositivo em abas
+- **Status**: ✅ Implementado
+- **Data**: 2026-09-02
+- **Contexto**: a tela de análise do dispositivo empilhava ~14 seções numa rolagem única, pouco funcional.
+- **Solução**: `components/provision/device-tabs.tsx` (client) agrupa as seções em 4 abas — **Análise** (status + texto vigente/proposta/redação/justificativa/consolidada), **Colaboração** (sugestões + opinião + comentários), **Pendências & Fundamentos**, **Histórico & Referências** — com barra sticky e contadores. Ações de admin (novo/editar/excluir/revogar) viraram um bloco `<details>` "Administração" no topo (só coordenador/admin). `app/(app)/dispositivo/[id]/page.tsx` agora só busca dados e delega a coluna direita ao `DeviceTabs`.
+- **Observações**: os painéis ficam **sempre montados** (alternância via `hidden` CSS), então o texto não salvo no editor é preservado ao trocar de aba. Tab switching é estado local (`useState`), sem navegação/`searchParams` — evita remount.
+
 #### Realtime (Broadcast + Presence) — PRD §40
 - **Status**: ✅ Implementado (broadcast = refresh automático; presence = quem está online no Modo Reunião). Auth/RLS continuam não usados (não exigidos por Broadcast/Presence).
 - **Data**: 2026-09-02
@@ -57,7 +64,7 @@
 - **Observações**: server-side usa a chave publishable (pública, segura) + WebSocket outbound; falha de rede no publish é silenciosa (best-effort). `router.refresh()` (e não reload) é o que garante não perder texto não salvo. Para ativar em produção: setar as duas env `NEXT_PUBLIC_*` no Vercel (feito via CLI).
 
 #### Troca de senha obrigatória no 1º acesso + telefone/WhatsApp
-- **Status**: ✅ Implementado (migração do banco **pendente** — rede bloqueou o Supabase; rodar `node scripts/migrate-users-phone-password.mjs`)
+- **Status**: ✅ Implementado (migração aplicada no Supabase pelo usuário via SQL Editor)
 - **Data**: 2026-09-02
 - **Contexto**: pedido do usuário — forçar troca de senha no primeiro login e cadastro de telefone com link para WhatsApp.
 - **Solução**: colunas `users.must_change_password` (default 0) e `users.phone` (schema.sql, migrate-to-pg.mjs e script de migração incremental). JWT ganhou claim `mc` (`createSession(userId, { mustChange })`); `proxy.ts` redireciona para `/trocar-senha` enquanto o claim estiver ativo; `(app)/layout.tsx` faz a checagem no banco (cobre sessões antigas sem claim); `requireUser` lança `Troca_senha_necessaria` (bloqueia mutations). Página `app/trocar-senha` (fora do grupo `(app)` para evitar loop de redirect) com form de troca (senha atual + nova + confirmação, mínimo 8, auditada pela sessão). Admin: `createUser` grava `must_change_password=1`; redefinir senha reativa a obrigação. Telefone: módulo puro `lib/phone.ts` (normaliza para `55+DDD+número`, formata e gera `https://wa.me/...`); campo no Admin (cadastro/edição), link WhatsApp na lista de usuários e na presença da reunião; `updateMyPhone` para autosserviço. Testes: `tests/phone.test.ts` (8) — total 50.
