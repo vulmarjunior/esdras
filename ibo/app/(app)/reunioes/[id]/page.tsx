@@ -15,6 +15,7 @@ import {
   ReviewAtaForm,
 } from "@/components/meetings/meeting-actions";
 import { ApproveDeviceForm } from "@/components/provision/provision-forms";
+import { MeetingPresence } from "@/components/meetings/meeting-presence";
 
 export const dynamic = "force-dynamic";
 
@@ -137,6 +138,8 @@ export default async function MeetingPage({ params }: { params: Promise<{ id: st
           Modo Reunião ativo — presença {presentCount}/{members.length}
         </div>
       )}
+
+      <MeetingPresence meetingId={meetingId} userId={user.id} userName={user.name} userRole={user.role} />
 
       <div className="grid gap-5 lg:grid-cols-2">
         <Card>

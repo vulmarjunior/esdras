@@ -6,6 +6,7 @@ import { run, transaction, now, get } from "@/lib/db";
 import { getArtigosOrdenados } from "@/lib/renumeracao";
 import { renumerar } from "@/lib/renumeracao-core";
 import { rolesCom } from "@/lib/permissions";
+import { publishRealtime } from "@/lib/realtime";
 
 async function audit(userId: number, user_name: string, action: string, entity: string, entity_id: string, detail?: string) {
   await run(
@@ -66,6 +67,7 @@ export async function applyRenumeracao(): Promise<RenumeracaoState> {
   revalidatePath("/");
   revalidatePath("/renumeracao");
   revalidatePath("/consolidado");
+  await publishRealtime({ entity: "project", id: "projeto-ibo", action: "renumeracao" });
   return {
     ok: true,
     message:

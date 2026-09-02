@@ -10,6 +10,7 @@ import { sanitizeHtml, htmlToText } from "@/lib/rich-text";
 import { inserirApos, validarMovimento, type NoEstrutural } from "@/lib/reorder-core";
 import { rolesCom } from "@/lib/permissions";
 import { avaliarConflito } from "@/lib/version-guard";
+import { publishRealtime } from "@/lib/realtime";
 
 async function audit(userId: number, user_name: string, action: string, entity: string, entity_id: string, detail?: string) {
   await run(
@@ -73,6 +74,7 @@ export async function updateRedacao(
   });
   await logMeetingEvent("redacao_atualizada", `Redação de ${provisionId} atualizada`, user.id);
   revalidatePath(`/dispositivo/${provisionId}`);
+  await publishRealtime({ entity: "provision", id: provisionId, action: "redacao" });
   return { ok: true, message: "Redação salva. Nova versão criada." };
 }
 
@@ -81,6 +83,7 @@ export async function updateJustificativa(provisionId: string, justificativa: st
   await run("UPDATE provisions SET justificativa = ?, updated_at = ? WHERE id = ?", [sanitizeHtml(justificativa), now(), provisionId]);
   await audit(user.id, user.name, "Justificativa atualizada", "provision", provisionId);
   revalidatePath(`/dispositivo/${provisionId}`);
+  await publishRealtime({ entity: "provision", id: provisionId, action: "justificativa" });
   return { ok: true };
 }
 
@@ -112,6 +115,7 @@ export async function updateHistoricalText(
     );
   });
   revalidatePath(`/dispositivo/${provisionId}`);
+  await publishRealtime({ entity: "provision", id: provisionId, action: "historico" });
   return { ok: true, message: `${rotulo} corrigido e registrado em auditoria.` };
 }
 
@@ -131,6 +135,7 @@ export async function setStatus(provisionId: string, status: string): Promise<Ac
   await logMeetingEvent(status === "aprovado" ? "aprovado" : "status", `${provisionId} ${status === "aprovado" ? "aprovado" : "marcado como " + status}`, user.id);
   revalidatePath(`/dispositivo/${provisionId}`);
   revalidatePath("/");
+  await publishRealtime({ entity: "provision", id: provisionId, action: "status" });
   return { ok: true };
 }
 
@@ -147,6 +152,7 @@ export async function setAlteracaoTipo(provisionId: string, tipo: string): Promi
   await logMeetingEvent("alteracao", `Dispositivo ${provisionId} classificado como ${tipo}`, user.id);
   revalidatePath(`/dispositivo/${provisionId}`);
   revalidatePath("/");
+  await publishRealtime({ entity: "provision", id: provisionId, action: "classificacao" });
   return { ok: true, message: `Classificação: ${ALTERACAO_TYPE_LABELS[tipo] || tipo}.` };
 }
 
@@ -165,6 +171,7 @@ export async function createSuggestion(
   await audit(user.id, user.name, "Criou sugestão #" + res.lastInsertRowid, "provision", provisionId);
   await logMeetingEvent("sugestao", `Sugestão #${res.lastInsertRowid} criada em ${provisionId}`, user.id);
   revalidatePath(`/dispositivo/${provisionId}`);
+  await publishRealtime({ entity: "provision", id: provisionId, action: "sugestao" });
   return { ok: true, message: "Sugestão registrada." };
 }
 
@@ -225,6 +232,7 @@ export async function createProvision(
 
   revalidatePath("/");
   if (parentId) revalidatePath(`/dispositivo/${parentId}`);
+  await publishRealtime({ entity: "provision", id, action: "criado" });
   return { ok: true, id, message: `${tipo} criado. Numeração definitiva será definida na consolidação.` };
 }
 
@@ -248,6 +256,7 @@ export async function updateProvision(
   });
   revalidatePath(`/dispositivo/${provisionId}`);
   revalidatePath("/");
+  await publishRealtime({ entity: "provision", id: provisionId, action: "editado" });
   return { ok: true, message: "Dispositivo atualizado." };
 }
 
@@ -347,6 +356,7 @@ export async function moveProvision(
   revalidatePath(`/dispositivo/${provisionId}`);
   revalidatePath("/renumeracao");
   revalidatePath("/consolidado");
+  await publishRealtime({ entity: "provision", id: provisionId, action: "movido" });
   return { ok: true, message: `${provisionLabel(prov)} movido para ${paiNovo}.` };
 }
 
@@ -383,6 +393,7 @@ export async function deleteProvision(provisionId: string): Promise<ActionState>
   revalidatePath("/");
   revalidatePath(`/dispositivo/${provisionId}`);
   revalidatePath("/consolidado");
+  await publishRealtime({ entity: "provision", id: provisionId, action: "excluido" });
   return { ok: true, message: "Dispositivo excluído." };
 }
 
@@ -396,6 +407,7 @@ export async function updateSuggestionStatus(suggestionId: number, status: strin
   await audit(user.id, user.name, `Sugestão #${suggestionId} ${status}`, "suggestion", String(suggestionId));
   await logMeetingEvent(status === "aceita" ? "sugestao_aceita" : "sugestao", `Sugestão #${suggestionId} ${status}`, user.id);
   revalidatePath(`/dispositivo/${sug.provision_id}`);
+  await publishRealtime({ entity: "provision", id: sug.provision_id, action: "sugestao_status" });
   return { ok: true };
 }
 
@@ -414,6 +426,7 @@ export async function createComment(
   ]);
   await audit(user.id, user.name, "Comentou", "provision", provisionId || "", content.slice(0, 120));
   revalidatePath(provisionId ? `/dispositivo/${provisionId}` : "/");
+  await publishRealtime({ entity: "provision", id: provisionId || "", action: "comentario" });
   return { ok: true };
 }
 
@@ -428,6 +441,7 @@ export async function createPendingIssue(provisionId: string, categoria: string,
   ]);
   await audit(user.id, user.name, "Registrou pendência #" + res.lastInsertRowid, "provision", provisionId);
   revalidatePath(`/dispositivo/${provisionId}`);
+  await publishRealtime({ entity: "provision", id: provisionId, action: "pendencia" });
   return { ok: true };
 }
 
@@ -451,6 +465,7 @@ export async function createReference(provisionId: string, tipo: string, texto: 
   ]);
   await audit(user.id, user.name, "Adicionou referência " + tipo, "provision", provisionId);
   revalidatePath(`/dispositivo/${provisionId}`);
+  await publishRealtime({ entity: "provision", id: provisionId, action: "referencia" });
   return { ok: true };
 }
 
@@ -466,6 +481,7 @@ export async function vote(provisionId: string | null, opinion: string, suggesti
       [user.id, suggestionId, opinion]
     );
     if (provisionId) revalidatePath(`/dispositivo/${provisionId}`);
+    await publishRealtime({ entity: "provision", id: provisionId || "", action: "voto" });
     return { ok: true };
   }
   if (!provisionId) return { error: "Dispositivo não informado." };
@@ -476,6 +492,7 @@ export async function vote(provisionId: string | null, opinion: string, suggesti
     [user.id, provisionId, opinion]
   );
   revalidatePath(`/dispositivo/${provisionId}`);
+  await publishRealtime({ entity: "provision", id: provisionId, action: "voto" });
   return { ok: true };
 }
 
@@ -495,6 +512,7 @@ export async function addProvisionRelation(provisionId: string, relatedId: strin
   await run("INSERT OR IGNORE INTO provision_relations (provision_id, related_id) VALUES (?, ?)", [provisionId, relatedId]);
   await audit(user.id, user.name, "Vinculou dispositivo", "provision", provisionId, "relacionado a " + relatedId);
   revalidatePath(`/dispositivo/${provisionId}`);
+  await publishRealtime({ entity: "provision", id: provisionId, action: "vinculo" });
   return { ok: true };
 }
 
@@ -502,5 +520,6 @@ export async function removeProvisionRelation(provisionId: string, relatedId: st
   await requireRole(...rolesCom("vincular_dispositivos"));
   await run("DELETE FROM provision_relations WHERE provision_id = ? AND related_id = ?", [provisionId, relatedId]);
   revalidatePath(`/dispositivo/${provisionId}`);
+  await publishRealtime({ entity: "provision", id: provisionId, action: "vinculo" });
   return { ok: true };
 }

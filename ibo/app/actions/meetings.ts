@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { get, run, all, now, transaction } from "@/lib/db";
 import { requireRole } from "@/lib/auth";
 import { rolesCom } from "@/lib/permissions";
+import { publishRealtime } from "@/lib/realtime";
 
 async function audit(userId: number, user_name: string, action: string, entity: string, entity_id: string, detail?: string) {
   await run(
@@ -34,6 +35,7 @@ export async function createMeeting(data: {
   }
   await audit(user.id, user.name, "Criou reunião #" + data.numero, "meeting", String(res.lastInsertRowid));
   revalidatePath("/reunioes");
+  await publishRealtime({ entity: "meeting", id: String(res.lastInsertRowid), action: "criada" });
   return { ok: true, message: "Reunião criada." };
 }
 
@@ -47,6 +49,7 @@ export async function startMeeting(meetingId: number): Promise<ActionState> {
   ]);
   await audit(user.id, user.name, "Iniciou reunião", "meeting", String(meetingId));
   revalidatePath(`/reunioes/${meetingId}`);
+  await publishRealtime({ entity: "meeting", id: String(meetingId), action: "iniciada" });
   return { ok: true };
 }
 
@@ -60,6 +63,7 @@ export async function endMeeting(meetingId: number): Promise<ActionState> {
   ]);
   await audit(user.id, user.name, "Encerrou reunião", "meeting", String(meetingId));
   revalidatePath(`/reunioes/${meetingId}`);
+  await publishRealtime({ entity: "meeting", id: String(meetingId), action: "encerrada" });
   return { ok: true };
 }
 
@@ -67,6 +71,7 @@ export async function setPresence(meetingId: number, userId: number, presente: b
   await requireRole(...rolesCom("gerenciar_reunioes"));
   await run("UPDATE meeting_members SET presente = ? WHERE meeting_id = ? AND user_id = ?", [presente ? 1 : 0, meetingId, userId]);
   revalidatePath(`/reunioes/${meetingId}`);
+  await publishRealtime({ entity: "meeting", id: String(meetingId), action: "presenca" });
   return { ok: true };
 }
 
@@ -81,6 +86,7 @@ export async function addManualEvent(meetingId: number, descricao: string): Prom
   ]);
   await audit(user.id, user.name, "Registrou evento em reunião", "meeting", String(meetingId), descricao);
   revalidatePath(`/reunioes/${meetingId}`);
+  await publishRealtime({ entity: "meeting", id: String(meetingId), action: "evento" });
   return { ok: true };
 }
 
@@ -113,6 +119,7 @@ export async function addDecision(
   ]);
   await audit(user.id, user.name, "Registrou deliberação " + fullCode, "meeting", String(meetingId));
   revalidatePath(`/reunioes/${meetingId}`);
+  await publishRealtime({ entity: "meeting", id: String(meetingId), action: "deliberacao" });
   return { ok: true, message: fullCode };
 }
 
@@ -223,6 +230,7 @@ export async function generateMinutes(meetingId: number): Promise<ActionState> {
     [meetingId, linhas.join("\n")]);
   await audit(user.id, user.name, "Gerou minuta de ata", "meeting", String(meetingId));
   revalidatePath(`/reunioes/${meetingId}`);
+  await publishRealtime({ entity: "meeting", id: String(meetingId), action: "ata" });
   return { ok: true, message: "Minuta gerada com base nos registros da reunião." };
 }
 
@@ -233,6 +241,7 @@ export async function setMinutesStatus(minutesId: number, status: string): Promi
   await run("UPDATE minutes SET status = ?, updated_at = datetime('now') WHERE id = ?", [status, minutesId]);
   await audit(user.id, user.name, "Ata em status " + status, "minutes", String(minutesId));
   revalidatePath(`/reunioes/${m.meeting_id}`);
+  await publishRealtime({ entity: "meeting", id: String(m.meeting_id), action: "ata_status" });
   return { ok: true };
 }
 
@@ -243,6 +252,7 @@ export async function saveMinutes(meetingId: number, content: string): Promise<A
     [meetingId, content]);
   await audit(user.id, user.name, "Atualizou minuta de ata", "meeting", String(meetingId));
   revalidatePath(`/reunioes/${meetingId}`);
+  await publishRealtime({ entity: "meeting", id: String(meetingId), action: "ata" });
   return { ok: true };
 }
 
@@ -257,6 +267,7 @@ export async function reviewMinutes(minutesId: number, opinion: string, content:
     content || "",
   ]);
   revalidatePath(`/reunioes/${m.meeting_id}`);
+  await publishRealtime({ entity: "meeting", id: String(m.meeting_id), action: "ata_revisao" });
   return { ok: true };
 }
 
@@ -272,5 +283,6 @@ export async function addMinuteRetification(minutesId: number, content: string):
   ]);
   await audit(user.id, user.name, "Registrou retificação de ata", "minutes", String(minutesId));
   revalidatePath(`/reunioes/${m.meeting_id}`);
+  await publishRealtime({ entity: "meeting", id: String(m.meeting_id), action: "ata_retificacao" });
   return { ok: true, message: "Retificação registrada." };
 }

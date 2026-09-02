@@ -49,6 +49,13 @@
 
 ### Funcionalidades PRD
 
+#### Realtime (Broadcast + Presence) — PRD §40
+- **Status**: ✅ Implementado (broadcast = refresh automático; presence = quem está online no Modo Reunião). Auth/RLS continuam não usados (não exigidos por Broadcast/Presence).
+- **Data**: 2026-09-02
+- **Contexto**: pedido do usuário — só o Realtime interessava (dos 3 serviços Supabase). Implementado sem Supabase Auth nem RLS.
+- **Solução**: `@supabase/supabase-js` (v2). `lib/realtime.ts` (server-only): publica evento `refresh` no canal `esdras-realtime` via Broadcast (no-op se as env vars `NEXT_PUBLIC_SUPABASE_URL`/`NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` faltarem). `components/realtime-bridge.tsx` (client): ouve o canal e chama `router.refresh()` — preserva estado client/digitação em andamento. Publicação ligada nas server actions de provision/meetings/renumeracao. `components/meetings/meeting-presence.tsx`: Presence por reunião (`esdras-presence-<id>`), mostra quem está com a tela da reunião aberta.
+- **Observações**: server-side usa a chave publishable (pública, segura) + WebSocket outbound; falha de rede no publish é silenciosa (best-effort). `router.refresh()` (e não reload) é o que garante não perder texto não salvo. Para ativar em produção: setar as duas env `NEXT_PUBLIC_*` no Vercel (feito via CLI).
+
 #### Troca de senha obrigatória no 1º acesso + telefone/WhatsApp
 - **Status**: ✅ Implementado (migração do banco **pendente** — rede bloqueou o Supabase; rodar `node scripts/migrate-users-phone-password.mjs`)
 - **Data**: 2026-09-02

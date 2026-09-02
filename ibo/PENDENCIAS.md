@@ -32,7 +32,7 @@ Pauta de trabalho para o próximo agente/dev. Estado do projeto: **MVP funcional
 
 - [x] **Renumeração** (PRD §17): simulador + "Aplicar numeração" (números + auditoria) + **reordenação física de artigos entre capítulos** (mover, com validação e auditoria).
 - [x] **Análise de coerência com IA** (PRD §33): página `/coerencia`, só alerta.
-- [ ] **Supabase Auth/RLS/Realtime** (evolução do backend já migrado para Postgres).
+- [ ] **Supabase Auth/RLS** (evolução do backend já migrado para Postgres). Realtime **já implementado** (Broadcast + Presence, sem Auth/RLS).
 - [ ] **Votação formal da comissão** (votação consultiva de sugestões já implementada).
 - [ ] **Importação de novos documentos** (PRD §36): requer definição do formato de entrada (PDF/texto) antes de implementar.
 
