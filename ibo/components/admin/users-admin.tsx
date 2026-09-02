@@ -32,15 +32,15 @@ export function CreateUserForm() {
     router.refresh();
   }
   return (
-    <div className="grid gap-3 rounded-xl border bg-card p-4 sm:grid-cols-2 lg:grid-cols-6">
-      <input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="Nome completo" className="h-9 rounded-md border bg-background px-3 text-sm" />
-      <input value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} placeholder="e-mail" type="email" className="h-9 rounded-md border bg-background px-3 text-sm" />
-      <input value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} placeholder="Telefone (69) 99999-9999" type="tel" className="h-9 rounded-md border bg-background px-3 text-sm" />
-      <input value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} placeholder="Senha inicial" type="password" className="h-9 rounded-md border bg-background px-3 text-sm" />
-      <select value={form.role} onChange={(e) => setForm({ ...form, role: e.target.value })} className="h-9 rounded-md border bg-background px-2 text-sm">
+    <div className="grid gap-3 rounded-xl border bg-card p-4 sm:grid-cols-2 lg:grid-cols-3">
+      <input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="Nome completo" className="h-9 w-full rounded-md border bg-background px-3 text-sm" />
+      <input value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} placeholder="e-mail" type="email" className="h-9 w-full rounded-md border bg-background px-3 text-sm" />
+      <input value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} placeholder="Telefone (69) 99999-9999" type="tel" className="h-9 w-full rounded-md border bg-background px-3 text-sm" />
+      <input value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} placeholder="Senha inicial" type="password" className="h-9 w-full rounded-md border bg-background px-3 text-sm" />
+      <select value={form.role} onChange={(e) => setForm({ ...form, role: e.target.value })} className="h-9 w-full rounded-md border bg-background px-2 text-sm">
         {ROLES.map((r) => <option key={r.value} value={r.value}>{r.label}</option>)}
       </select>
-      <Button type="button" onClick={submit} disabled={pending}>Cadastrar</Button>
+      <Button type="button" onClick={submit} disabled={pending} className="h-9">Cadastrar</Button>
     </div>
   );
 }
@@ -89,22 +89,20 @@ export function UserRow({ u, canDelete }: { u: User; canDelete: boolean }) {
   if (editing) {
     return (
       <li className="rounded-lg border p-3">
-        <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-[1.2fr_1.2fr_1fr_auto_auto_auto]">
-          <input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="Nome" className="h-9 rounded-md border bg-background px-3 text-sm" />
-          <input value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} placeholder="E-mail" type="email" className="h-9 rounded-md border bg-background px-3 text-sm" />
-          <input value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} placeholder="Telefone (69) 99999-9999" type="tel" className="h-9 rounded-md border bg-background px-3 text-sm" />
-          <select value={form.role} onChange={(e) => setForm({ ...form, role: e.target.value })} className="h-9 rounded-md border bg-background px-2 text-sm">
+        <div className="grid gap-2 md:grid-cols-2">
+          <input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="Nome" className="h-9 w-full rounded-md border bg-background px-3 text-sm" />
+          <input value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} placeholder="E-mail" type="email" className="h-9 w-full rounded-md border bg-background px-3 text-sm" />
+          <input value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} placeholder="Telefone (69) 99999-9999" type="tel" className="h-9 w-full rounded-md border bg-background px-3 text-sm" />
+          <select value={form.role} onChange={(e) => setForm({ ...form, role: e.target.value })} className="h-9 w-full rounded-md border bg-background px-2 text-sm">
             {ROLES.map((r) => <option key={r.value} value={r.value}>{r.label}</option>)}
           </select>
-          <input value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} placeholder="Redefinir senha (opcional)" type="password" className="h-9 rounded-md border bg-background px-3 text-sm" />
-          <div className="flex gap-2">
+          <input value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} placeholder="Redefinir senha (opcional)" type="password" className="h-9 w-full rounded-md border bg-background px-3 text-sm" />
+          <div className="flex items-center gap-2 md:col-span-2">
             <Button size="sm" onClick={save} disabled={pending}>Salvar</Button>
             <Button size="sm" variant="ghost" onClick={() => setEditing(false)}>Cancelar</Button>
+            <span className="text-xs text-muted-foreground">Ao redefinir a senha, o usuário será obrigado a trocá-la no próximo acesso.</span>
           </div>
         </div>
-        <p className="mt-2 text-xs text-muted-foreground">
-          Ao redefinir a senha, o usuário será obrigado a trocá-la no próximo acesso.
-        </p>
       </li>
     );
   }
