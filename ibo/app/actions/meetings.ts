@@ -2,7 +2,8 @@
 
 import { revalidatePath } from "next/cache";
 import { get, run, all, now, transaction } from "@/lib/db";
-import { requireRole, requireUser } from "@/lib/auth";
+import { requireRole } from "@/lib/auth";
+import { rolesCom } from "@/lib/permissions";
 
 async function audit(userId: number, user_name: string, action: string, entity: string, entity_id: string, detail?: string) {
   await run(
@@ -22,7 +23,7 @@ export async function createMeeting(data: {
   coordenador_id: number | null;
   secretario_id: number | null;
 }): Promise<ActionState> {
-  const user = await requireRole("coordenador", "admin");
+  const user = await requireRole(...rolesCom("gerenciar_reunioes"));
   const res = await run(
     "INSERT INTO meetings (numero, data, horario, local, pauta, coordenador_id, secretario_id) VALUES (?, ?, ?, ?, ?, ?, ?)",
     [data.numero, data.data, data.horario, data.local, data.pauta, data.coordenador_id, data.secretario_id]
@@ -37,7 +38,7 @@ export async function createMeeting(data: {
 }
 
 export async function startMeeting(meetingId: number): Promise<ActionState> {
-  const user = await requireRole("coordenador", "admin");
+  const user = await requireRole(...rolesCom("gerenciar_reunioes"));
   await run("UPDATE meetings SET status = 'em_andamento', started_at = ? WHERE id = ?", [now(), meetingId]);
   await run("INSERT INTO meeting_events (meeting_id, user_id, hora, tipo, descricao) VALUES (?, ?, ?, 'inicio', 'Reunião iniciada')", [
     meetingId,
@@ -50,7 +51,7 @@ export async function startMeeting(meetingId: number): Promise<ActionState> {
 }
 
 export async function endMeeting(meetingId: number): Promise<ActionState> {
-  const user = await requireRole("coordenador", "admin");
+  const user = await requireRole(...rolesCom("gerenciar_reunioes"));
   await run("UPDATE meetings SET status = 'encerrada', ended_at = ? WHERE id = ?", [now(), meetingId]);
   await run("INSERT INTO meeting_events (meeting_id, user_id, hora, tipo, descricao) VALUES (?, ?, ?, 'encerramento', 'Reunião encerrada')", [
     meetingId,
@@ -63,14 +64,14 @@ export async function endMeeting(meetingId: number): Promise<ActionState> {
 }
 
 export async function setPresence(meetingId: number, userId: number, presente: boolean): Promise<ActionState> {
-  await requireRole("coordenador", "admin");
+  await requireRole(...rolesCom("gerenciar_reunioes"));
   await run("UPDATE meeting_members SET presente = ? WHERE meeting_id = ? AND user_id = ?", [presente ? 1 : 0, meetingId, userId]);
   revalidatePath(`/reunioes/${meetingId}`);
   return { ok: true };
 }
 
 export async function addManualEvent(meetingId: number, descricao: string): Promise<ActionState> {
-  const user = await requireRole("coordenador", "admin");
+  const user = await requireRole(...rolesCom("gerenciar_reunioes"));
   if (!descricao.trim()) return { error: "Descreva o evento." };
   await run("INSERT INTO meeting_events (meeting_id, user_id, hora, tipo, descricao) VALUES (?, ?, ?, 'registro', ?)", [
     meetingId,
@@ -89,7 +90,7 @@ export async function addDecision(
   tipo: string,
   texto: string
 ): Promise<ActionState> {
-  const user = await requireRole("coordenador", "admin");
+  const user = await requireRole(...rolesCom("gerenciar_reunioes"));
   if (!texto.trim()) return { error: "Descreva a deliberação." };
   const meeting = await get<{ numero: number; data: string }>("SELECT numero, data FROM meetings WHERE id = ?", [meetingId]);
   if (!meeting) return { error: "Reunião não encontrada." };
@@ -127,7 +128,7 @@ export async function updateMeeting(
     secretario_id: number | null;
   }
 ): Promise<ActionState> {
-  const user = await requireRole("coordenador", "admin");
+  const user = await requireRole(...rolesCom("gerenciar_reunioes"));
   const exists = await get("SELECT id FROM meetings WHERE id = ?", [meetingId]);
   if (!exists) return { error: "Reunião não encontrada." };
   await run(
@@ -141,7 +142,7 @@ export async function updateMeeting(
 }
 
 export async function deleteMeeting(meetingId: number): Promise<ActionState> {
-  const user = await requireRole("coordenador", "admin");
+  const user = await requireRole(...rolesCom("gerenciar_reunioes"));
   const meeting = await get<{ numero: number }>("SELECT numero FROM meetings WHERE id = ?", [meetingId]);
   if (!meeting) return { error: "Reunião não encontrada." };
   const ataAprovada = (await get<{ c: number }>(
@@ -164,7 +165,7 @@ export async function deleteMeeting(meetingId: number): Promise<ActionState> {
 }
 
 export async function generateMinutes(meetingId: number): Promise<ActionState> {
-  const user = await requireRole("coordenador", "admin");
+  const user = await requireRole(...rolesCom("gerenciar_reunioes"));
   const meeting = await get<{
     numero: number; data: string; horario: string | null; local: string | null; pauta: string | null;
     started_at: string | null; ended_at: string | null;
@@ -226,7 +227,7 @@ export async function generateMinutes(meetingId: number): Promise<ActionState> {
 }
 
 export async function setMinutesStatus(minutesId: number, status: string): Promise<ActionState> {
-  const user = await requireRole("coordenador", "admin");
+  const user = await requireRole(...rolesCom("gerenciar_reunioes"));
   const m = await get<{ meeting_id: number }>("SELECT meeting_id FROM minutes WHERE id = ?", [minutesId]);
   if (!m) return { error: "Minuta não encontrada." };
   await run("UPDATE minutes SET status = ?, updated_at = datetime('now') WHERE id = ?", [status, minutesId]);
@@ -236,7 +237,7 @@ export async function setMinutesStatus(minutesId: number, status: string): Promi
 }
 
 export async function saveMinutes(meetingId: number, content: string): Promise<ActionState> {
-  const user = await requireRole("coordenador", "admin");
+  const user = await requireRole(...rolesCom("gerenciar_reunioes"));
   await run(`INSERT INTO minutes (meeting_id, status, conteudo) VALUES (?, 'rascunho', ?)
        ON CONFLICT(meeting_id) DO UPDATE SET conteudo = excluded.conteudo, status = 'rascunho', updated_at = datetime('now')`,
     [meetingId, content]);
@@ -246,7 +247,7 @@ export async function saveMinutes(meetingId: number, content: string): Promise<A
 }
 
 export async function reviewMinutes(minutesId: number, opinion: string, content: string): Promise<ActionState> {
-  const user = await requireUser();
+  const user = await requireRole(...rolesCom("revisar_ata"));
   const m = await get<{ meeting_id: number }>("SELECT meeting_id FROM minutes WHERE id = ?", [minutesId]);
   if (!m) return { error: "Minuta não encontrada." };
   await run("INSERT INTO minutes_reviews (minutes_id, user_id, opinion, content) VALUES (?, ?, ?, ?)", [
@@ -260,7 +261,7 @@ export async function reviewMinutes(minutesId: number, opinion: string, content:
 }
 
 export async function addMinuteRetification(minutesId: number, content: string): Promise<ActionState> {
-  const user = await requireUser();
+  const user = await requireRole(...rolesCom("revisar_ata"));
   if (!content.trim()) return { error: "Informe o texto da retificação." };
   const m = await get<{ meeting_id: number }>("SELECT meeting_id FROM minutes WHERE id = ?", [minutesId]);
   if (!m) return { error: "Ata não encontrada." };

@@ -4,6 +4,7 @@ Pauta de trabalho para o próximo agente/dev. Estado do projeto: **MVP funcional
 
 ## Entregas recentes (nesta sessão)
 
+- **Reordenação física de artigos (PRD §17 — 2ª etapa)**: mover artigos entre capítulos/seções/raiz e reordenar irmãos (`parent_id`/`ordem_pai`), com validação de hierarquia/ciclos em módulo puro (`lib/reorder-core.ts`), ação `moveProvision` (auditoria + evento de reunião), UI em `/renumeracao` e 18 testes novos (Vitest, total 31).
 - Base limpa: removido o **seed da proposta inicial** (erro de projeto) — origem agora é só `original | novo`; raiz = Estatuto registrado (Cap. I–VI + Art. 27 dissolução + Cap. VII), artigos 1º–33.
 - **Editor de texto rico** (zero dependência) em Redação/Proposta/Justificativa; versionamento grava o texto salvo; navegação estrutural com colapse; helpers por campo; revogar original; contador por artigos.
 - **§18 Referências cruzadas — UI**: vincular/desvincular dispositivos (card na tela do dispositivo).
@@ -26,7 +27,7 @@ Pauta de trabalho para o próximo agente/dev. Estado do projeto: **MVP funcional
 
 ## 2. Funcionalidades previstas no PRD, ainda não implementadas
 
-- [x] **Renumeração** (PRD §17): simulador + "Aplicar numeração" (números + auditoria). Limitação: reordenação física entre capítulos (mover) ainda é etapa separada.
+- [x] **Renumeração** (PRD §17): simulador + "Aplicar numeração" (números + auditoria) + **reordenação física de artigos entre capítulos** (mover, com validação e auditoria).
 - [x] **Análise de coerência com IA** (PRD §33): página `/coerencia`, só alerta.
 - [ ] **Supabase Auth/RLS/Realtime** (evolução do backend já migrado para Postgres).
 - [ ] **Votação formal da comissão** (votação consultiva de sugestões já implementada).
@@ -34,9 +35,9 @@ Pauta de trabalho para o próximo agente/dev. Estado do projeto: **MVP funcional
 
 ## 3. Melhorias conhecidas / dívidas técnicas
 
-- [x] **Testes automatizados** — Vitest + 13 testes (renumeração, sanitização rich text). Expandir para versão/conflito e perfis.
+- [x] **Testes automatizados** — Vitest, 42 testes (renumeração, sanitização rich text, reordenação, **versão/conflito §41 e perfis**). Perfis centralizados em `lib/permissions.ts` (usado pelos actions).
 - [x] **Deploy Vercel** — backend migrado para Supabase Postgres (`pg`); falta só publicar (env vars + deploy).
-- [ ] **Numeração/ordem final dos dispositivos novos** — ligada à reordenação física (item §17 acima).
+- [x] **Numeração/ordem final dos dispositivos novos** — mecanismo completo: mover artigo para a posição desejada e "Aplicar numeração" (item §17 acima).
 - [ ] **`docs/` ou wiki do projeto** — manter `AGENTS.md` atualizado a cada mudança relevante.
 - [x] **Índices/paginação de auditoria** — paginação implementada (100/página).
 - [ ] **Append de eventos em `meeting_events`** — log factual e não editável (PRD §24) — comportamento já correto; não adicionar edição.

@@ -5,6 +5,7 @@ import { requireRole } from "@/lib/auth";
 import { run, transaction, now, get } from "@/lib/db";
 import { getArtigosOrdenados } from "@/lib/renumeracao";
 import { renumerar } from "@/lib/renumeracao-core";
+import { rolesCom } from "@/lib/permissions";
 
 async function audit(userId: number, user_name: string, action: string, entity: string, entity_id: string, detail?: string) {
   await run(
@@ -34,7 +35,7 @@ export type RenumeracaoState = { ok?: boolean; error?: string; message?: string 
  * gravados, com auditoria e registro de evento de reunião. Nunca reescreve textos.
  */
 export async function applyRenumeracao(): Promise<RenumeracaoState> {
-  const user = await requireRole("coordenador", "admin");
+  const user = await requireRole(...rolesCom("renumerar"));
 
   const artigos = await getArtigosOrdenados();
   const ids = artigos.map((a) => a.id);

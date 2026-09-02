@@ -2,7 +2,7 @@
 
 > Documentação viva de descobertas técnicas. Atualizada automaticamente durante o desenvolvimento.
 > **Stack**: Next.js 16.3.4 (App Router, Turbopack, RSC) · React 19 · TypeScript · Tailwind 4 · Supabase Postgres (`pg`) · better-sqlite3 (só scripts) · Groq API · Vitest
-> **Última atualização**: 2026-09-01
+> **Última atualização**: 2026-09-02
 
 ---
 
@@ -49,12 +49,26 @@
 
 ### Funcionalidades PRD
 
+#### Perfis centralizados + controle de concorrência testados (42 testes)
+- **Status**: ✅ Confirmado
+- **Data**: 2026-09-02
+- **Contexto**: pauta PENDENCIAS.md — expandir testes para versão/conflito (§41) e perfis (§4).
+- **Solução**: `lib/permissions.ts` (puro): mapa `PERMISSOES` por permissão → roles, `rolesCom()`/`temPermissao()`. Os 4 arquivos de server actions passaram a usar `requireRole(...rolesCom("..."))` (sem listas hardcoded; `removeProvisionRelation` alinhado a `vincular_dispositivos` — antes era `requireUser`). `lib/version-guard.ts` (puro) com `avaliarConflito(esperada, atual)` usado em `updateRedacao`. Novos testes: `permissions.test.ts` (7) e `version-guard.test.ts` (4).
+- **Observações**: E2E com JWT admin/membro confirmou os gates: membro recebe redirect (307) em `/renumeracao`, `/admin`, `/auditoria`; admin 200 em tudo.
+
 #### Renumeração §17 (simulador + aplicar)
 - **Status**: ✅ Confirmado
 - **Data**: 2026-09-01
 - **Contexto**: realocação de artigos muda a numeração de todos os subsequentes.
 - **Solução**: página `/renumeracao` com simulador (reordena, calcula números, detecta referências "Art. N" nos textos — heurística `/arts?\.?|artigos?\s+(\d+)/`) e botão "Aplicar numeração" (grava `numero` na ordem atual + auditoria + evento de reunião, com confirmação).
-- **Observações**: referências nunca reescritas automaticamente (regra §17). A reordenação física entre capítulos (`parent_id`/`ordem_pai`) é etapa separada ainda não implementada.
+- **Observações**: referências nunca reescritas automaticamente (regra §17).
+
+#### Reordenação física §17 — 2ª etapa (mover artigos entre capítulos)
+- **Status**: ✅ Confirmado
+- **Data**: 2026-09-02
+- **Contexto**: faltava persistir `parent_id`/`ordem_pai` para realocar artigos entre capítulos.
+- **Solução**: módulo puro `lib/reorder-core.ts` (`podeMover` com a hierarquia existente, `inserirApos`, `validarMovimento` com proteção de ciclo); server action `moveProvision` em `app/actions/provision.ts` (valida, renumera `ordem_pai` dos irmãos afetados, auditoria + evento de reunião, no-op detectado); UI `components/renumeracao/reorder.tsx` na página `/renumeracao` (mover artigos para capítulos/seções/raiz ou reordenar entre irmãos); 18 testes novos em `tests/reorder-core.test.ts` (total 31).
+- **Observações**: capítulos permanecem na raiz (regra do `createProvision`); hierarquia `artigo→[paragrafo,inciso,alinea]` vale para o movimento; `ordem` global segue apenas como desempate (`ordem_pai` é a ordem real entre irmãos). O fluxo recomendado: mover → "Aplicar numeração".
 
 #### Demais entregas: referências cruzadas (§18), votação de sugestões, aprovar na reunião (§23), retificação de ata (§29), IA comparar versões (§31), coerência IA (§33), auditoria paginada, testes Vitest (13)
 - **Status**: ✅ Confirmado

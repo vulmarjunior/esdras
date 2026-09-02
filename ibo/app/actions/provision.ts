@@ -1,12 +1,15 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { get, run, transaction, now } from "@/lib/db";
+import { get, run, transaction, now, all } from "@/lib/db";
 import { getActiveMeeting, provisionLabel } from "@/lib/data";
 import type { Provision } from "@/lib/types";
 import { requireRole, requireUser } from "@/lib/auth";
 import { ALTERACAO_TYPE_LABELS } from "@/lib/labels";
 import { sanitizeHtml, htmlToText } from "@/lib/rich-text";
+import { inserirApos, validarMovimento, type NoEstrutural } from "@/lib/reorder-core";
+import { rolesCom } from "@/lib/permissions";
+import { avaliarConflito } from "@/lib/version-guard";
 
 async function audit(userId: number, user_name: string, action: string, entity: string, entity_id: string, detail?: string) {
   await run(
@@ -36,17 +39,15 @@ export async function updateRedacao(
   expectedVersion: number,
   reason: string
 ): Promise<ActionState> {
-  const user = await requireRole("coordenador", "admin");
+  const user = await requireRole(...rolesCom("editar_redacao"));
   const prov = await get<{ version: number; redacao_trabalho: string }>(
     "SELECT version, redacao_trabalho FROM provisions WHERE id = ?",
     [provisionId]
   );
   if (!prov) return { error: "Dispositivo não encontrado." };
-  if (prov.version !== expectedVersion) {
-    return {
-      conflict: true,
-      error: "Este dispositivo foi alterado desde que você iniciou a edição. Revise a versão mais recente antes de salvar.",
-    };
+  const conflito = avaliarConflito(expectedVersion, prov.version);
+  if (conflito.conflito) {
+    return { conflict: true, error: conflito.mensagem || "Conflito de versão." };
   }
   if (!content.trim()) return { error: "A redação não pode ficar vazia." };
   const clean = sanitizeHtml(content);
@@ -76,7 +77,7 @@ export async function updateRedacao(
 }
 
 export async function updateJustificativa(provisionId: string, justificativa: string): Promise<ActionState> {
-  const user = await requireRole("coordenador", "admin");
+  const user = await requireRole(...rolesCom("editar_justificativa"));
   await run("UPDATE provisions SET justificativa = ?, updated_at = ? WHERE id = ?", [sanitizeHtml(justificativa), now(), provisionId]);
   await audit(user.id, user.name, "Justificativa atualizada", "provision", provisionId);
   revalidatePath(`/dispositivo/${provisionId}`);
@@ -88,7 +89,7 @@ export async function updateHistoricalText(
   campo: "texto_vigente" | "proposta_inicial",
   novoTexto: string
 ): Promise<ActionState> {
-  const user = await requireRole("admin");
+  const user = await requireRole(...rolesCom("corrigir_extracao"));
   const prov = await get<{ texto_vigente: string; proposta_inicial: string }>(
     "SELECT texto_vigente, proposta_inicial FROM provisions WHERE id = ?",
     [provisionId]
@@ -115,7 +116,7 @@ export async function updateHistoricalText(
 }
 
 export async function setStatus(provisionId: string, status: string): Promise<ActionState> {
-  const user = await requireRole("coordenador", "admin");
+  const user = await requireRole(...rolesCom("gerenciar_status"));
   const allowed = ["nao_iniciado", "em_analise", "em_discussao", "redacao_definida", "aprovado", "reaberto"];
   if (!allowed.includes(status)) return { error: "Status inválido." };
 
@@ -134,7 +135,7 @@ export async function setStatus(provisionId: string, status: string): Promise<Ac
 }
 
 export async function setAlteracaoTipo(provisionId: string, tipo: string): Promise<ActionState> {
-  const user = await requireRole("coordenador", "admin");
+  const user = await requireRole(...rolesCom("classificar_alteracao"));
   const allowed = ["nao_avaliado", "mantido", "alteracao_redacional", "alteracao_material", "novo", "revogado", "desmembrado", "incorporado", "reorganizado"];
   if (!allowed.includes(tipo)) return { error: "Tipo de alteração inválido." };
   const prov = await get<{ alteracao_tipo: string }>("SELECT alteracao_tipo FROM provisions WHERE id = ?", [provisionId]);
@@ -155,7 +156,7 @@ export async function createSuggestion(
   justificativa: string,
   ondeEsta: string
 ): Promise<ActionState> {
-  const user = await requireRole("coordenador", "admin", "membro");
+  const user = await requireRole(...rolesCom("contribuir"));
   if (!texto.trim()) return { error: "Informe o texto da sugestão." };
   const res = await run(
     "INSERT INTO suggestions (provision_id, author_id, texto, justificativa, onde_esta, status) VALUES (?, ?, ?, ?, ?, 'aberta')",
@@ -175,7 +176,7 @@ export async function createProvision(
   titulo?: string,
   numero?: string
 ): Promise<ActionState & { id?: string }> {
-  const user = await requireRole("coordenador", "admin");
+  const user = await requireRole(...rolesCom("gerenciar_dispositivos"));
   const tipos = ["capitulo", "secao", "artigo", "paragrafo", "inciso", "alinea"];
   if (!tipos.includes(tipo)) return { error: "Tipo de dispositivo inválido." };
   if (!texto.trim()) return { error: "Informe o texto do novo dispositivo." };
@@ -231,7 +232,7 @@ export async function updateProvision(
   provisionId: string,
   data: { numero: string; titulo: string; posicaoSugerida: string }
 ): Promise<ActionState> {
-  const user = await requireRole("coordenador", "admin");
+  const user = await requireRole(...rolesCom("gerenciar_dispositivos"));
   const prov = await get<Provision>("SELECT * FROM provisions WHERE id = ?", [provisionId]);
   if (!prov) return { error: "Dispositivo não encontrado." };
   const ts = now();
@@ -250,8 +251,107 @@ export async function updateProvision(
   return { ok: true, message: "Dispositivo atualizado." };
 }
 
+/**
+ * PRD §17 (2ª etapa) — reordenação física: move um dispositivo para outro pai
+ * (`newParentId`, null = raiz do documento) e para uma posição entre irmãos
+ * (`afterId`, null = primeiro). Valida hierarquia e ciclos, renumera `ordem_pai`
+ * dos irmãos afetados e registra auditoria/evento de reunião. Nunca altera textos.
+ */
+export async function moveProvision(
+  provisionId: string,
+  newParentId: string | null,
+  afterId: string | null
+): Promise<ActionState> {
+  const user = await requireRole(...rolesCom("gerenciar_dispositivos"));
+  const prov = await get<Provision>("SELECT * FROM provisions WHERE id = ?", [provisionId]);
+  if (!prov) return { error: "Dispositivo não encontrado." };
+
+  const rows = await all<NoEstrutural>("SELECT id, type, parent_id FROM provisions");
+  const mapa = new Map(rows.map((r) => [r.id, r]));
+  const erro = validarMovimento(mapa, provisionId, newParentId, afterId);
+  if (erro) return { error: erro };
+
+  const irmaos = async (parentId: string | null) => {
+    const where = parentId === null ? "parent_id IS NULL" : "parent_id = ?";
+    const params = parentId === null ? [] : [parentId];
+    return all<{ id: string; ordem_pai: number }>(
+      `SELECT id, ordem_pai FROM provisions WHERE ${where} ORDER BY ordem_pai`,
+      params
+    );
+  };
+
+  const irmaosAntigos = await irmaos(prov.parent_id);
+  const irmaosNovos = newParentId === prov.parent_id ? irmaosAntigos : await irmaos(newParentId);
+
+  const novaOrdem = inserirApos(irmaosNovos.map((x) => x.id), provisionId, afterId);
+  const semMoved = irmaosAntigos.map((x) => x.id).filter((x) => x !== provisionId);
+
+  const novaOrdemPai = new Map<string, number>();
+  semMoved.forEach((id, i) => novaOrdemPai.set(id, i));
+  novaOrdem.forEach((id, i) => novaOrdemPai.set(id, i));
+
+  const ordemAtualPorId = new Map<string, number>();
+  irmaosAntigos.forEach((x) => ordemAtualPorId.set(x.id, x.ordem_pai));
+  irmaosNovos.forEach((x) => {
+    if (!ordemAtualPorId.has(x.id)) ordemAtualPorId.set(x.id, x.ordem_pai);
+  });
+
+  const sameParent = newParentId === prov.parent_id;
+  const noOp =
+    sameParent &&
+    irmaosAntigos.map((x) => x.id).every((id, i) => novaOrdem[i] === id);
+
+  if (noOp) {
+    return { ok: true, message: "O dispositivo já está nesta posição." };
+  }
+
+  const labelPai = async (parentId: string | null) => {
+    if (!parentId) return "raiz do documento";
+    const p = await get<Provision>("SELECT * FROM provisions WHERE id = ?", [parentId]);
+    return p ? provisionLabel(p) : parentId;
+  };
+  const paiAntigo = await labelPai(prov.parent_id);
+  const paiNovo = await labelPai(newParentId);
+  const posicao = novaOrdem.indexOf(provisionId) + 1;
+
+  const ts = now();
+  await transaction(async () => {
+    if (!sameParent) {
+      await run("UPDATE provisions SET parent_id = ?, updated_at = ?, updated_by = ? WHERE id = ?", [
+        newParentId,
+        ts,
+        user.id,
+        provisionId,
+      ]);
+    }
+    for (const [id, ordem_pai] of novaOrdemPai) {
+      if (ordemAtualPorId.get(id) === ordem_pai && !(id === provisionId && !sameParent)) continue;
+      await run("UPDATE provisions SET ordem_pai = ?, updated_at = ? WHERE id = ?", [ordem_pai, ts, id]);
+    }
+    await audit(
+      user.id,
+      user.name,
+      "Moveu dispositivo",
+      "provision",
+      provisionId,
+      `${provisionLabel(prov)}: ${paiAntigo} → ${paiNovo}, posição ${posicao}`
+    );
+  });
+  await logMeetingEvent(
+    "reordenacao",
+    `${provisionLabel(prov)} movido: ${paiAntigo} → ${paiNovo}`,
+    user.id
+  );
+
+  revalidatePath("/");
+  revalidatePath(`/dispositivo/${provisionId}`);
+  revalidatePath("/renumeracao");
+  revalidatePath("/consolidado");
+  return { ok: true, message: `${provisionLabel(prov)} movido para ${paiNovo}.` };
+}
+
 export async function deleteProvision(provisionId: string): Promise<ActionState> {
-  const user = await requireRole("coordenador", "admin");
+  const user = await requireRole(...rolesCom("gerenciar_dispositivos"));
   const prov = await get<Provision>("SELECT * FROM provisions WHERE id = ?", [provisionId]);
   if (!prov) return { error: "Dispositivo não encontrado." };
   if (prov.origem === "original") {
@@ -287,7 +387,7 @@ export async function deleteProvision(provisionId: string): Promise<ActionState>
 }
 
 export async function updateSuggestionStatus(suggestionId: number, status: string): Promise<ActionState> {
-  const user = await requireRole("coordenador", "admin");
+  const user = await requireRole(...rolesCom("gerenciar_sugestoes"));
   const allowed = ["aberta", "em_discussao", "aceita", "aceita_parcialmente", "rejeitada", "retirada"];
   if (!allowed.includes(status)) return { error: "Status inválido." };
   const sug = await get<{ provision_id: string }>("SELECT provision_id FROM suggestions WHERE id = ?", [suggestionId]);
@@ -318,7 +418,7 @@ export async function createComment(
 }
 
 export async function createPendingIssue(provisionId: string, categoria: string, descricao: string): Promise<ActionState> {
-  const user = await requireRole("coordenador", "admin", "membro");
+  const user = await requireRole(...rolesCom("contribuir"));
   if (!descricao.trim()) return { error: "Descreva a pendência." };
   const res = await run("INSERT INTO pending_issues (provision_id, author_id, categoria, descricao) VALUES (?, ?, ?, ?)", [
     provisionId,
@@ -341,7 +441,7 @@ export async function resolvePending(pendingId: number, provisionId: string): Pr
 }
 
 export async function createReference(provisionId: string, tipo: string, texto: string): Promise<ActionState> {
-  const user = await requireRole("coordenador", "admin", "membro");
+  const user = await requireRole(...rolesCom("contribuir"));
   if (!texto.trim()) return { error: "Informe a referência." };
   await run("INSERT INTO references_tb (provision_id, tipo, texto, author_id) VALUES (?, ?, ?, ?)", [
     provisionId,
@@ -355,7 +455,7 @@ export async function createReference(provisionId: string, tipo: string, texto: 
 }
 
 export async function vote(provisionId: string | null, opinion: string, suggestionId: number | null = null): Promise<ActionState> {
-  const user = await requireRole("coordenador", "admin", "membro");
+  const user = await requireRole(...rolesCom("contribuir"));
   const allowed = ["concordo", "discordo", "ressalva"];
   if (!allowed.includes(opinion)) return { error: "Voto inválido." };
   if (suggestionId != null) {
@@ -391,7 +491,7 @@ export async function removeVote(provisionId: string | null, suggestionId: numbe
 }
 
 export async function addProvisionRelation(provisionId: string, relatedId: string): Promise<ActionState> {
-  const user = await requireRole("coordenador", "admin");
+  const user = await requireRole(...rolesCom("vincular_dispositivos"));
   await run("INSERT OR IGNORE INTO provision_relations (provision_id, related_id) VALUES (?, ?)", [provisionId, relatedId]);
   await audit(user.id, user.name, "Vinculou dispositivo", "provision", provisionId, "relacionado a " + relatedId);
   revalidatePath(`/dispositivo/${provisionId}`);
@@ -399,7 +499,7 @@ export async function addProvisionRelation(provisionId: string, relatedId: strin
 }
 
 export async function removeProvisionRelation(provisionId: string, relatedId: string): Promise<ActionState> {
-  await requireUser();
+  await requireRole(...rolesCom("vincular_dispositivos"));
   await run("DELETE FROM provision_relations WHERE provision_id = ? AND related_id = ?", [provisionId, relatedId]);
   revalidatePath(`/dispositivo/${provisionId}`);
   return { ok: true };

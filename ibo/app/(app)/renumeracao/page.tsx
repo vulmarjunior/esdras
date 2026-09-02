@@ -1,7 +1,9 @@
 import { redirect } from "next/navigation";
 import { getSessionUser } from "@/lib/auth";
 import { getArtigosOrdenados, detectarReferencias } from "@/lib/renumeracao";
+import { getTree } from "@/lib/data";
 import { Simulator } from "@/components/renumeracao/simulator";
+import { Reorder } from "@/components/renumeracao/reorder";
 
 export const dynamic = "force-dynamic";
 
@@ -12,6 +14,7 @@ export default async function RenumeracaoPage() {
 
   const artigos = await getArtigosOrdenados();
   const referencias = await detectarReferencias();
+  const tree = await getTree();
 
   return (
     <div className="space-y-6">
@@ -23,6 +26,7 @@ export default async function RenumeracaoPage() {
         </p>
       </div>
       <Simulator artigos={artigos} referencias={referencias} />
+      <Reorder nodes={tree} />
     </div>
   );
 }

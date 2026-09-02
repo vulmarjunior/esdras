@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { get, run, all } from "@/lib/db";
 import { hashPassword, requireRole, requireUser } from "@/lib/auth";
+import { rolesCom } from "@/lib/permissions";
 import type { ActionState } from "./provision";
 
 async function audit(userId: number, user_name: string, action: string, entity: string, entity_id: string, detail?: string) {
@@ -13,7 +14,7 @@ async function audit(userId: number, user_name: string, action: string, entity: 
 }
 
 export async function createUser(data: { name: string; email: string; password: string; role: string }): Promise<ActionState> {
-  const user = await requireRole("admin");
+  const user = await requireRole(...rolesCom("gerenciar_usuarios"));
   if (!data.name.trim() || !data.email.trim() || !data.password.trim()) {
     return { error: "Preencha nome, e-mail e senha." };
   }
@@ -32,7 +33,7 @@ export async function createUser(data: { name: string; email: string; password: 
 }
 
 export async function updateUser(data: { id: number; name: string; email: string; role: string; password?: string }): Promise<ActionState> {
-  const user = await requireRole("admin");
+  const user = await requireRole(...rolesCom("gerenciar_usuarios"));
   const target = await get<{ email: string; name: string }>("SELECT email, name FROM users WHERE id = ?", [data.id]);
   if (!target) return { error: "Usuário não encontrado." };
   const email = data.email.trim().toLowerCase();
@@ -63,7 +64,7 @@ export async function updateUser(data: { id: number; name: string; email: string
 }
 
 export async function deleteUser(id: number): Promise<ActionState> {
-  const user = await requireRole("admin");
+  const user = await requireRole(...rolesCom("gerenciar_usuarios"));
   const target = await get<{ role: string }>("SELECT role FROM users WHERE id = ?", [id]);
   if (!target) return { error: "Usuário não encontrado." };
   if (target.role === "admin" && (await all("SELECT id FROM users WHERE role='admin'")).length <= 1) {
