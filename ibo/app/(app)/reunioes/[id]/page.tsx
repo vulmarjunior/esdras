@@ -55,8 +55,8 @@ export default async function MeetingPage({ params }: { params: Promise<{ id: st
 
   const canEdit = user.role === "coordenador" || user.role === "admin";
 
-  const members = await all<{ user_id: number; name: string; role: string; presente: number }>(`
-    SELECT mm.user_id, u.name, u.role, mm.presente
+  const members = await all<{ user_id: number; name: string; role: string; presente: number; phone: string | null }>(`
+    SELECT mm.user_id, u.name, u.role, mm.presente, u.phone
     FROM meeting_members mm JOIN users u ON u.id = mm.user_id
     WHERE mm.meeting_id = ? ORDER BY u.name`, [meetingId]);
 

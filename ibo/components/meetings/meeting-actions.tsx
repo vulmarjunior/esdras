@@ -8,6 +8,8 @@ import { createMeeting, updateMeeting, deleteMeeting, startMeeting, endMeeting, 
 import { ROLE_LABELS, STATUS_LABELS } from "@/lib/labels";
 import { ConfirmDialog, type ConfirmDialogState } from "@/components/confirm-dialog";
 import type { User } from "@/lib/types";
+import { whatsappLink } from "@/lib/phone";
+import { MessageCircle } from "lucide-react";
 
 export function CreateMeetingForm({ users, canEdit }: { users: User[]; canEdit: boolean }) {
   const [pending, setPending] = useState(false);
@@ -246,7 +248,7 @@ export function PresenceList({
   canEdit,
 }: {
   meetingId: number;
-  members: { user_id: number; name: string; role: string; presente: number }[];
+  members: { user_id: number; name: string; role: string; presente: number; phone: string | null }[];
   canEdit: boolean;
 }) {
   const [pending, setPending] = useState<number | null>(null);
@@ -262,20 +264,34 @@ export function PresenceList({
     <div>
       <p className="mb-2 text-sm text-muted-foreground">Presentes: {present}/{members.length}</p>
       <ul className="space-y-1">
-        {members.map((m) => (
-          <li key={m.user_id} className="flex items-center justify-between gap-2 rounded-md border px-3 py-1.5 text-sm">
-            <span>
-              {m.name} <span className="text-xs text-muted-foreground">({ROLE_LABELS[m.role]})</span>
-            </span>
-            {canEdit ? (
-              <Button size="sm" variant={m.presente ? "default" : "outline"} disabled={pending === m.user_id} onClick={() => toggle(m.user_id, !!m.presente)}>
-                {m.presente ? "Presente" : "Ausente"}
-              </Button>
-            ) : (
-              <span className="text-xs font-medium text-muted-foreground">{m.presente ? "Presente" : "Ausente"}</span>
-            )}
-          </li>
-        ))}
+        {members.map((m) => {
+          const wa = whatsappLink(m.phone);
+          return (
+            <li key={m.user_id} className="flex items-center justify-between gap-2 rounded-md border px-3 py-1.5 text-sm">
+              <span className="min-w-0">
+                {m.name} <span className="text-xs text-muted-foreground">({ROLE_LABELS[m.role]})</span>
+                {wa && (
+                  <a
+                    href={wa}
+                    target="_blank"
+                    rel="noreferrer"
+                    title="Chamar no WhatsApp"
+                    className="ml-2 inline-flex items-center gap-1 align-middle text-xs text-emerald-700 hover:underline dark:text-emerald-300"
+                  >
+                    <MessageCircle className="h-3.5 w-3.5" /> WhatsApp
+                  </a>
+                )}
+              </span>
+              {canEdit ? (
+                <Button size="sm" variant={m.presente ? "default" : "outline"} disabled={pending === m.user_id} onClick={() => toggle(m.user_id, !!m.presente)}>
+                  {m.presente ? "Presente" : "Ausente"}
+                </Button>
+              ) : (
+                <span className="text-xs font-medium text-muted-foreground">{m.presente ? "Presente" : "Ausente"}</span>
+              )}
+            </li>
+          );
+        })}
       </ul>
     </div>
   );

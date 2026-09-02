@@ -5,6 +5,8 @@ export interface User {
   name: string;
   email: string;
   role: Role;
+  phone: string | null;
+  must_change_password: number;
   created_at: string;
 }
 

@@ -4,7 +4,10 @@ Pauta de trabalho para o próximo agente/dev. Estado do projeto: **MVP funcional
 
 ## Entregas recentes (nesta sessão)
 
-- **Reordenação física de artigos (PRD §17 — 2ª etapa)**: mover artigos entre capítulos/seções/raiz e reordenar irmãos (`parent_id`/`ordem_pai`), com validação de hierarquia/ciclos em módulo puro (`lib/reorder-core.ts`), ação `moveProvision` (auditoria + evento de reunião), UI em `/renumeracao` e 18 testes novos (Vitest, total 31).
+- **Troca de senha obrigatória no primeiro acesso**: coluna `must_change_password`; login redireciona para `/trocar-senha`; `proxy.ts` + layout + `requireUser` bloqueiam o app até a troca; admin pode forçar troca ao redefinir senha. Migração do banco existente: `node scripts/migrate-users-phone-password.mjs` (pendente de rodar — rede corporativa bloqueando o Supabase).
+- **Telefone com link WhatsApp**: coluna `phone` (normalização em `lib/phone.ts` puro: `normalizarTelefone`/`formatarTelefone`/`whatsappLink`); cadastro/edição no Admin; link "WhatsApp" na lista de usuários do Admin e na presença da reunião; ação `updateMyPhone`.
+- **Reordenação física de artigos (PRD §17 — 2ª etapa)**: mover artigos entre capítulos/seções/raiz e reordenar irmãos (`parent_id`/`ordem_pai`), com validação de hierarquia/ciclos em módulo puro (`lib/reorder-core.ts`), ação `moveProvision` (auditoria + evento de reunião), UI em `/renumeracao` e testes.
+- **Perfis centralizados** (`lib/permissions.ts`) + controle de concorrência testado (`lib/version-guard.ts`). Testes Vitest: 50.
 - Base limpa: removido o **seed da proposta inicial** (erro de projeto) — origem agora é só `original | novo`; raiz = Estatuto registrado (Cap. I–VI + Art. 27 dissolução + Cap. VII), artigos 1º–33.
 - **Editor de texto rico** (zero dependência) em Redação/Proposta/Justificativa; versionamento grava o texto salvo; navegação estrutural com colapse; helpers por campo; revogar original; contador por artigos.
 - **§18 Referências cruzadas — UI**: vincular/desvincular dispositivos (card na tela do dispositivo).

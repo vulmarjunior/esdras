@@ -5,7 +5,7 @@ const secret = new TextEncoder().encode(
   process.env.SESSION_SECRET || "esdras-dev-secret-nao-use-em-producao"
 );
 const SESSION_COOKIE = "esdras_session";
-const PROTECTED_PREFIXES = ["/dispositivo", "/reunioes", "/pendentes", "/consolidado", "/relatorios", "/auditoria", "/admin"];
+const PROTECTED_PREFIXES = ["/dispositivo", "/reunioes", "/pendentes", "/consolidado", "/relatorios", "/auditoria", "/admin", "/trocar-senha"];
 
 export async function proxy(req: NextRequest) {
   const { pathname } = req.nextUrl;
@@ -15,10 +15,12 @@ export async function proxy(req: NextRequest) {
   const isLogin = pathname === "/login";
 
   let authed = false;
+  let mustChange = false;
   if (token) {
     try {
-      await jwtVerify(token, secret);
+      const { payload } = await jwtVerify(token, secret);
       authed = true;
+      mustChange = payload.mc === 1;
     } catch {
       authed = false;
     }
@@ -31,12 +33,17 @@ export async function proxy(req: NextRequest) {
   }
   if (isLogin && authed) {
     const url = req.nextUrl.clone();
-    url.pathname = "/";
+    url.pathname = mustChange ? "/trocar-senha" : "/";
+    return NextResponse.redirect(url);
+  }
+  if (authed && mustChange && pathname !== "/trocar-senha") {
+    const url = req.nextUrl.clone();
+    url.pathname = "/trocar-senha";
     return NextResponse.redirect(url);
   }
   return NextResponse.next();
 }
 
 export const config = {
-  matcher: ["/", "/login", "/dispositivo/:path*", "/reunioes/:path*", "/pendentes", "/consolidado", "/relatorios", "/auditoria", "/admin"],
+  matcher: ["/", "/login", "/dispositivo/:path*", "/reunioes/:path*", "/pendentes", "/consolidado", "/relatorios", "/auditoria", "/admin", "/trocar-senha"],
 };

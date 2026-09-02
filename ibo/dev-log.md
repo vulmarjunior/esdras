@@ -49,6 +49,13 @@
 
 ### Funcionalidades PRD
 
+#### Troca de senha obrigatória no 1º acesso + telefone/WhatsApp
+- **Status**: ✅ Implementado (migração do banco **pendente** — rede bloqueou o Supabase; rodar `node scripts/migrate-users-phone-password.mjs`)
+- **Data**: 2026-09-02
+- **Contexto**: pedido do usuário — forçar troca de senha no primeiro login e cadastro de telefone com link para WhatsApp.
+- **Solução**: colunas `users.must_change_password` (default 0) e `users.phone` (schema.sql, migrate-to-pg.mjs e script de migração incremental). JWT ganhou claim `mc` (`createSession(userId, { mustChange })`); `proxy.ts` redireciona para `/trocar-senha` enquanto o claim estiver ativo; `(app)/layout.tsx` faz a checagem no banco (cobre sessões antigas sem claim); `requireUser` lança `Troca_senha_necessaria` (bloqueia mutations). Página `app/trocar-senha` (fora do grupo `(app)` para evitar loop de redirect) com form de troca (senha atual + nova + confirmação, mínimo 8, auditada pela sessão). Admin: `createUser` grava `must_change_password=1`; redefinir senha reativa a obrigação. Telefone: módulo puro `lib/phone.ts` (normaliza para `55+DDD+número`, formata e gera `https://wa.me/...`); campo no Admin (cadastro/edição), link WhatsApp na lista de usuários e na presença da reunião; `updateMyPhone` para autosserviço. Testes: `tests/phone.test.ts` (8) — total 50.
+- **Observações**: sessões antigas (JWT sem claim `mc`) são tratadas pelo layout via consulta ao banco; após a troca a sessão é reemitida sem o claim. `setMyName` foi substituído por `updateMyPhone` (não era usado).
+
 #### Perfis centralizados + controle de concorrência testados (42 testes)
 - **Status**: ✅ Confirmado
 - **Data**: 2026-09-02

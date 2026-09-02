@@ -19,8 +19,8 @@ export function verifyPassword(pw: string, hash: string): boolean {
   return bcrypt.compareSync(pw, hash);
 }
 
-export async function createSession(userId: number): Promise<string> {
-  return new SignJWT({ sub: String(userId) })
+export async function createSession(userId: number, opts?: { mustChange?: boolean }): Promise<string> {
+  return new SignJWT({ sub: String(userId), mc: opts?.mustChange === true ? 1 : 0 })
     .setProtectedHeader({ alg: "HS256" })
     .setExpirationTime("7d")
     .sign(secret);
@@ -57,13 +57,17 @@ export async function getSessionUser(): Promise<User | null> {
   if (!token) return null;
   const userId = await verifySession(token);
   if (!userId) return null;
-  const user = await get<User>("SELECT id, name, email, role, created_at FROM users WHERE id = ?", [userId]);
+  const user = await get<User>(
+    "SELECT id, name, email, role, phone, must_change_password, created_at FROM users WHERE id = ?",
+    [userId]
+  );
   return user || null;
 }
 
 export async function requireUser(): Promise<User> {
   const user = await getSessionUser();
   if (!user) throw new Error("Nao_autenticado");
+  if (user.must_change_password) throw new Error("Troca_senha_necessaria");
   return user;
 }
 

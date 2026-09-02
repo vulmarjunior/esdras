@@ -16,6 +16,7 @@ function initials(name: string): string {
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const user = await getSessionUser();
   if (!user) redirect("/login");
+  if (user.must_change_password) redirect("/trocar-senha");
 
   const activeMeeting = await getActiveMeeting();
 

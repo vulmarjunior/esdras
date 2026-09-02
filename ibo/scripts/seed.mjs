@@ -36,7 +36,7 @@ function insertUsers() {
     { name: "Membro 6", email: "membro6@ibo.local", role: "membro", pw: "membro123" },
     { name: "Membro 7", email: "membro7@ibo.local", role: "membro", pw: "membro123" },
   ];
-  const ins = db.prepare("INSERT INTO users (name, email, password_hash, role) VALUES (?, ?, ?, ?)");
+  const ins = db.prepare("INSERT INTO users (name, email, password_hash, role, must_change_password) VALUES (?, ?, ?, ?, 1)");
   for (const u of users) ins.run(u.name, u.email, hash(u.pw), u.role);
   return users;
 }
