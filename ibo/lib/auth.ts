@@ -57,7 +57,7 @@ export async function getSessionUser(): Promise<User | null> {
   if (!token) return null;
   const userId = await verifySession(token);
   if (!userId) return null;
-  const user = get<User>("SELECT id, name, email, role, created_at FROM users WHERE id = ?", [userId]);
+  const user = await get<User>("SELECT id, name, email, role, created_at FROM users WHERE id = ?", [userId]);
   return user || null;
 }
 

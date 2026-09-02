@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -22,10 +23,15 @@ import {
   createProvision,
   updateProvision,
   deleteProvision,
+  setAlteracaoTipo,
+  addProvisionRelation,
+  removeProvisionRelation,
 } from "@/app/actions/provision";
 import { SUGGESTION_STATUS_LABELS, PENDING_CATEGORY_LABELS, REFERENCE_TYPE_LABELS, STATUS_LABELS, PROVISION_TYPE_LABELS } from "@/lib/labels";
 import { ConfirmDialog, type ConfirmDialogState } from "@/components/confirm-dialog";
 import type { Suggestion, Comment, PendingIssue } from "@/lib/types";
+import { RichTextEditor } from "@/components/rich-text-editor";
+import { RichTextContent } from "@/components/rich-text-content";
 
 function SubmitBtn({ label, pending, onClick }: { label: string; pending: boolean; onClick: () => void }) {
   return (
@@ -94,35 +100,39 @@ export function NewProvisionForm({
   parentId,
   parentType,
   canEdit,
+  types,
+  label = "Incluir dispositivo",
 }: {
   parentId: string | null;
   parentType: string;
   canEdit: boolean;
+  types?: string[];
+  label?: string;
 }) {
   const [open, setOpen] = useState(false);
-  const [form, setForm] = useState({ tipo: "", texto: "", justificativa: "" });
+  const [form, setForm] = useState({ tipo: "", numero: "", titulo: "", texto: "", justificativa: "" });
   const [pending, setPending] = useState(false);
   const router = useRouter();
 
   const allowed: Record<string, string[]> = {
     capitulo: ["secao", "artigo"],
     secao: ["artigo"],
-    artigo: ["paragrafo", "inciso"],
+    artigo: ["paragrafo", "inciso", "alinea"],
     paragrafo: ["inciso", "alinea"],
     inciso: ["alinea"],
     alinea: [],
   };
-  const tipos = parentId ? allowed[parentType] || [] : ["capitulo", "secao", "artigo"];
+  const tipos = types || (parentId ? allowed[parentType] || [] : ["capitulo", "secao", "artigo"]);
 
   if (!canEdit) return null;
 
   async function submit() {
     setPending(true);
-    const res = await createProvision(parentId, form.tipo, form.texto, form.justificativa);
+    const res = await createProvision(parentId, form.tipo, form.texto, form.justificativa, form.titulo, form.numero);
     setPending(false);
     if (res.error) return toast.error(res.error);
     toast.success(res.message || "Dispositivo criado.");
-    setForm({ tipo: "", texto: "", justificativa: "" });
+    setForm({ tipo: "", numero: "", titulo: "", texto: "", justificativa: "" });
     setOpen(false);
     router.refresh();
     if (res.id) {
@@ -133,7 +143,7 @@ export function NewProvisionForm({
   if (!open) {
     return (
       <Button size="sm" variant="outline" onClick={() => setOpen(true)} className="border-primary/30 text-primary hover:bg-primary/5">
-        Incluir dispositivo
+        {label}
       </Button>
     );
   }
@@ -151,6 +161,20 @@ export function NewProvisionForm({
           <option key={t} value={t}>{PROVISION_TYPE_LABELS[t]}</option>
         ))}
       </select>
+      <div className="grid gap-2 sm:grid-cols-2">
+        <input
+          value={form.numero}
+          onChange={(e) => setForm({ ...form, numero: e.target.value })}
+          placeholder="Número (provisório) — ex.: 2º, I, a)"
+          className="h-9 w-full rounded-md border bg-background px-3 text-sm"
+        />
+        <input
+          value={form.titulo}
+          onChange={(e) => setForm({ ...form, titulo: e.target.value })}
+          placeholder="Título (capítulos/seções)"
+          className="h-9 w-full rounded-md border bg-background px-3 text-sm"
+        />
+      </div>
       <textarea
         rows={3}
         value={form.texto}
@@ -181,11 +205,13 @@ export function ProvisionAdminActions({
   origem,
   childCount,
   canEdit,
+  alteracaoTipo,
 }: {
   provisionId: string;
   origem: string;
   childCount: number;
   canEdit: boolean;
+  alteracaoTipo: string;
 }) {
   const [editing, setEditing] = useState(false);
   const [pending, setPending] = useState(false);
@@ -229,6 +255,16 @@ export function ProvisionAdminActions({
     });
   }
 
+  async function toggleRevogado() {
+    setPending(true);
+    const target = alteracaoTipo === "revogado" ? "nao_avaliado" : "revogado";
+    const res = await setAlteracaoTipo(provisionId, target);
+    setPending(false);
+    if (res.error) return toast.error(res.error);
+    toast.success(res.message || "Alteração salva.");
+    router.refresh();
+  }
+
   return (
     <div className="space-y-2">
       {editing && (
@@ -266,8 +302,21 @@ export function ProvisionAdminActions({
           </Button>
         )}
         {origem === "original" && (
-          <span className="text-xs text-muted-foreground">
-            Dispositivo original: para removê-lo do texto final, altere o status para &quot;revogado&quot;.
+          <span className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+            <span>Dispositivo original: para removê-lo do texto final, marque-o como revogado.</span>
+            <Button
+              size="sm"
+              variant={alteracaoTipo === "revogado" ? "default" : "outline"}
+              disabled={pending}
+              onClick={toggleRevogado}
+              className={
+                alteracaoTipo === "revogado"
+                  ? "border-red-600 bg-red-600 text-white hover:bg-red-700"
+                  : "border-red-200 text-red-700 hover:bg-red-50 hover:text-red-800 dark:border-red-800 dark:text-red-300 dark:hover:bg-red-950/40"
+              }
+            >
+              {alteracaoTipo === "revogado" ? "Desfazer revogação" : "Revogar dispositivo"}
+            </Button>
           </span>
         )}
       </div>
@@ -322,14 +371,45 @@ export function SuggestionForm({ provisionId }: { provisionId: string }) {
   );
 }
 
-export function SuggestionItem({ sug, canManage }: { sug: Suggestion; canManage: boolean }) {
+export function SuggestionItem({
+  sug,
+  canManage,
+  votes,
+  myVote,
+}: {
+  sug: Suggestion;
+  canManage: boolean;
+  votes?: Record<string, number>;
+  myVote?: string;
+}) {
   const router = useRouter();
   const [pending, setPending] = useState(false);
   const statuses = ["aberta", "em_discussao", "aceita", "aceita_parcialmente", "rejeitada", "retirada"];
+  const OPINIONS = [
+    { key: "concordo", label: "Concordo", active: "border-emerald-300 bg-emerald-50 text-emerald-700 dark:border-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300", dot: "bg-emerald-500" },
+    { key: "discordo", label: "Discordo", active: "border-red-300 bg-red-50 text-red-700 dark:border-red-700 dark:bg-red-950/40 dark:text-red-300", dot: "bg-red-500" },
+    { key: "ressalva", label: "Ressalva", active: "border-amber-300 bg-amber-50 text-amber-700 dark:border-amber-700 dark:bg-amber-950/40 dark:text-amber-300", dot: "bg-amber-500" },
+  ];
 
   async function go(status: string) {
     setPending(true);
     await updateSuggestionStatus(sug.id, status);
+    setPending(false);
+    router.refresh();
+  }
+
+  async function voteSug(opinion: string) {
+    setPending(true);
+    const res = await vote(null, opinion, sug.id);
+    setPending(false);
+    if (res.error) return toast.error(res.error);
+    toast.success("Voto registrado na sugestão.");
+    router.refresh();
+  }
+
+  async function removeSugVote() {
+    setPending(true);
+    await removeVote(null, sug.id);
     setPending(false);
     router.refresh();
   }
@@ -375,6 +455,29 @@ export function SuggestionItem({ sug, canManage }: { sug: Suggestion; canManage:
           ))}
         </div>
       )}
+      <div className="mt-3 flex flex-wrap items-center gap-1.5 border-t pt-2.5">
+        {OPINIONS.map((o) => {
+          const isMine = myVote === o.key;
+          return (
+            <button
+              key={o.key}
+              type="button"
+              disabled={pending}
+              onClick={() => (isMine ? removeSugVote() : voteSug(o.key))}
+              title={isMine ? "Clique para remover seu voto" : undefined}
+              className={cn(
+                "inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-medium transition-colors disabled:opacity-60",
+                isMine ? o.active : "border-border text-muted-foreground hover:bg-muted"
+              )}
+            >
+              <span className={cn("h-1.5 w-1.5 rounded-full", o.dot)} />
+              {o.label}
+              {votes?.[o.key] ? ` ${votes[o.key]}` : ""}
+            </button>
+          );
+        })}
+        <span className="text-[11px] text-muted-foreground">consulta aos membros — caráter consultivo</span>
+      </div>
     </div>
   );
 }
@@ -580,19 +683,27 @@ export function HistoricalTextEditor({
   const [pending, setPending] = useState(false);
   const router = useRouter();
 
+  const isProposta = campo === "proposta_inicial";
+  const editLabel = isProposta ? "Editar proposta" : "Corrigir extração";
+  const editTitle = isProposta
+    ? "Editar o texto da proposta da comissão. A alteração fica registrada na auditoria."
+    : "Corrigir erro de extração do documento original. A correção fica registrada na auditoria.";
+  const saveLabel = isProposta ? "Salvar proposta" : "Salvar correção";
+  const successMsg = isProposta ? "Proposta salva." : "Texto corrigido.";
+
   async function save() {
     setPending(true);
     const res = await updateHistoricalText(provisionId, campo, value);
     setPending(false);
     if (res.error) return toast.error(res.error);
-    toast.success(res.message || "Texto corrigido.");
+    toast.success(res.message || successMsg);
     setEditing(false);
     router.refresh();
   }
 
   if (!canEdit) {
     return texto ? (
-      <p className="whitespace-pre-wrap font-serif text-[15px] leading-relaxed text-muted-foreground">{texto}</p>
+      <RichTextContent text={texto} />
     ) : (
       <p className="text-sm text-muted-foreground italic">{emptyLabel}</p>
     );
@@ -602,7 +713,7 @@ export function HistoricalTextEditor({
     return (
       <div className="space-y-2">
         {texto ? (
-          <p className="whitespace-pre-wrap font-serif text-[15px] leading-relaxed text-muted-foreground">{texto}</p>
+          <RichTextContent text={texto} />
         ) : (
           <p className="text-sm text-muted-foreground italic">{emptyLabel}</p>
         )}
@@ -613,9 +724,9 @@ export function HistoricalTextEditor({
             setValue(texto);
             setEditing(true);
           }}
-          title="Corrigir erro de extração do documento original. A correção fica registrada na auditoria."
+          title={editTitle}
         >
-          Corrigir extração
+          {editLabel}
         </Button>
       </div>
     );
@@ -623,14 +734,18 @@ export function HistoricalTextEditor({
 
   return (
     <div className="space-y-2">
-      <textarea
-        rows={6}
-        value={value}
-        onChange={(e) => setValue(e.target.value)}
-        className="w-full rounded-lg border bg-background px-3 py-2 font-serif text-[15px] leading-relaxed"
-      />
+      {campo === "proposta_inicial" ? (
+        <RichTextEditor value={value} onChange={setValue} placeholder="Sem alteração proposta (manter redação)." />
+      ) : (
+        <textarea
+          rows={6}
+          value={value}
+          onChange={(e) => setValue(e.target.value)}
+          className="w-full rounded-lg border bg-background px-3 py-2 font-serif text-[15px] leading-relaxed"
+        />
+      )}
       <div className="flex flex-wrap items-center gap-2">
-        <SubmitBtn label="Salvar correção" pending={pending} onClick={save} />
+        <SubmitBtn label={saveLabel} pending={pending} onClick={save} />
         <Button size="sm" variant="ghost" onClick={() => setEditing(false)}>
           Cancelar
         </Button>
@@ -655,19 +770,19 @@ export function JustificativaEditor({ provisionId, initial, canEdit }: { provisi
     router.refresh();
   }
   if (!canEdit) {
-    return initial ? <p className="whitespace-pre-wrap text-sm text-muted-foreground">{initial}</p> : <p className="text-sm text-muted-foreground">—</p>;
+    return initial ? <RichTextContent text={initial} className="text-sm" /> : <p className="text-sm text-muted-foreground">—</p>;
   }
   if (!editing) {
     return (
       <div className="flex items-start justify-between gap-2">
-        {initial ? <p className="whitespace-pre-wrap text-sm text-muted-foreground">{initial}</p> : <p className="text-sm text-muted-foreground">—</p>}
+        {initial ? <RichTextContent text={initial} className="text-sm" /> : <p className="text-sm text-muted-foreground">—</p>}
         <Button size="sm" variant="outline" onClick={() => setEditing(true)}>Editar</Button>
       </div>
     );
   }
   return (
     <div className="space-y-2">
-      <textarea rows={3} value={text} onChange={(e) => setText(e.target.value)} className="w-full rounded-md border bg-background px-3 py-2 text-sm" />
+      <RichTextEditor value={text} onChange={setText} placeholder="Justificativa..." minHeightClass="min-h-24" />
       <div className="flex gap-2">
         <SubmitBtn label="Salvar" pending={pending} onClick={save} />
         <Button size="sm" variant="ghost" onClick={() => { setText(initial); setEditing(false); }}>Cancelar</Button>
@@ -680,6 +795,131 @@ function initials(name: string): string {
   const parts = (name || "?").trim().split(/\s+/);
   if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
   return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+}
+
+/** Atalho para aprovar um dispositivo diretamente na tela da reunião (§23). */
+export function ApproveDeviceForm({ devices, canEdit }: { devices: { id: string; label: string }[]; canEdit: boolean }) {
+  const [deviceId, setDeviceId] = useState("");
+  const [pending, setPending] = useState(false);
+  const router = useRouter();
+  if (!canEdit) return null;
+  async function approve() {
+    if (!deviceId) return;
+    setPending(true);
+    const res = await setStatus(deviceId, "aprovado");
+    setPending(false);
+    if (res.error) return toast.error(res.error);
+    toast.success(res.message || "Dispositivo aprovado.");
+    setDeviceId("");
+    router.refresh();
+  }
+  return (
+    <div className="flex flex-wrap items-center gap-2">
+      <select
+        value={deviceId}
+        onChange={(e) => setDeviceId(e.target.value)}
+        className="h-9 min-w-0 flex-1 rounded-md border bg-background px-2 text-sm"
+      >
+        <option value="">Aprovar dispositivo...</option>
+        {devices.map((d) => (
+          <option key={d.id} value={d.id}>
+            {d.label}
+          </option>
+        ))}
+      </select>
+      <Button
+        size="sm"
+        className="bg-emerald-600 text-white hover:bg-emerald-700"
+        disabled={pending || !deviceId}
+        onClick={approve}
+      >
+        Aprovar
+      </Button>
+    </div>
+  );
+}
+
+export interface RelationDeviceOption {
+  id: string;
+  label: string;
+  chapter: string;
+}
+
+export function RelationForm({
+  provisionId,
+  devices,
+  relations,
+  canManage,
+}: {
+  provisionId: string;
+  devices: RelationDeviceOption[];
+  relations: { related_id: string; type: string; numero: string | null }[];
+  canManage: boolean;
+}) {
+  const [relatedId, setRelatedId] = useState("");
+  const [pending, setPending] = useState(false);
+  const router = useRouter();
+
+  async function add() {
+    if (!relatedId) return;
+    setPending(true);
+    const res = await addProvisionRelation(provisionId, relatedId);
+    setPending(false);
+    if (res.error) return toast.error(res.error);
+    toast.success("Dispositivo vinculado.");
+    setRelatedId("");
+    router.refresh();
+  }
+
+  async function remove(id: string) {
+    await removeProvisionRelation(provisionId, id);
+    toast.success("Vínculo removido.");
+    router.refresh();
+  }
+
+  return (
+    <div className="space-y-3">
+      <ul className="space-y-1 text-sm">
+        {relations.length === 0 && (
+          <p className="text-sm text-muted-foreground italic">Nenhum vínculo registrado.</p>
+        )}
+        {relations.map((r) => (
+          <li key={r.related_id} className="flex items-center justify-between gap-2">
+            <Link href={`/dispositivo/${r.related_id}`} className="text-primary hover:underline">
+              {PROVISION_TYPE_LABELS[r.type] || r.type} {r.numero} ({r.related_id})
+            </Link>
+            {canManage && (
+              <Button size="sm" variant="ghost" className="h-7 px-2 text-xs text-muted-foreground hover:text-red-600" onClick={() => remove(r.related_id)}>
+                Remover
+              </Button>
+            )}
+          </li>
+        ))}
+      </ul>
+      {canManage && (
+        <div className="flex flex-wrap items-center gap-2">
+          <select
+            value={relatedId}
+            onChange={(e) => setRelatedId(e.target.value)}
+            className="h-9 min-w-0 flex-1 rounded-md border bg-background px-2 text-sm"
+          >
+            <option value="">Vincular dispositivo...</option>
+            {devices
+              .filter((d) => d.id !== provisionId)
+              .map((d) => (
+                <option key={d.id} value={d.id}>
+                  {d.label}
+                  {d.chapter ? ` — ${d.chapter}` : ""}
+                </option>
+              ))}
+          </select>
+          <Button size="sm" variant="outline" disabled={pending || !relatedId} onClick={add}>
+            Vincular
+          </Button>
+        </div>
+      )}
+    </div>
+  );
 }
 
 export function CommentList({ comments }: { comments: Comment[] }) {

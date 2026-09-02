@@ -17,7 +17,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   const user = await getSessionUser();
   if (!user) redirect("/login");
 
-  const activeMeeting = getActiveMeeting();
+  const activeMeeting = await getActiveMeeting();
 
   return (
     <div className="flex min-h-screen flex-col bg-background">

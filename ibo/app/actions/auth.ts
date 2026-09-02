@@ -15,7 +15,7 @@ export async function loginAction(_state: LoginState | undefined, formData: Form
   const email = String(formData.get("email") || "").trim().toLowerCase();
   const password = String(formData.get("password") || "");
 
-  const user = get<{ id: number; name: string; password_hash: string }>(
+  const user = await get<{ id: number; name: string; password_hash: string }>(
     "SELECT id, name, password_hash FROM users WHERE email = ?",
     [email]
   );

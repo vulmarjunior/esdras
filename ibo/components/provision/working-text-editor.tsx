@@ -7,12 +7,16 @@ import { updateRedacao } from "@/app/actions/provision";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Loader2, Sparkles, Check, X } from "lucide-react";
+import { RichTextEditor } from "@/components/rich-text-editor";
+import { RichTextContent } from "@/components/rich-text-content";
+import { htmlToText, plainToHtml } from "@/lib/rich-text";
 
 const AI_TOOLS = [
   { key: "gramatica", label: "Revisar gramática" },
   { key: "clareza", label: "Melhorar clareza" },
   { key: "estatutario", label: "Linguagem estatutária" },
   { key: "simplificar", label: "Simplificar redação" },
+  { key: "comparar", label: "Comparar com vigente", needsComparar: true },
 ];
 
 interface Props {
@@ -20,9 +24,10 @@ interface Props {
   initialText: string;
   version: number;
   canEdit: boolean;
+  compararTexto?: string;
 }
 
-export function WorkingTextEditor({ provisionId, initialText, version, canEdit }: Props) {
+export function WorkingTextEditor({ provisionId, initialText, version, canEdit, compararTexto }: Props) {
   const [text, setText] = useState(initialText);
   const [reason, setReason] = useState("");
   const [aiResult, setAiResult] = useState<string | null>(null);
@@ -32,6 +37,8 @@ export function WorkingTextEditor({ provisionId, initialText, version, canEdit }
   const [conflict, setConflict] = useState<string | null>(null);
   const router = useRouter();
 
+  const plainText = htmlToText(text);
+
   async function runAi(toolKey: string) {
     setAiLoading(true);
     setAiTool(toolKey);
@@ -39,7 +46,12 @@ export function WorkingTextEditor({ provisionId, initialText, version, canEdit }
       const res = await fetch("/api/ai", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action: "editorial", tool: toolKey, text }),
+        body: JSON.stringify({
+          action: "editorial",
+          tool: toolKey,
+          text: plainText,
+          comparar: toolKey === "comparar" ? htmlToText(compararTexto || "") : undefined,
+        }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Erro na IA");
@@ -70,14 +82,15 @@ export function WorkingTextEditor({ provisionId, initialText, version, canEdit }
 
   return (
     <div className="space-y-3">
-      <textarea
-        value={text}
-        onChange={(e) => setText(e.target.value)}
-        disabled={!canEdit}
-        rows={6}
-        placeholder="Redação de trabalho ainda não definida."
-        className="min-h-32 w-full rounded-lg border bg-background px-3.5 py-3 font-serif text-[15px] leading-relaxed outline-none ring-ring transition-shadow focus:ring-2 disabled:opacity-60"
-      />
+      {canEdit ? (
+        <RichTextEditor
+          value={text}
+          onChange={setText}
+          placeholder="Redação de trabalho ainda não definida."
+        />
+      ) : (
+        <RichTextContent text={text} />
+      )}
 
       {canEdit && (
         <>
@@ -91,7 +104,7 @@ export function WorkingTextEditor({ provisionId, initialText, version, canEdit }
                 type="button"
                 variant="outline"
                 size="sm"
-                disabled={aiLoading || !text.trim()}
+                disabled={aiLoading || !plainText.trim() || (t.needsComparar && !htmlToText(compararTexto || "").trim())}
                 onClick={() => runAi(t.key)}
               >
                 {aiLoading && aiTool === t.key && <Loader2 className="h-3 w-3 animate-spin" />}
@@ -110,7 +123,7 @@ export function WorkingTextEditor({ provisionId, initialText, version, canEdit }
                 {aiResult}
               </p>
               <div className="flex gap-2">
-                <Button type="button" size="sm" onClick={() => { setText(aiResult); setAiResult(null); }}>
+                <Button type="button" size="sm" onClick={() => { setText(plainToHtml(aiResult)); setAiResult(null); }}>
                   <Check className="mr-1 h-4 w-4" /> Aplicar sugestão
                 </Button>
                 <Button type="button" size="sm" variant="outline" onClick={() => setAiResult(null)}>
@@ -134,7 +147,7 @@ export function WorkingTextEditor({ provisionId, initialText, version, canEdit }
               placeholder="Motivo da alteração (registrado no histórico)"
               className="h-9 w-full rounded-lg border bg-background px-3 text-sm outline-none ring-ring transition-shadow focus:ring-2"
             />
-            <Button type="button" onClick={save} disabled={saving || !text.trim()}>
+            <Button type="button" onClick={save} disabled={saving || !plainText.trim()}>
               {saving && <Loader2 className="h-4 w-4 animate-spin" />}
               Salvar versão {version + 1}
             </Button>

@@ -31,6 +31,11 @@ const TOOLS: Record<string, { system: string; prompt: (t: string) => string }> =
       "Você é um redator. Simplifique o texto eliminando redundâncias e repetições, sem alterar o significado nem o tom formal. Devolva somente o texto simplificado.",
     prompt: (t) => `Simplifique o texto eliminando redundâncias, mantendo o sentido:\n\n${t}`,
   },
+  comparar: {
+    system:
+      "Você é um assistente de redação institucional. Compare duas redações de um mesmo dispositivo estatutário e aponte objetivamente as diferenças: o que mudou, o que foi incluído, removido ou reescrito. Não invente conteúdo. Devolva apenas o relatório das diferenças.",
+    prompt: (t) => `Redação de referência:\n\n${t}`,
+  },
   justificativa: {
     system:
       "Você é assistente de uma comissão de reforma estatutária. Melhore a clareza argumentativa de uma justificativa de alteração, mantendo os fatos. Devolva somente o texto melhorado.",
@@ -97,28 +102,48 @@ export async function POST(req: NextRequest) {
       if (!text) {
         return NextResponse.json({ error: "Texto vazio." }, { status: 400 });
       }
-      const result = await callGroq(tool.system, tool.prompt(text));
+      let result: string;
+      if (body.tool === "comparar") {
+        const outro = String(body.comparar || "").trim();
+        if (!outro) {
+          return NextResponse.json({ error: "Texto de comparação vazio." }, { status: 400 });
+        }
+        result = await callGroq(tool.system, tool.prompt(text) + `\n\nOutra redação para comparar:\n\n${outro}`);
+      } else {
+        result = await callGroq(tool.system, tool.prompt(text));
+      }
+      return NextResponse.json({ result });
+    }
+
+    if (body.action === "coerencia") {
+      const textos = Array.isArray(body.textos) ? body.textos.map((t: string) => String(t).trim()).filter(Boolean) : [];
+      if (textos.length === 0) {
+        return NextResponse.json({ error: "Nenhum dispositivo a analisar." }, { status: 400 });
+      }
+      const system =
+        "Você é um revisor técnico de estatutos de associações religiosas. Analise a coerência dos dispositivos fornecidos procurando: duplicidades, contradições, nomenclaturas divergentes, competências conflitantes, conceitos indefinidos, referências internas incorretas e lacunas. Aponte APENAS alertas objetivos e acionáveis, citando o dispositivo. Não reescreva os textos nem invente conteúdo. Se não houver problemas, diga que a análise não encontrou alertas.";
+      const result = await callGroq(system, `Analise a coerência destes dispositivos:\n\n${textos.join("\n\n")}`);
       return NextResponse.json({ result });
     }
 
     if (body.action === "minuta") {
       const meetingId = Number(body.meetingId);
-      const meeting = get<{ numero: number; data: string; horario: string | null; local: string | null; pauta: string | null }>(
+      const meeting = await get<{ numero: number; data: string; horario: string | null; local: string | null; pauta: string | null }>(
         "SELECT numero, data, horario, local, pauta FROM meetings WHERE id = ?",
         [meetingId]
       );
       if (!meeting) {
         return NextResponse.json({ error: "Reunião não encontrada." }, { status: 404 });
       }
-      const presentes = all<{ name: string }>(
+      const presentes = await all<{ name: string }>(
         "SELECT u.name FROM meeting_members mm JOIN users u ON u.id = mm.user_id WHERE mm.meeting_id = ? AND mm.presente = 1 ORDER BY u.name",
         [meetingId]
       );
-      const eventos = all<{ hora: string; descricao: string }>(
+      const eventos = await all<{ hora: string; descricao: string }>(
         "SELECT hora, descricao FROM meeting_events WHERE meeting_id = ? ORDER BY id",
         [meetingId]
       );
-      const decisoes = all<{ code: string; texto: string }>(
+      const decisoes = await all<{ code: string; texto: string }>(
         "SELECT code, texto FROM meeting_decisions WHERE meeting_id = ? ORDER BY id",
         [meetingId]
       );

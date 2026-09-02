@@ -4,19 +4,13 @@
   "numero": "II",
   "titulo": "DA ADMISSÃO E DESLIGAMENTO DOS MEMBROS",
   "textoVigente": "CAPÍTULO II\nDA ADMISSÃO E DESLIGAMENTO DOS MEMBROS",
-  "propostaInicial": "CAPÍTULO II\nDOS MEMBROS DA IGREJA, ADMISSÃO, TRANSFERÊNCIA, DESLIGAMENTO E DISCIPLINA",
-  "justificativa": "Amplia o capítulo dando mais abrangência a ele.",
-  "alteracaoTipo": "alteracao_redacional",
   "filhos": [
     {
       "id": "art-6",
       "type": "artigo",
       "numero": "6º",
       "titulo": null,
-      "textoVigente": "A Igreja Batista Olaria é constituída por pessoas que professam sua fé em Jesus Cristo como único e suficiente Salvador e Senhor; aceitam as doutrinas bíblicas por ela defendidas e ensinadas como Igreja Batista; e se comprometem a cumprir e fazer cumprir este Estatuto e o Regimento Interno.",
-      "propostaInicial": "A Igreja Batista Olaria é constituída por pessoas que professam sua fé em Jesus Cristo como único e suficiente Salvador e Senhor, aceitam as doutrinas bíblicas por ela defendidas e ensinadas como Igreja Batista e se comprometem a cumprir e fazer cumprir este Estatuto e o Regimento Interno.",
-      "justificativa": "Apenas faz-se uma correção estilística e gramatical substituindo o ponto e vírgula por vírgula.",
-      "alteracaoTipo": "alteracao_redacional"
+      "textoVigente": "A Igreja Batista Olaria é constituída por pessoas que professam sua fé em Jesus Cristo como único e suficiente Salvador e Senhor; aceitam as doutrinas bíblicas por ela defendidas e ensinadas como Igreja Batista; e se comprometem a cumprir e fazer cumprir este Estatuto e o Regimento Interno."
     },
     {
       "id": "art-7",
@@ -24,51 +18,43 @@
       "numero": "7º",
       "titulo": null,
       "textoVigente": "São considerados membros da Igreja Batista Olaria pessoas de ambos os sexos; sem distinção de raça, de cor, de profissão ou de nacionalidade; recebidas pela Igreja por decisão da Assembleia dos Membros, em conformidade com o Art. 6º; que assinam o documento de filiação à Igreja Batista Olaria, chamado de Rol de Membros; da forma como se segue:",
-      "propostaInicial": "São considerados membros da Igreja Batista Olaria pessoas do sexo feminino e do sexo masculino, de acordo com a definição biológica e bíblica de gênero, sem distinção de nacionalidade, naturalidade, procedência, etnia ou cor de pele, que, em conjunto e de forma harmônica, professam a sua fé de acordo com os princípios e doutrinas descritos no presente Estatuto Social, recebidas pela Igreja por decisão da Assembleia dos Membros, em conformidade com o Art. 6º; que solicitem filiação à Igreja Batista Olaria e inclusão no Rol de Membros da forma como se segue:",
-      "justificativa": "A principal mudança aqui é deixar claro a definição de sexo feminino e do sexo masculino, como sendo de acordo com a definição biológica e bíblica de gênero. Ademais, exclui a assinatura de documentos, visto que hoje isso se faz de forma eletrônica, e melhora a redação dando mais robustez ao texto e segurança jurídica.",
-      "alteracaoTipo": "alteracao_material",
       "filhos": [
-        { "id": "art-7-inc-1", "type": "inciso", "numero": "I", "textoVigente": "Por meio de Batismo, seguido de pública profissão de fé em sessão extraordinária convocada para este fim.", "propostaInicial": "", "justificativa": "Manter a redação. Redação adequada.", "alteracaoTipo": "mantido" },
-        { "id": "art-7-inc-2", "type": "inciso", "numero": "II", "textoVigente": "Por meio de Documento de Transferência de Membros, proveniente de outra Igreja Batista filiada à Convenção Batista Brasileira e/ou filiada à Convenção Batista do Estado de Rondônia.", "propostaInicial": "", "justificativa": "Manter a redação. Redação adequada.", "alteracaoTipo": "mantido" },
+        {
+          "id": "art-7-inc-1",
+          "type": "inciso",
+          "numero": "I",
+          "textoVigente": "Por meio de Batismo, seguido de pública profissão de fé em sessão extraordinária convocada para este fim."
+        },
+        {
+          "id": "art-7-inc-2",
+          "type": "inciso",
+          "numero": "II",
+          "textoVigente": "Por meio de Documento de Transferência de Membros, proveniente de outra Igreja Batista filiada à Convenção Batista Brasileira e/ou filiada à Convenção Batista do Estado de Rondônia."
+        },
         {
           "id": "art-7-inc-3",
           "type": "inciso",
           "numero": "III",
-          "textoVigente": "Por meio de Aclamação, quando a pessoa solicitante já é batizada segundo o costume Batista, em outra igreja evangélica, e aceita a forma de ser da Igreja Batista Olaria; ou quando a Igreja Batista Olaria solicita a Transferência prevista no Item II, sem receber resposta da Igreja de origem da pessoa no prazo de 60 (sessenta) dias do envio da solicitação.",
-          "propostaInicial": "Por meio de Aclamação, quando a pessoa solicitante já é batizada por imersão em águas, em outra igreja evangélica, e aceita os princípios da Igreja Batista Olaria, ou quando a Igreja Batista Olaria solicita a Transferência prevista no Item II, sem receber resposta da Igreja de origem da pessoa no prazo de 90 (sessenta) dias do envio da solicitação.",
-          "justificativa": "O inciso III amplia o prazo para 90 dias que é um prazo mais razoável, considerando que em muitas igrejas coirmãs as assembleias são trimestrais. Além disso, substituiu-se a expressão 'segundo o costume Batista' por 'é batizada por imersão em águas' pois nem todos os irmãos vindos de outras igrejas conhecem os costumes batistas quanto às regras do batismo. Também se substitui a expressão 'aceita a forma de ser da Igreja Batista Olaria' pelo mesmo motivo.",
-          "alteracaoTipo": "alteracao_material"
+          "textoVigente": "Por meio de Aclamação, quando a pessoa solicitante já é batizada segundo o costume Batista, em outra igreja evangélica, e aceita a forma de ser da Igreja Batista Olaria; ou quando a Igreja Batista Olaria solicita a Transferência prevista no Item II, sem receber resposta da Igreja de origem da pessoa no prazo de 60 (sessenta) dias do envio da solicitação."
         },
         {
           "id": "art-7-inc-4",
           "type": "inciso",
           "numero": "IV",
-          "textoVigente": "Por meio de Reconciliação, quando solicitada por ex-membros da Igreja Batista Olaria ou por estar assim notificado no Documento de Transferência proveniente de outra Igreja.",
-          "propostaInicial": "Por meio de Reconciliação, quando solicitada por um crente que se encontrava desligado de sua igreja e deseja retornar ao vínculo com o evangelho na Igreja Batista Olaria.",
-          "justificativa": "Amplia-se o conceito de reconciliação possibilitando que pessoas de outras denominações retornem ao Evangelho de Cristo em culto público, por exemplo.",
-          "alteracaoTipo": "alteracao_material"
+          "textoVigente": "Por meio de Reconciliação, quando solicitada por ex-membros da Igreja Batista Olaria ou por estar assim notificado no Documento de Transferência proveniente de outra Igreja."
         },
         {
           "id": "art-7-p1",
           "type": "paragrafo",
           "numero": "1º",
-          "textoVigente": "A proposta de admissão de qualquer membro, na forma deste Artigo, somente será levada à Assembleia dos Membros após parecer favorável do Pastor Presidente juntamente com a Diretoria da Igreja.",
-          "propostaInicial": "A proposta de admissão de qualquer membro, na forma deste Artigo, somente será levada à Assembleia dos Membros após parecer favorável do Presidente da Igreja juntamente com a Diretoria da Igreja.",
-          "justificativa": "Considerando-se a hipótese do Pastor titular não ser o presidente da Igreja.",
-          "alteracaoTipo": "alteracao_redacional"
+          "textoVigente": "A proposta de admissão de qualquer membro, na forma deste Artigo, somente será levada à Assembleia dos Membros após parecer favorável do Pastor Presidente juntamente com a Diretoria da Igreja."
         },
         {
           "id": "art-7-p2",
           "type": "paragrafo",
           "numero": "2º",
-          "textoVigente": "Os casos omissos não constantes neste Artigo, serão decididos pela Assembleia dos Membros, após parecer do Pastor Presidente juntamente com a Diretoria da Igreja.",
-          "propostaInicial": "Os casos omissos não constantes neste Artigo, serão decididos pela Assembleia dos Membros, após parecer do Presidente da Igreja juntamente com a Diretoria da Igreja.",
-          "justificativa": "Considerando-se a hipótese do Pastor titular não ser o presidente da Igreja.",
-          "alteracaoTipo": "alteracao_redacional"
-        },
-        { "id": "art-7-p3", "type": "paragrafo", "numero": "3º", "origem": "proposta_inicial", "textoVigente": "", "propostaInicial": "Não se admitirá como membro a pessoa em união estável. Para ser admitido como membro da igreja, deverá ser oficializado o casamento civil.", "justificativa": "Foi acrescido do parágrafo 3º em razão de que a união estável não altera a situação civil da pessoa, fazendo com que viva, à luz da Bíblia, em fornicação.", "alteracaoTipo": "novo" },
-        { "id": "art-7-p4", "type": "paragrafo", "numero": "4º", "origem": "proposta_inicial", "textoVigente": "", "propostaInicial": "Não fará parte do rol de membros da igreja, qualquer pessoa que esteja ou viva em adultério, fornicação, que mantenha relação amorosa ou sexual em desacordo com os ensinamentos bíblicos.", "justificativa": "O parágrafo 4º visa proteger a igreja de ser obrigada a aceitar 'casais' homoafetivos, por exemplo, ou trans como membros.", "alteracaoTipo": "novo" },
-        { "id": "art-7-p5", "type": "paragrafo", "numero": "5º", "origem": "proposta_inicial", "textoVigente": "", "propostaInicial": "A Igreja não admite e nem celebra, sob nenhuma hipótese, união estável ou casamento entre pessoas homossexuais ou transsexuais.", "justificativa": "O parágrafo 5º deixa claro que a igreja não realiza casamentos entre pessoas trans.", "alteracaoTipo": "novo" }
+          "textoVigente": "Os casos omissos não constantes neste Artigo, serão decididos pela Assembleia dos Membros, após parecer do Pastor Presidente juntamente com a Diretoria da Igreja."
+        }
       ]
     },
     {
@@ -77,54 +63,54 @@
       "numero": "8º",
       "titulo": null,
       "textoVigente": "Perderá a condição de membro da Igreja Batista Olaria aquele que for desligado do Rol de Membros por decisão da Assembleia dos Membros, após parecer apresentado pelo Pastor Presidente e/ou comissão eleita para este fim, considerando-se as seguintes hipóteses:",
-      "propostaInicial": "Perderá a condição de membro da Igreja Batista Olaria aquele que for desligado do Rol de Membros por decisão da Assembleia dos Membros, após parecer apresentado por comissão eleita para este fim, considerando-se as seguintes hipóteses:",
-      "justificativa": "No Art. 8º sai a possibilidade do pastor ou presidente monocraticamente sugerir exclusão de membros, mantendo tal prerrogativa de uma comissão impessoal.",
-      "alteracaoTipo": "alteracao_material",
       "filhos": [
         {
           "id": "art-8-inc-1",
           "type": "inciso",
           "numero": "I",
-          "textoVigente": "Ter demonstrado um comportamento pessoal inadequado e/ou contrário à ética do Novo Testamento, defendida pela Igreja Batista Olaria.",
-          "propostaInicial": "Ter demonstrado um comportamento pessoal inadequado e/ou contrário à ética da Bíblia Sagrada defendida pela Igreja Batista Olaria.",
-          "justificativa": "Amplia para toda a Bíblia Sagrada.",
-          "alteracaoTipo": "alteracao_redacional"
+          "textoVigente": "Ter demonstrado um comportamento pessoal inadequado e/ou contrário à ética do Novo Testamento, defendida pela Igreja Batista Olaria."
         },
-        { "id": "art-8-inc-2", "type": "inciso", "numero": "II", "textoVigente": "Ter defendido e/ou professado e/ou ensinado doutrinas ou práticas contrárias à Declaração Doutrinária da Convenção Batista Brasileira adotada pela Igreja Batista Olaria.", "propostaInicial": "", "justificativa": "Manter a redação. Redação adequada.", "alteracaoTipo": "mantido" },
+        {
+          "id": "art-8-inc-2",
+          "type": "inciso",
+          "numero": "II",
+          "textoVigente": "Ter defendido e/ou professado e/ou ensinado doutrinas ou práticas contrárias à Declaração Doutrinária da Convenção Batista Brasileira adotada pela Igreja Batista Olaria."
+        },
         {
           "id": "art-8-inc-3",
           "type": "inciso",
           "numero": "III",
-          "textoVigente": "Ter se ausentado dos cultos e/ou ter deixado de participar das atividades promovidas pela Igreja Batista Olaria, por um período de 60 (sessenta) dias consecutivos, sem justificativa dada por escrito ao Pastor Presidente.",
-          "propostaInicial": "Ausentar-se dos cultos e deixar de participar das atividades eclesiásticas pelo prazo de 6 (seis) meses consecutivos sem motivo justo. Havendo motivo justo, este deverá ser comunicado à Assembleia dos Membros;",
-          "justificativa": "No inciso III, o prazo foi ampliado para seis meses e deixa a redação mais simples.",
-          "alteracaoTipo": "alteracao_material"
+          "textoVigente": "Ter se ausentado dos cultos e/ou ter deixado de participar das atividades promovidas pela Igreja Batista Olaria, por um período de 60 (sessenta) dias consecutivos, sem justificativa dada por escrito ao Pastor Presidente."
         },
-        { "id": "art-8-inc-4", "type": "inciso", "numero": "IV", "textoVigente": "Ter solicitado seu desligamento do Rol de Membros.", "propostaInicial": "", "justificativa": "Manter a redação. Redação adequada.", "alteracaoTipo": "mantido" },
-        { "id": "art-8-inc-5", "type": "inciso", "numero": "V", "textoVigente": "Ter sido transferido para outra Igreja por meio de Documento de Transferência.", "propostaInicial": "", "justificativa": "Manter a redação. Redação adequada.", "alteracaoTipo": "mantido" },
-        { "id": "art-8-inc-6", "type": "inciso", "numero": "VI", "textoVigente": "Ter falecido; sendo, nesse caso, dispensado o parecer e apenas registrado em Ata e no Rol de Membros o falecimento do membro.", "propostaInicial": "", "justificativa": "Manter a redação. Redação adequada.", "alteracaoTipo": "mantido" },
-        { "id": "art-8-inc-7", "type": "inciso", "numero": "VII", "origem": "proposta_inicial", "textoVigente": "", "propostaInicial": "Em casos especiais de grave repercussão para a Igreja Batista Olaria; e", "justificativa": "Traz a hipótese de se aplicar a correição.", "alteracaoTipo": "novo" },
-        { "id": "art-8-inc-8", "type": "inciso", "numero": "VIII", "origem": "proposta_inicial", "textoVigente": "", "propostaInicial": "Envolver-se na prática de crimes previstos em Lei.", "justificativa": "Visa proteger a Igreja de repercussões negativas na imprensa, por exemplo, ligando o nome da igreja a escândalos de corrupção.", "alteracaoTipo": "novo" },
-        { "id": "art-8-p1", "type": "paragrafo", "numero": "1º", "origem": "proposta_inicial", "textoVigente": "", "propostaInicial": "O membro que descumprir as decisões da Igreja, tomadas em Assembleia dos Membros, e violar os preceitos do presente Estatuto, estará sujeito à Disciplina, com aplicação das seguintes penalidades, decididas em Assembleia Extraordinária dos Membros, sendo: a) Advertência verbal; b) Advertência por escrito em Ata; c) Exoneração do(s) seu(s) cargo(s) e função(ões) que exerça por nomeação ou eleição da Igreja; d) Desligamento do rol de membros da Igreja.", "justificativa": "Possibilidade de aplicação de correição.", "alteracaoTipo": "novo" },
-        { "id": "art-8-p2", "type": "paragrafo", "numero": "2º", "origem": "proposta_inicial", "textoVigente": "", "propostaInicial": "Em caso de necessidade de Disciplina Eclesiástica, os disciplinados estarão impedidos de ocupar cargos e funções na igreja durante o período de disciplina a ser sugerido pelo Pastor e homologado em Assembleia.", "justificativa": "Possibilidade de aplicação de correição.", "alteracaoTipo": "novo" },
-        { "id": "art-8-p3", "type": "paragrafo", "numero": "3º", "origem": "proposta_inicial", "textoVigente": "", "propostaInicial": "Extingue-se no ato de desligamento do rol de membros da Igreja a Relação Jurídica entre as partes, perdendo o ex-membro o direito ao exercício do voto, direito ao exercício de cargos e funções na diretoria da Igreja, seus ministérios, departamentos e projetos.", "justificativa": "Possibilidade de aplicação de correição.", "alteracaoTipo": "novo" },
+        {
+          "id": "art-8-inc-4",
+          "type": "inciso",
+          "numero": "IV",
+          "textoVigente": "Ter solicitado seu desligamento do Rol de Membros."
+        },
+        {
+          "id": "art-8-inc-5",
+          "type": "inciso",
+          "numero": "V",
+          "textoVigente": "Ter sido transferido para outra Igreja por meio de Documento de Transferência."
+        },
+        {
+          "id": "art-8-inc-6",
+          "type": "inciso",
+          "numero": "VI",
+          "textoVigente": "Ter falecido; sendo, nesse caso, dispensado o parecer e apenas registrado em Ata e no Rol de Membros o falecimento do membro."
+        },
         {
           "id": "art-8-p4",
           "type": "paragrafo",
           "numero": "4º",
-          "textoVigente": "O membro que foi desligado e se julgar injustiçado, poderá se beneficiar do princípio do contraditório e da ampla defesa, dirigindo-se por escrito ao Pastor Presidente que providenciará com a Diretoria da Igreja as devidas reuniões de esclarecimento e o retorno do assunto ou não à Assembleia dos Membros, mediante parecer devidamente fundamentado e acordado entre as partes envolvidas.",
-          "propostaInicial": "O membro que foi desligado e se julgar injustiçado, poderá se beneficiar do princípio do contraditório e da ampla defesa, dirigindo-se por escrito ao Presidente da Igreja que providenciará com a Diretoria da Igreja as devidas reuniões de esclarecimento e o retorno do assunto ou não à Assembleia dos Membros, mediante parecer devidamente fundamentado e acordado entre as partes envolvidas.",
-          "justificativa": "Trata-se uma vez mais da hipótese de o pastor não ser o presidente da Igreja. Parágrafo renumerado.",
-          "alteracaoTipo": "alteracao_redacional"
+          "textoVigente": "O membro que foi desligado e se julgar injustiçado, poderá se beneficiar do princípio do contraditório e da ampla defesa, dirigindo-se por escrito ao Pastor Presidente que providenciará com a Diretoria da Igreja as devidas reuniões de esclarecimento e o retorno do assunto ou não à Assembleia dos Membros, mediante parecer devidamente fundamentado e acordado entre as partes envolvidas."
         },
         {
           "id": "art-8-p5",
           "type": "paragrafo",
           "numero": "5º",
-          "textoVigente": "Nenhum direito poderá ser reivindicado, inclusive sobre o patrimônio, por aquele que deixar de ser membro da Igreja Batista Olaria, sob quaisquer alegações.",
-          "propostaInicial": "",
-          "justificativa": "Parágrafo 5º renumerado.",
-          "alteracaoTipo": "reorganizado"
+          "textoVigente": "Nenhum direito poderá ser reivindicado, inclusive sobre o patrimônio, por aquele que deixar de ser membro da Igreja Batista Olaria, sob quaisquer alegações."
         }
       ]
     }

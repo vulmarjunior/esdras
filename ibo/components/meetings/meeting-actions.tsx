@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-import { createMeeting, updateMeeting, deleteMeeting, startMeeting, endMeeting, setPresence, addManualEvent, addDecision, generateMinutes, setMinutesStatus, saveMinutes, reviewMinutes } from "@/app/actions/meetings";
+import { createMeeting, updateMeeting, deleteMeeting, startMeeting, endMeeting, setPresence, addManualEvent, addDecision, generateMinutes, setMinutesStatus, saveMinutes, reviewMinutes, addMinuteRetification } from "@/app/actions/meetings";
 import { ROLE_LABELS, STATUS_LABELS } from "@/lib/labels";
 import { ConfirmDialog, type ConfirmDialogState } from "@/components/confirm-dialog";
 import type { User } from "@/lib/types";
@@ -344,13 +344,18 @@ export function MinutesPanel({
   minutes,
   canEdit,
   reviews,
+  retifications,
 }: {
   meetingId: number;
   minutes: { id: number; status: string; conteudo: string | null } | null;
   canEdit: boolean;
   reviews: { opinion: string; content: string | null; name: string; created_at: string }[];
+  retifications?: { content: string; name: string; created_at: string }[];
 }) {
   const [aiLoading, setAiLoading] = useState(false);
+  const [retOpen, setRetOpen] = useState(false);
+  const [retText, setRetText] = useState("");
+  const [retPending, setRetPending] = useState(false);
   const router = useRouter();
 
   async function gen() {
@@ -386,6 +391,18 @@ export function MinutesPanel({
     router.refresh();
   }
 
+  async function retificar() {
+    if (!minutes || !retText.trim()) return;
+    setRetPending(true);
+    const res = await addMinuteRetification(minutes.id, retText);
+    setRetPending(false);
+    if (res.error) return toast.error(res.error);
+    toast.success(res.message || "Retificação registrada.");
+    setRetText("");
+    setRetOpen(false);
+    router.refresh();
+  }
+
   return (
     <div className="space-y-3">
       <div className="flex flex-wrap items-center gap-2">
@@ -404,6 +421,35 @@ export function MinutesPanel({
           </>
         )}
         {minutes && <span className="text-xs text-muted-foreground">Status: {STATUS_LABELS[minutes.status] || minutes.status}</span>}
+      {minutes?.status === "aprovada" && (
+        <>
+          <Button size="sm" variant="outline" className="border-amber-300 text-amber-700 hover:bg-amber-50 dark:border-amber-800 dark:text-amber-300 dark:hover:bg-amber-950/40" onClick={() => setRetOpen((v) => !v)}>
+            {retOpen ? "Cancelar retificação" : "Retificar ata"}
+          </Button>
+          {retOpen && (
+            <div className="space-y-2 rounded-lg border border-amber-300/60 bg-amber-50/40 p-3 dark:border-amber-800/60 dark:bg-amber-950/20">
+              <p className="text-xs text-muted-foreground">
+                Ata aprovada fica bloqueada. Correções são registradas como retificação, preservando o texto aprovado.
+              </p>
+              <textarea rows={3} value={retText} onChange={(e) => setRetText(e.target.value)} placeholder="Descreva a correção..." className="w-full rounded-md border bg-background px-3 py-2 text-sm" />
+              <Button size="sm" type="button" onClick={retificar} disabled={retPending || !retText.trim()}>
+                Registrar retificação
+              </Button>
+            </div>
+          )}
+        </>
+      )}
+      {(retifications ?? []).length > 0 && (
+        <div className="space-y-2">
+          <h5 className="text-sm font-medium text-amber-700 dark:text-amber-300">Retificações</h5>
+          {retifications!.map((r, i) => (
+            <div key={i} className="rounded-lg border border-amber-200/70 bg-amber-50/30 p-2 text-sm dark:border-amber-800/50 dark:bg-amber-950/10">
+              <p className="text-xs text-muted-foreground">{r.name || "—"} · {new Date(r.created_at + "Z").toLocaleString("pt-BR")}</p>
+              <p className="mt-1">{r.content}</p>
+            </div>
+          ))}
+        </div>
+      )}
       </div>
 
       {minutes?.conteudo && (

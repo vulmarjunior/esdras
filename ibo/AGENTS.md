@@ -14,31 +14,32 @@ Aplicação web para a **Comissão de Reforma do Estatuto Social da Igreja Batis
 
 ## Estado do projeto (última atualização)
 
-- MVP completo em Next.js 16 + SQLite local; **não há Supabase ainda** (decisão pendente do usuário). Toda a IA é via Groq API, chamada exclusivamente no servidor.
-- Banco local em `data/esdras.db` (não versionado — recriado com `npm run seed`). O seed contém o Estatuto registrado da IBO + Proposta de Reforma importados dos PDFs em `../Documentos fonte/` (texto vigente, proposta inicial, justificativas, hierarquia completa).
+- MVP completo em **Next.js 16 + Supabase Postgres** (via `pg`, connection string do shared pooler). Deploy alvo: Vercel. Toda a IA é via Groq API, chamada exclusivamente no servidor.
+- **Banco**: Postgres (Supabase). `DATABASE_URL` no `.env.local` (pooler Session, porta 5432). A camada `lib/db.ts` converte `?`→`$N`, `datetime('now')`→`to_char(now(),...)` e `INSERT OR IGNORE`→`ON CONFLICT DO NOTHING`. Dados carregados via `scripts/migrate-to-pg.mjs` (idempotente: drop + recria + copia do SQLite). `lib/schema.sql` é a referência de schema; datas ficam como TEXT no mesmo formato do SQLite.
 - Autenticação local: JWT (jose) + bcrypt, sessão em cookie `esdras_session`. Usuários de demonstração: `admin@ibo.local`/`admin123`, `coordenador@ibo.local`/`coord123`, `membro1@ibo.local`…`membro7@ibo.local`/`membro123`.
-- **Últimas features entregues**: CRUD completo de reuniões (editar/excluir com cascade), CRUD de dispositivos (incluir/editar/excluir; originais protegidos — usar status `revogado`), CRUD de usuários com edição de e-mail, correção de extração (admin) com auditoria, modal de confirmação (substituiu window.confirm), gaveta lateral mobile, distinção visual vigente/proposta/redação, ordenação entre irmãos (`ordem_pai`).
+- **Últimas features entregues**: migração Supabase (`pg`, async), CRUD de reuniões/dispositivos/usuários, editor de texto rico (zero-dep) com sanitização, renumeração (§17 simulador + aplicar), referências cruzadas (§18), votação de sugestões, aprovar dispositivo na reunião (§23), retificação de ata (§29), coerência IA (§33), paginação de auditoria, testes Vitest.
 - Veja `PENDENCIAS.md` para a pauta de trabalho do próximo agente.
 
 ## Comandos
 
 ```bash
-npm run dev        # servidor de desenvolvimento (http://localhost:3000)
+npm run dev        # servidor de desenvolvimento (http://localhost:3000) — usa DATABASE_URL (Supabase)
 npm run build      # build de produção (inclui type check)
 npm run lint       # eslint
-npm run seed       # RECRIA data/esdras.db do zero (usuários + estatuto + proposta)
-node scripts/demo-meeting.mjs   # (opcional) recria a reunião demo nº 1
-node scripts/migrate-ordem.mjs  # (opcional) adiciona/reindexa coluna ordem_pai
+npm test           # vitest (módulos puros)
+node scripts/migrate-to-pg.mjs   # PORTA schema+dados do SQLite local para o Supabase (drop+recria)
+npm run seed       # (só SQLite local/dev) recria data/esdras.db
+node scripts/demo-meeting.mjs    # (opcional) recria a reunião demo nº 1
 ```
 
-> Atenção: pare o `next dev` antes de rodar `npm run seed` (o arquivo do banco fica bloqueado no Windows).
+> O `npm run seed` recria o SQLite local (`data/esdras.db`) — usado como fonte para a migração; o app em execução usa o Postgres do Supabase.
 
 ## Arquitetura e convenções
 
 - **Next.js 16** (App Router, Turbopack, RSC). Consulte os docs em `node_modules/next/dist/docs/` antes de escrever código (ex.: `proxy.ts` substitui `middleware.ts`; `params` é `Promise`; layout usa `LayoutProps`).
 - **Páginas**: `app/(app)/` (área autenticada). Rotas com dados dinâmicos usam `export const dynamic = "force-dynamic"`.
 - **Mutações**: Server Actions em `app/actions/*.ts` — cada ação valida perfil no servidor (`requireRole`/`requireUser` de `lib/auth.ts`) e registra em `audit_logs`. Nunca confiar só no frontend.
-- **Banco**: `lib/db.ts` (better-sqlite3, WAL, FK on) + `lib/schema.sql`. Queries diretas com `get/all/run/transaction`. IDs dos dispositivos são slugs estáveis (`art-1`, `art-4-p2`, `cap-2`); novos usam `novo-<timestamp36>-<rand>`.
+- **Banco**: `lib/db.ts` (pg async: `get/all/run/transaction`). Queries usam `?` (convertido em runtime). `run()` retorna `lastInsertRowid` via `RETURNING id`. IDs dos dispositivos são slugs estáveis (`art-1`, `art-4-p2`, `cap-2`); novos usam `novo-<timestamp36>-<rand>`. Datas: string `YYYY-MM-DD HH:MM:SS` (evitar `now()` do Postgres direto — usar `now()` de `lib/db.ts` ou `datetime('now')` que é convertido).
 - **Perfis**: `admin` (tudo, corrige extração, auditoria/admin só dele), `coordenador` (redação de trabalho, status, reuniões, incluir/editar/excluir dispositivos não-originais), `membro` (sugestões, comentários, pendências, referências, votos consultivos). Auditoria e Administração visíveis **somente para admin**.
 - **Regras de negócio centrais** (PRD §50): integridade dos dados → histórico → simplicidade → colaboração → estética. Nenhuma contribuição sobrescreve outra; toda alteração da redação de trabalho cria versão; decisão sempre vinculada à reunião e ao dispositivo.
 - **Modelos de IA**: o `llama-3.3-70b-versatile` foi **descontinuado na Groq (16/08/2026)**. O `app/api/ai/route.ts` usa cadeia de fallback: `GROQ_MODEL` → `openai/gpt-oss-120b` → `qwen/qwen3.6-27b` → `openai/gpt-oss-20b`. A chave fica em `.env.local` (`GROQ_API_KEY`), nunca no frontend.
@@ -59,5 +60,5 @@ npm run dev
 - `components/provision/*` — editor de redação, sugestões, comentários, pendências, ações do dispositivo
 - `components/meetings/*` — CRUD de reuniões, modo reunião, deliberações, ata
 - `components/confirm-dialog.tsx` — modal de confirmação reutilizável
-- `lib/seed-data/*.json` — Estatuto + Proposta estruturados por capítulo (fonte dos dados)
+- `lib/seed-data/*.json` — Estatuto registrado estruturado por capítulo (fonte dos dados)
 - `scripts/seed.mjs` — cria o banco a partir dos JSONs

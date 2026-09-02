@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { getSessionUser } from "@/lib/auth";
 import { getTree, provisionLabel } from "@/lib/data";
 import type { TreeNode } from "@/lib/data";
+import { RichTextContent } from "@/components/rich-text-content";
 
 export const dynamic = "force-dynamic";
 
@@ -9,7 +10,7 @@ export default async function ConsolidatedPage() {
   const user = await getSessionUser();
   if (!user) redirect("/login");
 
-  const tree = getTree();
+  const tree = await getTree();
   const approvedCount = countApproved(tree);
 
   return (
@@ -73,12 +74,9 @@ function ChapterView({ node, depth = 0 }: { node: TreeNode; depth?: number }) {
         )}
       </div>
       {approved && text && (
-        <p
-          className="whitespace-pre-wrap px-4 pb-3 font-serif text-[15px] leading-relaxed"
-          style={{ paddingLeft: `${16 + depth * 20}px` }}
-        >
-          {text}
-        </p>
+        <div style={{ paddingLeft: `${16 + depth * 20}px` }}>
+          <RichTextContent text={text} className="px-4 pb-3" />
+        </div>
       )}
       {node.children.map((c) => (
         <ChapterView key={c.id} node={c} depth={depth + 1} />

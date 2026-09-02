@@ -4,19 +4,13 @@
   "numero": "V",
   "titulo": "DO PATRIMÔNIO E DA RECEITA",
   "textoVigente": "CAPÍTULO V\nDO PATRIMÔNIO E DA RECEITA",
-  "propostaInicial": "",
-  "justificativa": "Manter a redação. Redação adequada.",
-  "alteracaoTipo": "mantido",
   "filhos": [
     {
       "id": "art-19",
       "type": "artigo",
       "numero": "19",
       "titulo": null,
-      "textoVigente": "O patrimônio da Igreja Batista Olaria é constituído de seu nome, marca, história, cultura, bens móveis, bens imóveis, bens semoventes e outros bens, tangíveis e intangíveis, compatíveis com sua natureza e missão, aplicados dentro do território nacional.",
-      "propostaInicial": "O patrimônio da Igreja Batista Olaria, o conjunto de bens, direitos e obrigações, é constituído de seu nome, marca, história, cultura, bens móveis, bens imóveis, bens semoventes e outros bens, tangíveis e intangíveis, compatíveis com sua natureza e missão, adquiridos a título oneroso ou gratuito.",
-      "justificativa": "Atualiza o conceito de patrimônio, consoante a técnica contábil.",
-      "alteracaoTipo": "alteracao_material"
+      "textoVigente": "O patrimônio da Igreja Batista Olaria é constituído de seu nome, marca, história, cultura, bens móveis, bens imóveis, bens semoventes e outros bens, tangíveis e intangíveis, compatíveis com sua natureza e missão, aplicados dentro do território nacional."
     },
     {
       "id": "art-20",
@@ -24,42 +18,53 @@
       "numero": "20",
       "titulo": null,
       "textoVigente": "A Igreja Batista Olaria obterá recursos financeiros para seu sustento, manutenção e ampliação, por meio da contribuição voluntária de seus membros, como ato de fé, na forma de dízimos mensais e ofertas ocasionais.",
-      "propostaInicial": "A Igreja Batista Olaria obterá recursos financeiros para seu sustento, manutenção e ampliação, oriundos dos dízimos, ofertas e contribuições dos seus membros e congregados, por ato de fé.",
-      "justificativa": "Incluir os congregados.",
-      "alteracaoTipo": "alteracao_material",
       "filhos": [
-        { "id": "art-20-p1", "type": "paragrafo", "numero": "1º", "textoVigente": "A Igreja Batista Olaria poderá firmar convênios ou instrumentos jurídicos similares com organizações públicas e/ou privadas, nacionais ou internacionais, desses advindos recursos financeiros usados exclusivamente para a consecução de suas finalidades descritas neste Estatuto e previstas em seu Regimento Interno.", "propostaInicial": "", "justificativa": "Manter a redação. Redação adequada.", "alteracaoTipo": "mantido" },
-        { "id": "art-20-p2", "type": "paragrafo", "numero": "2º", "textoVigente": "Em nenhum momento e sob nenhuma circunstância ou alegação os recursos financeiros da Igreja Batista Olaria poderão ser reivindicados por seus membros, seus descendentes ou por terceiros.", "propostaInicial": "", "justificativa": "Manter a redação. Redação adequada.", "alteracaoTipo": "mantido" },
+        {
+          "id": "art-20-p1",
+          "type": "paragrafo",
+          "numero": "1º",
+          "textoVigente": "A Igreja Batista Olaria poderá firmar convênios ou instrumentos jurídicos similares com organizações públicas e/ou privadas, nacionais ou internacionais, desses advindos recursos financeiros usados exclusivamente para a consecução de suas finalidades descritas neste Estatuto e previstas em seu Regimento Interno."
+        },
+        {
+          "id": "art-20-p2",
+          "type": "paragrafo",
+          "numero": "2º",
+          "textoVigente": "Em nenhum momento e sob nenhuma circunstância ou alegação os recursos financeiros da Igreja Batista Olaria poderão ser reivindicados por seus membros, seus descendentes ou por terceiros."
+        },
         {
           "id": "art-20-p3",
           "type": "paragrafo",
           "numero": "3º",
-          "textoVigente": "A Igreja Batista Olaria terá uma só Tesouraria que será responsável por toda a movimentação financeira da Igreja.",
-          "propostaInicial": "A Igreja Batista Olaria terá uma só Tesouraria que será responsável por toda a movimentação financeira da Igreja, inclusive operando os meios modernos de transação financeira, como o sistema de pagamento instantâneo – PIX, cartões de crédito e débito, contas gerenciadas, entre outras.",
-          "justificativa": "Visa modernizar a tesouraria",
-          "alteracaoTipo": "alteracao_material"
+          "textoVigente": "A Igreja Batista Olaria terá uma só Tesouraria que será responsável por toda a movimentação financeira da Igreja."
         },
-        { "id": "art-20-p4", "type": "paragrafo", "numero": "4º", "textoVigente": "O uso dos recursos financeiros da Igreja Batista Olaria se dará mediante planejamento financeiro devidamente autorizado pela Assembleia dos Membros reunida em sessão ordinária.", "propostaInicial": "", "justificativa": "Manter a redação. Redação adequada.", "alteracaoTipo": "mantido" }
+        {
+          "id": "art-20-p4",
+          "type": "paragrafo",
+          "numero": "4º",
+          "textoVigente": "O uso dos recursos financeiros da Igreja Batista Olaria se dará mediante planejamento financeiro devidamente autorizado pela Assembleia dos Membros reunida em sessão ordinária."
+        }
       ]
     },
-    { "id": "art-21", "type": "artigo", "numero": "21", "titulo": null, "textoVigente": "A Igreja poderá receber doações e legados de pessoas físicas ou jurídicas, que deverão ser aplicados exclusivamente na consecução de suas finalidades descritas neste Estatuto e em seu Regimento Interno.", "propostaInicial": "", "justificativa": "Manter a redação. Redação adequada.", "alteracaoTipo": "mantido" },
-    { "id": "art-22", "type": "artigo", "numero": "22", "titulo": null, "textoVigente": "A aquisição, alienação ou oneração do patrimônio imóvel da Igreja Batista Olaria só pode ser efetuada com autorização da Assembleia dos Membros reunida em sessão extraordinária para este fim.", "propostaInicial": "", "justificativa": "Manter a redação. Redação adequada.", "alteracaoTipo": "mantido" },
+    {
+      "id": "art-21",
+      "type": "artigo",
+      "numero": "21",
+      "titulo": null,
+      "textoVigente": "A Igreja poderá receber doações e legados de pessoas físicas ou jurídicas, que deverão ser aplicados exclusivamente na consecução de suas finalidades descritas neste Estatuto e em seu Regimento Interno."
+    },
+    {
+      "id": "art-22",
+      "type": "artigo",
+      "numero": "22",
+      "titulo": null,
+      "textoVigente": "A aquisição, alienação ou oneração do patrimônio imóvel da Igreja Batista Olaria só pode ser efetuada com autorização da Assembleia dos Membros reunida em sessão extraordinária para este fim."
+    },
     {
       "id": "art-23",
       "type": "artigo",
       "numero": "23",
       "titulo": null,
-      "textoVigente": "A Igreja Batista Olaria somente responde com os seus bens pelos compromissos por ela assumidos e devidamente autorizados pela Assembleia dos Membros em sessão extraordinária.",
-      "propostaInicial": "",
-      "justificativa": "Manter a redação. Redação adequada.",
-      "alteracaoTipo": "mantido",
-      "filhos": [
-        { "id": "art-23-p1", "type": "paragrafo", "numero": "1º", "origem": "proposta_inicial", "textoVigente": "", "propostaInicial": "Não há qualquer relação entre o patrimônio da Igreja e o de seus administradores e dos demais membros da Igreja.", "justificativa": "Proteger o patrimônio.", "alteracaoTipo": "novo" },
-        { "id": "art-23-p2", "type": "paragrafo", "numero": "2º", "origem": "proposta_inicial", "textoVigente": "", "propostaInicial": "O templo da Igreja e suas dependências serão utilizados para atividades religiosas, artísticas, educacionais, culturais, recreativas, de saúde pública, de assistência social e de defesa civil que não macularem a imagem do Evangelho.", "justificativa": "Disciplinar o uso do patrimônio.", "alteracaoTipo": "novo" },
-        { "id": "art-23-p3", "type": "paragrafo", "numero": "3º", "origem": "proposta_inicial", "textoVigente": "", "propostaInicial": "O patrimônio só poderá ser alienado ou gravado com ônus com a prévia e expressa autorização da Assembleia dos Membros.", "justificativa": "Proteger o patrimônio.", "alteracaoTipo": "novo" },
-        { "id": "art-23-p4", "type": "paragrafo", "numero": "4º", "origem": "proposta_inicial", "textoVigente": "", "propostaInicial": "Em caso de cisão por motivo de ordem doutrinária, o patrimônio da Igreja fica com o grupo que, independentemente de seu número, permanece fiel à doutrina batista, nos termos deste estatuto.", "justificativa": "Proteger o patrimônio.", "alteracaoTipo": "novo" },
-        { "id": "art-23-p5", "type": "paragrafo", "numero": "5º", "origem": "proposta_inicial", "textoVigente": "", "propostaInicial": "É competente para decidir sobre a fidelidade do grupo: A Convenção Batista do Estado de Rondônia, ou a entidade que a representa, sendo o grupo considerado fiel parte legítima para agir em defesa da Igreja.", "justificativa": "Proteger o patrimônio.", "alteracaoTipo": "novo" }
-      ]
+      "textoVigente": "A Igreja Batista Olaria somente responde com os seus bens pelos compromissos por ela assumidos e devidamente autorizados pela Assembleia dos Membros em sessão extraordinária."
     }
   ]
 }

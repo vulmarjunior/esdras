@@ -19,7 +19,7 @@ export default async function MeetingsPage() {
   const user = await getSessionUser();
   if (!user) redirect("/login");
 
-  const meetings = all<{
+  const meetings = await all<{
     id: number; numero: number; data: string; horario: string | null; status: string;
     coordenador: string | null; secretario: string | null; decisoes: number;
   }>(`
@@ -30,7 +30,7 @@ export default async function MeetingsPage() {
     LEFT JOIN users su ON su.id = m.secretario_id
     ORDER BY m.data DESC, m.numero DESC`);
 
-  const users = all<User>("SELECT id, name, email, role, created_at FROM users ORDER BY name");
+  const users = await all<User>("SELECT id, name, email, role, created_at FROM users ORDER BY name");
   const canEdit = user.role === "coordenador" || user.role === "admin";
 
   return (

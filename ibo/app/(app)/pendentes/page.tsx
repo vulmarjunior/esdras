@@ -15,7 +15,7 @@ export default async function PendingPage() {
   const user = await getSessionUser();
   if (!user) redirect("/login");
 
-  const pendings = all<PendingIssue>(`
+  const pendings = await all<PendingIssue>(`
     SELECT p.*, u.name AS author_name FROM pending_issues p
     JOIN users u ON u.id = p.author_id
     ORDER BY p.status, p.id DESC`);
@@ -58,8 +58,8 @@ export default async function PendingPage() {
   );
 }
 
-function PendingWithLink({ p }: { p: PendingIssue }) {
-  const prov = p.provision_id ? getProvision(p.provision_id) : null;
+async function PendingWithLink({ p }: { p: PendingIssue }) {
+  const prov = p.provision_id ? await getProvision(p.provision_id) : null;
   return (
     <Card>
       <CardContent className="pt-4">

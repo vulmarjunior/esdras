@@ -4,9 +4,6 @@
   "numero": "VI",
   "titulo": "DAS DIVERGÊNCIAS DOUTRINÁRIAS",
   "textoVigente": "CAPÍTULO VI\nDAS DIVERGÊNCIAS DOUTRINÁRIAS",
-  "propostaInicial": "",
-  "justificativa": "Manter a redação. Redação adequada.",
-  "alteracaoTipo": "mantido",
   "filhos": [
     {
       "id": "art-24",
@@ -14,14 +11,31 @@
       "numero": "24",
       "titulo": null,
       "textoVigente": "Havendo divergências entre os membros da Igreja Batista Olaria, no que diz respeito às práticas eclesiásticas e às doutrinas Batistas adotadas pela Igreja Batista Olaria, e ocorrendo cisão, fica legalmente estabelecido:",
-      "propostaInicial": "",
-      "justificativa": "Manter a redação. Redação adequada.",
-      "alteracaoTipo": "mantido",
       "filhos": [
-        { "id": "art-24-inc-1", "type": "inciso", "numero": "I", "textoVigente": "Que o patrimônio da Igreja Batista Olaria, em sua completa totalidade, ficará na posse, domínio, uso e administração do grupo de membros que, independentemente do seu número, permanecer fiel às práticas e doutrinas originalmente adotadas pela Igreja Batista Olaria, inclusive todos os documentos; registros; valores; contas bancárias e respectivas movimentações; logotipo; marca; bens imóveis, imóveis, semoventes, tangíveis e intangíveis.", "propostaInicial": "", "justificativa": "Manter a redação. Redação adequada.", "alteracaoTipo": "mantido" },
-        { "id": "art-24-inc-2", "type": "inciso", "numero": "II", "textoVigente": "Que o nome 'Igreja Batista Olaria' será de uso exclusivo do grupo de membros fiel ao que preceitua este Artigo.", "propostaInicial": "", "justificativa": "Manter a redação. Redação adequada.", "alteracaoTipo": "mantido" },
-        { "id": "art-24-inc-3", "type": "inciso", "numero": "III", "textoVigente": "Que, caso as circunstâncias exijam, o grupo de membros fiel a este Artigo poderá eleger outra Diretoria e/ou outro Pastor Presidente em caráter de emergência.", "propostaInicial": "", "justificativa": "Manter a redação. Redação adequada.", "alteracaoTipo": "mantido" },
-        { "id": "art-24-inc-4", "type": "inciso", "numero": "IV", "textoVigente": "Que o grupo de membros fiel a este Artigo exercerá todos os direitos e prerrogativas previstos neste Estatuto e no Regimento Interno, na forma da lei, passando a ser, de fato e de direito os únicos e suficientes membros que constituem a 'Igreja Batista Olaria'.", "propostaInicial": "", "justificativa": "Manter a redação. Redação adequada.", "alteracaoTipo": "mantido" }
+        {
+          "id": "art-24-inc-1",
+          "type": "inciso",
+          "numero": "I",
+          "textoVigente": "Que o patrimônio da Igreja Batista Olaria, em sua completa totalidade, ficará na posse, domínio, uso e administração do grupo de membros que, independentemente do seu número, permanecer fiel às práticas e doutrinas originalmente adotadas pela Igreja Batista Olaria, inclusive todos os documentos; registros; valores; contas bancárias e respectivas movimentações; logotipo; marca; bens imóveis, imóveis, semoventes, tangíveis e intangíveis."
+        },
+        {
+          "id": "art-24-inc-2",
+          "type": "inciso",
+          "numero": "II",
+          "textoVigente": "Que o nome 'Igreja Batista Olaria' será de uso exclusivo do grupo de membros fiel ao que preceitua este Artigo."
+        },
+        {
+          "id": "art-24-inc-3",
+          "type": "inciso",
+          "numero": "III",
+          "textoVigente": "Que, caso as circunstâncias exijam, o grupo de membros fiel a este Artigo poderá eleger outra Diretoria e/ou outro Pastor Presidente em caráter de emergência."
+        },
+        {
+          "id": "art-24-inc-4",
+          "type": "inciso",
+          "numero": "IV",
+          "textoVigente": "Que o grupo de membros fiel a este Artigo exercerá todos os direitos e prerrogativas previstos neste Estatuto e no Regimento Interno, na forma da lei, passando a ser, de fato e de direito os únicos e suficientes membros que constituem a 'Igreja Batista Olaria'."
+        }
       ]
     },
     {
@@ -30,26 +44,13 @@
       "numero": "25",
       "titulo": null,
       "textoVigente": "Para arbitrar sobre o assunto de que trata o Artigo 24, será constituído um concílio de no mínimo 10 (dez) Pastores Batistas, indicados pela Convenção Batista do Estado de Rondônia.",
-      "propostaInicial": "Para arbitrar sobre o assunto de que trata o Artigo 24, o julgamento do litígio será feito por um Concílio Decisório, constituído de 07 (sete) pastores assim especificados: Um pastor representando a Cobaro, dois indicados pela Ordem dos Pastores e dois pastores indicados por cada grupo divergente, estando todos os respectivos pastores em regular exercício no ministério em uma igreja Batista no Estado de Rondônia e inscritos na OPBB/RO com situação regular na Ordem.",
-      "justificativa": "Dessa forma, dá mais pluralidade e isonomia à solução dos litígios",
-      "alteracaoTipo": "alteracao_material",
       "filhos": [
         {
           "id": "art-25-pu",
           "type": "paragrafo",
           "numero": "Único",
-          "textoVigente": "O referido concílio, após obter conhecimento de todos os fatos e respeitado em sua totalidade este Estatuto, apresentará relatório conclusivo à Igreja Batista Olaria e à Convenção Batista do Estado de Rondônia, no prazo máximo de 30 (trinta) dias a partir da data de sua primeira reunião.",
-          "propostaInicial": "O referido Concílio Decisório será criado mediante exposição, devidamente fundamentada e encaminhada à Cobaro, que, após obter conhecimento de todos os fatos e respeitado em sua totalidade este Estatuto, apresentará relatório conclusivo à Igreja Batista Olaria e à Convenção Batista do Estado de Rondônia, no prazo máximo de 30 (trinta) dias a partir da data de sua primeira reunião.",
-          "justificativa": "Traz mais clareza ao texto original.",
-          "alteracaoTipo": "alteracao_material"
-        },
-        { "id": "art-25-p2", "type": "paragrafo", "numero": "2º", "origem": "proposta_inicial", "textoVigente": "", "propostaInicial": "O requerimento para a formação de concílio decisório e processamento da divergência doutrinária poderá ser encaminhado à Cobaro por pelo menos 5% dos membros ativos da igreja, arredondando-se para cima em caso de fração.", "justificativa": "Apresentar os legitimados", "alteracaoTipo": "novo" },
-        { "id": "art-25-p3", "type": "paragrafo", "numero": "3º", "origem": "proposta_inicial", "textoVigente": "", "propostaInicial": "O presidente do Concílio Decisório será o pastor representante da Cobaro, que designará na primeira reunião, um relator e um secretário, dentre os membros do Concílio, para os devidos fins.", "justificativa": "Estabelecer a hierarquia dentro do Concílio.", "alteracaoTipo": "novo" },
-        { "id": "art-25-p4", "type": "paragrafo", "numero": "4º", "origem": "proposta_inicial", "textoVigente": "", "propostaInicial": "O Concílio Decisório poderá realizar suas reuniões na sede da Igreja ou fora dela.", "justificativa": "Determinar o local das reuniões", "alteracaoTipo": "novo" },
-        { "id": "art-25-p5", "type": "paragrafo", "numero": "5º", "origem": "proposta_inicial", "textoVigente": "", "propostaInicial": "As deliberações do Concílio Decisório são irrecorríveis, entrando em vigor imediatamente.", "justificativa": "Momento da tomada de decisão e consequências", "alteracaoTipo": "novo" },
-        { "id": "art-25-p6", "type": "paragrafo", "numero": "6º", "origem": "proposta_inicial", "textoVigente": "", "propostaInicial": "O grupo que, de qualquer maneira, se opuser ao processo aqui estabelecido, será considerado vencido, ficando sujeito às sanções previstas neste Estatuto e na Lei.", "justificativa": "Princípio da legalidade.", "alteracaoTipo": "novo" },
-        { "id": "art-25-p7", "type": "paragrafo", "numero": "7º", "origem": "proposta_inicial", "textoVigente": "", "propostaInicial": "O Concílio Decisório terá o prazo de 60 (sessenta) dias, a contar da data em que tenha sido constituído, a fim de apurar os fatos e proferir a decisão final.", "justificativa": "Prazo para término da quela.", "alteracaoTipo": "novo" },
-        { "id": "art-25-p8", "type": "paragrafo", "numero": "8º", "origem": "proposta_inicial", "textoVigente": "", "propostaInicial": "No processo de apuração dos fatos e tomada de decisões, o Concílio Decisório fará o uso das provas admitidas em direito.", "justificativa": "Princípio da legalidade.", "alteracaoTipo": "novo" }
+          "textoVigente": "O referido concílio, após obter conhecimento de todos os fatos e respeitado em sua totalidade este Estatuto, apresentará relatório conclusivo à Igreja Batista Olaria e à Convenção Batista do Estado de Rondônia, no prazo máximo de 30 (trinta) dias a partir da data de sua primeira reunião."
+        }
       ]
     },
     {
@@ -58,16 +59,31 @@
       "numero": "26",
       "titulo": null,
       "textoVigente": "Durante o processo de arbitramento do concílio referido no Artigo 25, o grupo de membros tido como contrário às práticas e doutrinas batistas adotadas originalmente pela Igreja Batista Olaria, sob nenhuma hipótese poderá deliberar sobre assuntos referente à Igreja Batista Olaria, inclusive:",
-      "propostaInicial": "Durante o processo de arbitramento do concílio referido no Artigo 25, nenhum grupo sob nenhuma hipótese poderá deliberar sobre assuntos referente à Igreja Batista Olaria, inclusive",
-      "justificativa": "Até que se arbitre quem é o grupo de membros tido como contrário às práticas e doutrinas batistas adotadas originalmente pela Igreja Batista Olaria, nenhum deles pode tomar decisões. Parece-nos mais prudente, salvo melhor juízo.",
-      "alteracaoTipo": "alteracao_material",
       "filhos": [
-        { "id": "art-26-inc-1", "type": "inciso", "numero": "I", "textoVigente": "Qualquer alienação e/ou oneração total e/ou parcial do patrimônio da Igreja Batista Olaria.", "propostaInicial": "", "justificativa": "Manter a redação. Redação adequada.", "alteracaoTipo": "mantido" },
-        { "id": "art-26-inc-2", "type": "inciso", "numero": "II", "textoVigente": "Qualquer admissão e/ou desligamento de membros da Igreja Batista Olaria.", "propostaInicial": "", "justificativa": "Manter a redação. Redação adequada.", "alteracaoTipo": "mantido" },
-        { "id": "art-26-inc-3", "type": "inciso", "numero": "III", "textoVigente": "Qualquer restrição aos direitos dos membros da Igreja Batista Olaria previstos neste Estatuto, e notadamente no Artigo 24.", "propostaInicial": "", "justificativa": "Manter a redação. Redação adequada.", "alteracaoTipo": "mantido" },
-        { "id": "art-26-inc-4", "type": "inciso", "numero": "IV", "textoVigente": "Qualquer reforma e/ou descumprimento deste Estatuto e/ou do Regimento Interno e/ou de quaisquer documentos legais da Igreja Batista Olaria.", "propostaInicial": "", "justificativa": "Manter a redação. Redação adequada.", "alteracaoTipo": "mantido" },
-        { "id": "art-26-inc-5", "type": "inciso", "numero": "V", "origem": "proposta_inicial", "textoVigente": "", "propostaInicial": "Mudança da sede;", "justificativa": "Segurança jurídica", "alteracaoTipo": "novo" },
-        { "id": "art-26-inc-6", "type": "inciso", "numero": "VI", "origem": "proposta_inicial", "textoVigente": "", "propostaInicial": "Alteração do nome da Igreja ou identidade visual", "justificativa": "Segurança jurídica", "alteracaoTipo": "novo" }
+        {
+          "id": "art-26-inc-1",
+          "type": "inciso",
+          "numero": "I",
+          "textoVigente": "Qualquer alienação e/ou oneração total e/ou parcial do patrimônio da Igreja Batista Olaria."
+        },
+        {
+          "id": "art-26-inc-2",
+          "type": "inciso",
+          "numero": "II",
+          "textoVigente": "Qualquer admissão e/ou desligamento de membros da Igreja Batista Olaria."
+        },
+        {
+          "id": "art-26-inc-3",
+          "type": "inciso",
+          "numero": "III",
+          "textoVigente": "Qualquer restrição aos direitos dos membros da Igreja Batista Olaria previstos neste Estatuto, e notadamente no Artigo 24."
+        },
+        {
+          "id": "art-26-inc-4",
+          "type": "inciso",
+          "numero": "IV",
+          "textoVigente": "Qualquer reforma e/ou descumprimento deste Estatuto e/ou do Regimento Interno e/ou de quaisquer documentos legais da Igreja Batista Olaria."
+        }
       ]
     }
   ]

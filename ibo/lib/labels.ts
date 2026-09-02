@@ -68,7 +68,6 @@ export const ALTERACAO_TYPE_LABELS: Record<string, string> = {
 
 export const ORIGIN_LABELS: Record<string, string> = {
   original: "Original",
-  proposta_inicial: "Proposta inicial",
   novo: "Novo",
 };
 

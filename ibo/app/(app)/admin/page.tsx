@@ -11,7 +11,7 @@ export default async function AdminPage() {
   const user = await getSessionUser();
   if (!user || user.role !== "admin") redirect("/");
 
-  const users = all<User>("SELECT id, name, email, role, created_at FROM users ORDER BY name");
+  const users = await all<User>("SELECT id, name, email, role, created_at FROM users ORDER BY name");
   const adminCount = users.filter((u) => u.role === "admin").length;
 
   return (

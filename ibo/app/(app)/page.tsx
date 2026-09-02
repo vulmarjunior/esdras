@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { StatusDot, StatusBadge } from "@/components/status-badge";
+import { NewProvisionForm } from "@/components/provision/provision-forms";
 import { CheckCircle2, Circle, Loader2, PenLine, RotateCcw, AlertCircle, Layers } from "lucide-react";
 import type { TreeNode } from "@/lib/data";
 
@@ -27,12 +28,12 @@ export default async function DashboardPage() {
   const user = await getSessionUser();
   if (!user) redirect("/login");
 
-  const tree = getTree();
-  const counts = getStatusCounts();
-  const totalArtigos = getArticleCount();
+  const tree = await getTree();
+  const counts = await getStatusCounts();
+  const totalArtigos = await getArticleCount();
   const analyzed = totalArtigos - counts.nao_iniciado;
   const pct = totalArtigos ? Math.round((counts.aprovado / totalArtigos) * 100) : 0;
-  const pendingCount = all<{ c: number }>("SELECT COUNT(*) c FROM pending_issues WHERE status = 'aberta'")[0]?.c ?? 0;
+  const pendingCount = (await all<{ c: number }>("SELECT COUNT(*) c FROM pending_issues WHERE status = 'aberta'"))[0]?.c ?? 0;
 
   return (
     <div className="space-y-6">
@@ -92,6 +93,15 @@ export default async function DashboardPage() {
         </Card>
       </div>
 
+      {(user.role === "coordenador" || user.role === "admin") && (
+        <div className="flex flex-wrap items-center gap-2">
+          <NewProvisionForm parentId={null} parentType="root" canEdit={true} types={["capitulo"]} label="Incluir capítulo" />
+          <span className="text-xs text-muted-foreground">
+            Capítulos e dispositivos novos entram como &quot;NOVO&quot;, com numeração definida na consolidação.
+          </span>
+        </div>
+      )}
+
       <div className="grid gap-4 lg:grid-cols-2">
         {tree.map((chapter) => (
           <ChapterSection key={chapter.id} chapter={chapter} />
@@ -139,8 +149,8 @@ function DeviceRow({ node, depth }: { node: TreeNode; depth: number }) {
           {node.titulo && (
             <span className="truncate text-muted-foreground">— {node.titulo}</span>
           )}
-          {node.origem === "proposta_inicial" && (
-            <Badge variant="outline" className="shrink-0 text-[10px]">proposta</Badge>
+          {node.origem === "novo" && (
+            <Badge variant="outline" className="shrink-0 border-primary/40 text-[10px] text-primary">novo</Badge>
           )}
         </span>
         <StatusBadge status={node.status} className="shrink-0" />

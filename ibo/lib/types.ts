@@ -19,7 +19,7 @@ export interface Provision {
   numero: string | null;
   titulo: string | null;
   ordem: number;
-  origem: "original" | "proposta_inicial" | "novo";
+  origem: "original" | "novo";
   alteracao_tipo: string;
   status: ProvisionStatus;
   texto_vigente: string;

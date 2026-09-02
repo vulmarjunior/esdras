@@ -14,6 +14,7 @@ import {
   MinutesPanel,
   ReviewAtaForm,
 } from "@/components/meetings/meeting-actions";
+import { ApproveDeviceForm } from "@/components/provision/provision-forms";
 
 export const dynamic = "force-dynamic";
 
@@ -39,7 +40,7 @@ export default async function MeetingPage({ params }: { params: Promise<{ id: st
   const user = await getSessionUser();
   if (!user) redirect("/login");
 
-  const meeting = get<{
+  const meeting = await get<{
     id: number; numero: number; data: string; horario: string | null; local: string | null; pauta: string | null;
     status: string; started_at: string | null; ended_at: string | null;
     coordenador_id: number | null; secretario_id: number | null;
@@ -54,36 +55,42 @@ export default async function MeetingPage({ params }: { params: Promise<{ id: st
 
   const canEdit = user.role === "coordenador" || user.role === "admin";
 
-  const members = all<{ user_id: number; name: string; role: string; presente: number }>(`
+  const members = await all<{ user_id: number; name: string; role: string; presente: number }>(`
     SELECT mm.user_id, u.name, u.role, mm.presente
     FROM meeting_members mm JOIN users u ON u.id = mm.user_id
     WHERE mm.meeting_id = ? ORDER BY u.name`, [meetingId]);
 
-  const events = all<{ id: number; hora: string; tipo: string; descricao: string; user_name: string | null }>(`
+  const events = await all<{ id: number; hora: string; tipo: string; descricao: string; user_name: string | null }>(`
     SELECT e.*, u.name AS user_name FROM meeting_events e
     LEFT JOIN users u ON u.id = e.user_id
     WHERE e.meeting_id = ? ORDER BY e.id`, [meetingId]);
 
-  const decisions = all<{ id: number; code: string; provision_id: string | null; provision_ref: string | null; tipo: string; texto: string; user_name: string | null; created_at: string }>(`
+  const decisions = await all<{ id: number; code: string; provision_id: string | null; provision_ref: string | null; tipo: string; texto: string; user_name: string | null; created_at: string }>(`
     SELECT md.*, p.numero AS provision_ref, u.name AS user_name
     FROM meeting_decisions md
     LEFT JOIN provisions p ON p.id = md.provision_id
     LEFT JOIN users u ON u.id = md.user_id
     WHERE md.meeting_id = ? ORDER BY md.id`, [meetingId]);
 
-  const minutes = get<{ id: number; status: string; conteudo: string | null }>(
-    "SELECT id, status, conteudo FROM minutes WHERE meeting_id = ?", [meetingId]) ?? null;
+  const minutes = (await get<{ id: number; status: string; conteudo: string | null }>(
+    "SELECT id, status, conteudo FROM minutes WHERE meeting_id = ?", [meetingId])) ?? null;
 
   const reviews = minutes
-    ? all<{ opinion: string; content: string | null; name: string; created_at: string }>(`
+    ? await all<{ opinion: string; content: string | null; name: string; created_at: string }>(`
         SELECT mr.opinion, mr.content, u.name, mr.created_at FROM minutes_reviews mr
         JOIN users u ON u.id = mr.user_id WHERE mr.minutes_id = ? ORDER BY mr.id`, [minutes.id])
     : [];
 
-  const provisions = all<{ id: string; type: string; numero: string }>(
+  const retifications = minutes
+    ? await all<{ content: string; name: string; created_at: string }>(`
+        SELECT mr.content, u.name, mr.created_at FROM minutes_retifications mr
+        JOIN users u ON u.id = mr.author_id WHERE mr.minutes_id = ? ORDER BY mr.id`, [minutes.id])
+    : [];
+
+  const provisions = await all<{ id: string; type: string; numero: string }>(
     "SELECT id, type, numero FROM provisions WHERE type IN ('artigo','capitulo') ORDER BY ordem");
 
-  const allUsers = all<User>("SELECT id, name, email, role, created_at FROM users ORDER BY name");
+  const allUsers = await all<User>("SELECT id, name, email, role, created_at FROM users ORDER BY name");
 
   const presentCount = members.filter((m) => m.presente).length;
   const aprovados = decisions.filter((d) => d.tipo === "aprovacao").length;
@@ -168,6 +175,7 @@ export default async function MeetingPage({ params }: { params: Promise<{ id: st
           <CardTitle className="text-base">Deliberações</CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
+          <ApproveDeviceForm devices={provisions.map((p) => ({ id: p.id, label: provisionLabel(p as never) }))} canEdit={canEdit} />
           <DecisionForm meetingId={meetingId} provisions={provisions.map((p) => ({ id: p.id, label: provisionLabel(p as never) }))} canEdit={canEdit} />
           {decisions.length === 0 ? (
             <p className="text-sm text-muted-foreground">Nenhuma deliberação registrada.</p>
@@ -199,7 +207,7 @@ export default async function MeetingPage({ params }: { params: Promise<{ id: st
           <CardTitle className="text-base">Ata</CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
-          <MinutesPanel meetingId={meetingId} minutes={minutes} canEdit={canEdit} reviews={reviews} />
+          <MinutesPanel meetingId={meetingId} minutes={minutes} canEdit={canEdit} reviews={reviews} retifications={retifications} />
           {minutes && minutes.status === "em_revisao" && <ReviewAtaForm minutesId={minutes.id} />}
         </CardContent>
       </Card>

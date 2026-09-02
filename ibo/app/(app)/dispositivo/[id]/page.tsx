@@ -1,7 +1,8 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { getSessionUser } from "@/lib/auth";
-import { getProvision, getTree, provisionLabel, parentChain, type TreeNode } from "@/lib/data";
+import { getProvision, getTree, provisionLabel, parentChain } from "@/lib/data";
+import type { TreeNode } from "@/lib/data";
 import { all, get } from "@/lib/db";
 import {
   PROVISION_TYPE_LABELS,
@@ -13,6 +14,9 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { StatusBadge } from "@/components/status-badge";
 import { WorkingTextEditor } from "@/components/provision/working-text-editor";
+import { RichTextContent } from "@/components/rich-text-content";
+import { FieldHelper } from "@/components/field-helper";
+import { StructuralNav } from "@/components/structural-nav";
 import {
   StatusControl,
   SuggestionForm,
@@ -27,6 +31,8 @@ import {
   HistoricalTextEditor,
   NewProvisionForm,
   ProvisionAdminActions,
+  RelationForm,
+  type RelationDeviceOption,
 } from "@/components/provision/provision-forms";
 import type { Suggestion, Comment, PendingIssue } from "@/lib/types";
 
@@ -37,7 +43,7 @@ export default async function DevicePage({ params }: { params: Promise<{ id: str
   const user = await getSessionUser();
   if (!user) redirect("/login");
 
-  const prov = getProvision(id);
+  const prov = await getProvision(id);
   if (!prov) notFound();
 
   const canEditWork = user.role === "coordenador" || user.role === "admin";
@@ -45,44 +51,60 @@ export default async function DevicePage({ params }: { params: Promise<{ id: str
   const canParticipate = true;
   const canFixExtraction = user.role === "admin";
 
-  const chain = parentChain(id);
-  const tree = getTree();
+  const chain = await parentChain(id);
+  const tree = await getTree();
+  const devices = flattenDevices(tree);
 
-  const suggestions = all<Suggestion>(`
+  const suggestions = await all<Suggestion>(`
     SELECT s.*, u.name AS author_name FROM suggestions s
     JOIN users u ON u.id = s.author_id
     WHERE s.provision_id = ? ORDER BY s.id DESC`, [id]);
 
-  const comments = all<Comment>(`
+  const sugVotes = await all<{ suggestion_id: number; opinion: string; c: number }>(`
+    SELECT v.suggestion_id, v.opinion, COUNT(*) c FROM votes v
+    WHERE v.suggestion_id IN (SELECT id FROM suggestions WHERE provision_id = ?)
+    GROUP BY v.suggestion_id, v.opinion`, [id]);
+  const mySugVotes = await all<{ suggestion_id: number; opinion: string }>(`
+    SELECT v.suggestion_id, v.opinion FROM votes v
+    WHERE v.user_id = ? AND v.suggestion_id IN (SELECT id FROM suggestions WHERE provision_id = ?)`, [user.id, id]);
+  const sugVotesMap = new Map<number, Record<string, number>>();
+  for (const v of sugVotes) {
+    const m = sugVotesMap.get(v.suggestion_id) || {};
+    m[v.opinion] = v.c;
+    sugVotesMap.set(v.suggestion_id, m);
+  }
+  const mySugVotesMap = new Map(mySugVotes.map((v) => [v.suggestion_id, v.opinion]));
+
+  const comments = await all<Comment>(`
     SELECT c.*, u.name AS author_name FROM comments c
     JOIN users u ON u.id = c.author_id
     WHERE c.provision_id = ? ORDER BY c.id`, [id]);
 
-  const pendings = all<PendingIssue>(`
+  const pendings = await all<PendingIssue>(`
     SELECT p.*, u.name AS author_name FROM pending_issues p
     JOIN users u ON u.id = p.author_id
     WHERE p.provision_id = ? ORDER BY p.id DESC`, [id]);
 
-  const references = all<{ id: number; tipo: string; texto: string }>(
+  const references = await all<{ id: number; tipo: string; texto: string }>(
     "SELECT id, tipo, texto FROM references_tb WHERE provision_id = ? ORDER BY id", [id]);
 
-  const versions = all<{ version: number; content: string; reason: string | null; author_name: string | null; created_at: string; meeting_id: number | null }>(`
+  const versions = await all<{ version: number; content: string; reason: string | null; author_name: string | null; created_at: string; meeting_id: number | null }>(`
     SELECT v.*, u.name AS author_name FROM provision_versions v
     LEFT JOIN users u ON u.id = v.author_id
     WHERE v.provision_id = ? ORDER BY v.version DESC`, [id]);
 
-  const relations = all<{ related_id: string; type: string; numero: string }>(`
+  const relations = await all<{ related_id: string; type: string; numero: string }>(`
     SELECT r.related_id, p.type, p.numero FROM provision_relations r
     JOIN provisions p ON p.id = r.related_id
     WHERE r.provision_id = ? ORDER BY p.ordem`, [id]);
 
-  const votes = all<{ opinion: string; c: number }>(
+  const votes = await all<{ opinion: string; c: number }>(
     "SELECT opinion, COUNT(*) c FROM votes WHERE provision_id = ? GROUP BY opinion", [id]);
-  const myVote = get<{ opinion: string }>("SELECT opinion FROM votes WHERE provision_id = ? AND user_id = ?", [id, user.id]);
+  const myVote = await get<{ opinion: string }>("SELECT opinion FROM votes WHERE provision_id = ? AND user_id = ?", [id, user.id]);
 
-  const votedCount = get<{ c: number }>("SELECT COUNT(DISTINCT user_id) c FROM votes WHERE provision_id = ?", [id])?.c ?? 0;
+  const votedCount = (await get<{ c: number }>("SELECT COUNT(DISTINCT user_id) c FROM votes WHERE provision_id = ?", [id]))?.c ?? 0;
 
-  const directChildren = get<{ c: number }>("SELECT COUNT(*) c FROM provisions WHERE parent_id = ?", [id])?.c ?? 0;
+  const directChildren = (await get<{ c: number }>("SELECT COUNT(*) c FROM provisions WHERE parent_id = ?", [id]))?.c ?? 0;
 
   return (
     <div className="grid gap-6 lg:grid-cols-[260px_1fr]">
@@ -92,7 +114,7 @@ export default async function DevicePage({ params }: { params: Promise<{ id: str
             Navegação estrutural
           </summary>
           <div className="max-h-[60vh] overflow-auto border-t p-2">
-            <TreeNav nodes={tree} activeId={id} depthLimit={2} />
+            <StructuralNav nodes={tree} activeId={id} />
           </div>
         </details>
         <div className="hidden lg:block">
@@ -101,7 +123,7 @@ export default async function DevicePage({ params }: { params: Promise<{ id: str
               <CardTitle className="text-sm font-medium">Navegação estrutural</CardTitle>
             </CardHeader>
             <CardContent className="max-h-[70vh] overflow-auto pr-1">
-              <TreeNav nodes={tree} activeId={id} />
+              <StructuralNav nodes={tree} activeId={id} />
             </CardContent>
           </Card>
         </div>
@@ -137,16 +159,19 @@ export default async function DevicePage({ params }: { params: Promise<{ id: str
         </div>
 
         <Card>
-          <CardContent className="pt-5">
+          <CardContent className="space-y-2 pt-5">
             <StatusControl provisionId={id} status={prov.status} canEdit={canManage} />
+            <FieldHelper>
+              Fluxo de trabalho: Não iniciado → Em análise → Em discussão → Redação definida → Aprovado. Aprovar congela a redação consolidada.
+            </FieldHelper>
           </CardContent>
         </Card>
 
         <NewProvisionForm parentId={id} parentType={prov.type} canEdit={canManage} />
 
         <Card>
-          <CardContent className="pt-5">
-            <ProvisionAdminActions provisionId={id} origem={prov.origem} childCount={directChildren} canEdit={canManage} />
+          <CardContent className="space-y-2 pt-5">
+            <ProvisionAdminActions provisionId={id} origem={prov.origem} childCount={directChildren} canEdit={canManage} alteracaoTipo={prov.alteracao_tipo} />
           </CardContent>
         </Card>
 
@@ -158,7 +183,7 @@ export default async function DevicePage({ params }: { params: Promise<{ id: str
               <Badge variant="outline" className="text-[10px] text-slate-500">documento histórico — não editável</Badge>
             </CardTitle>
           </CardHeader>
-          <CardContent>
+          <CardContent className="space-y-2">
             <HistoricalTextEditor
               provisionId={id}
               campo="texto_vigente"
@@ -166,6 +191,9 @@ export default async function DevicePage({ params }: { params: Promise<{ id: str
               canEdit={canFixExtraction}
               emptyLabel="Não existe no estatuto registrado."
             />
+            <FieldHelper>
+              É o texto atual do Estatuto registrado — apenas referência. Não precisa de ação.
+            </FieldHelper>
           </CardContent>
         </Card>
 
@@ -179,7 +207,7 @@ export default async function DevicePage({ params }: { params: Promise<{ id: str
               </Badge>
             </CardTitle>
           </CardHeader>
-          <CardContent>
+          <CardContent className="space-y-2">
             <HistoricalTextEditor
               provisionId={id}
               campo="proposta_inicial"
@@ -187,6 +215,9 @@ export default async function DevicePage({ params }: { params: Promise<{ id: str
               canEdit={canFixExtraction}
               emptyLabel="Sem alteração proposta (manter redação)."
             />
+            <FieldHelper>
+              Ponto de partida da reforma. Edite aqui o texto proposto — use negrito ou destaque para marcar o que muda.
+            </FieldHelper>
           </CardContent>
         </Card>
 
@@ -200,13 +231,17 @@ export default async function DevicePage({ params }: { params: Promise<{ id: str
               </Badge>
             </CardTitle>
           </CardHeader>
-          <CardContent>
+          <CardContent className="space-y-2">
             <WorkingTextEditor
               provisionId={id}
               initialText={prov.redacao_trabalho}
               version={prov.version}
               canEdit={canEditWork}
+              compararTexto={prov.texto_vigente}
             />
+            <FieldHelper>
+              Redação que a comissão está trabalhando. Cada salvar cria nova versão no histórico.
+            </FieldHelper>
           </CardContent>
         </Card>
 
@@ -217,8 +252,11 @@ export default async function DevicePage({ params }: { params: Promise<{ id: str
               Justificativa
             </CardTitle>
           </CardHeader>
-          <CardContent>
+          <CardContent className="space-y-2">
             <JustificativaEditor provisionId={id} initial={prov.justificativa} canEdit={canManage} />
+            <FieldHelper>
+              Explique o porquê da alteração. Alimenta o Relatório da reforma.
+            </FieldHelper>
           </CardContent>
         </Card>
 
@@ -230,9 +268,9 @@ export default async function DevicePage({ params }: { params: Promise<{ id: str
                 Redação consolidada (aprovada)
               </CardTitle>
             </CardHeader>
-            <CardContent>
-              <p className="whitespace-pre-wrap font-serif text-[15px] leading-relaxed">{prov.redacao_consolidada}</p>
-              <p className="mt-2 text-xs text-muted-foreground">Texto aprovado pela comissão. Bloqueado após aprovação.</p>
+            <CardContent className="space-y-2">
+              <RichTextContent text={prov.redacao_consolidada} />
+              <FieldHelper>Texto final aprovado — entra no Estatuto consolidado e fica bloqueado.</FieldHelper>
             </CardContent>
           </Card>
         )}
@@ -242,7 +280,11 @@ export default async function DevicePage({ params }: { params: Promise<{ id: str
             <CardTitle className="text-base">Fundamentação</CardTitle>
             <ReferenceForm provisionId={id} />
           </CardHeader>
-          <CardContent className="grid gap-4 sm:grid-cols-2">
+          <CardContent className="space-y-3">
+            <FieldHelper>
+              Referências que sustentam a proposta — bíblicas, doutrinárias, jurídicas ou pastorais.
+            </FieldHelper>
+            <div className="grid gap-4 sm:grid-cols-2">
             {(["biblica", "doutrinaria", "juridica", "pastoral"] as const).map((tipo) => {
               const list = references.filter((r) => r.tipo === tipo);
               return (
@@ -263,6 +305,7 @@ export default async function DevicePage({ params }: { params: Promise<{ id: str
                 </div>
               );
             })}
+            </div>
           </CardContent>
         </Card>
 
@@ -273,8 +316,11 @@ export default async function DevicePage({ params }: { params: Promise<{ id: str
           </CardHeader>
           <CardContent className="space-y-3">
             <SuggestionForm provisionId={id} />
+            <FieldHelper>
+              Membros propõem o que mudar no texto; o coordenador decide o destino de cada sugestão.
+            </FieldHelper>
             {suggestions.length === 0 && <p className="text-sm text-muted-foreground">Nenhuma sugestão ainda.</p>}
-            {suggestions.map((s) => <SuggestionItem key={s.id} sug={s} canManage={canManage} />)}
+            {suggestions.map((s) => <SuggestionItem key={s.id} sug={s} canManage={canManage} votes={sugVotesMap.get(s.id)} myVote={mySugVotesMap.get(s.id)} />)}
           </CardContent>
         </Card>
 
@@ -285,6 +331,9 @@ export default async function DevicePage({ params }: { params: Promise<{ id: str
           </CardHeader>
           <CardContent className="space-y-3">
             <PendingForm provisionId={id} />
+            <FieldHelper>
+              Questões em aberto que precisam ser verificadas antes de aprovar o dispositivo.
+            </FieldHelper>
             {pendings.length === 0 && <p className="text-sm text-muted-foreground">Nenhuma pendência registrada.</p>}
             {pendings.map((p) => <PendingItem key={p.id} p={p} />)}
           </CardContent>
@@ -296,6 +345,7 @@ export default async function DevicePage({ params }: { params: Promise<{ id: str
           </CardHeader>
           <CardContent className="space-y-3">
             {canParticipate && <CommentForm provisionId={id} suggestionId={null} />}
+            <FieldHelper>Discussão livre sobre o dispositivo — troca de ideias entre os membros.</FieldHelper>
             <CommentList comments={comments} />
           </CardContent>
         </Card>
@@ -306,6 +356,9 @@ export default async function DevicePage({ params }: { params: Promise<{ id: str
           </CardHeader>
           <CardContent className="space-y-3">
             <VoteButtons provisionId={id} currentOpinion={myVote?.opinion ?? null} />
+            <FieldHelper>
+              Manifestação consultiva dos membros — não é a votação formal da comissão.
+            </FieldHelper>
             <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
               <span>{votedCount} membro(s) se manifestaram. Caráter consultivo — não constitui votação formal da comissão.</span>
               {votes.map((v) => (
@@ -322,7 +375,10 @@ export default async function DevicePage({ params }: { params: Promise<{ id: str
           <CardHeader>
             <CardTitle className="text-base">Histórico de versões</CardTitle>
           </CardHeader>
-          <CardContent>
+          <CardContent className="space-y-3">
+            <FieldHelper>
+              Registro de todas as versões da redação de trabalho, com autor e motivo de cada alteração.
+            </FieldHelper>
             {versions.length === 0 ? (
               <p className="text-sm text-muted-foreground">Nenhuma alteração registrada ainda. Versão 0 (inicial).</p>
             ) : (
@@ -338,7 +394,11 @@ export default async function DevicePage({ params }: { params: Promise<{ id: str
                         </span>
                       </div>
                       {v.reason && <p className="mb-1 text-xs font-medium text-muted-foreground">{v.reason}</p>}
-                      <p className="whitespace-pre-wrap font-serif text-sm leading-relaxed text-muted-foreground">{v.content}</p>
+                      {v.content ? (
+                        <RichTextContent text={v.content} className="text-sm text-foreground/90" />
+                      ) : (
+                        <p className="text-sm italic text-muted-foreground">(versão sem texto — redação inicial)</p>
+                      )}
                     </div>
                   </li>
                 ))}
@@ -347,49 +407,51 @@ export default async function DevicePage({ params }: { params: Promise<{ id: str
           </CardContent>
         </Card>
 
-        {relations.length > 0 && (
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-base">Referências cruzadas</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <ul className="space-y-1 text-sm">
-                {relations.map((r) => (
-                  <li key={r.related_id}>
-                    <Link href={`/dispositivo/${r.related_id}`} className="text-primary hover:underline">
-                      {PROVISION_TYPE_LABELS[r.type]} {r.numero} ({r.related_id})
-                    </Link>
-                  </li>
-                ))}
-              </ul>
-            </CardContent>
-          </Card>
-        )}
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Referências cruzadas</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <FieldHelper>
+              Dispositivos vinculados a este — úteis para evitar contradições e detectar renumeração.
+            </FieldHelper>
+            <RelationForm provisionId={id} devices={devices} relations={relations} canManage={canManage} />
+          </CardContent>
+        </Card>
       </div>
     </div>
   );
 }
 
-function TreeNav({ nodes, activeId, depth = 0, depthLimit }: { nodes: TreeNode[]; activeId: string; depth?: number; depthLimit?: number }) {
-  return (
-    <ul className="space-y-0.5">
-      {nodes.map((n) => (
-        <li key={n.id}>
-          <Link
-            href={`/dispositivo/${n.id}`}
-            className={`block rounded px-2 py-1 text-sm leading-snug transition-colors hover:bg-muted ${
-              n.id === activeId ? "bg-muted font-medium" : "text-muted-foreground"
-            }`}
-            style={{ paddingLeft: `${8 + depth * 12}px` }}
-          >
-            {provisionLabel(n)}
-            {n.origem === "proposta_inicial" && " *"}
-          </Link>
-          {n.children.length > 0 && depth < 3 && (depthLimit === undefined || depth < depthLimit) && (
-            <TreeNav nodes={n.children} activeId={activeId} depth={depth + 1} depthLimit={depthLimit} />
-          )}
-        </li>
-      ))}
-    </ul>
-  );
+function flattenDevices(nodes: TreeNode[]): RelationDeviceOption[] {
+  const out: RelationDeviceOption[] = [];
+  const chapter = (n: TreeNode): string => {
+    let cur = n;
+    const seen = new Set<string>();
+    while (cur.parent_id) {
+      if (seen.has(cur.id)) break;
+      seen.add(cur.id);
+      const parent = findNode(nodes, cur.parent_id);
+      if (!parent) break;
+      cur = parent;
+    }
+    return cur.type === "capitulo" ? provisionLabel(cur) : "";
+  };
+  const visit = (list: TreeNode[]) => {
+    for (const n of list) {
+      out.push({ id: n.id, label: provisionLabel(n), chapter: chapter(n) });
+      visit(n.children);
+    }
+  };
+  visit(nodes);
+  return out;
+}
+
+function findNode(nodes: TreeNode[], id: string): TreeNode | undefined {
+  for (const n of nodes) {
+    if (n.id === id) return n;
+    const found = findNode(n.children, id);
+    if (found) return found;
+  }
+  return undefined;
 }

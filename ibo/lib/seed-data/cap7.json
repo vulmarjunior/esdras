@@ -1,72 +1,51 @@
 {
   "id": "cap-7",
   "type": "capitulo",
-  "numero": "VIII",
+  "numero": "VII",
   "titulo": "DAS DISPOSIÇÕES GERAIS",
   "textoVigente": "CAPÍTULO VII\nDAS DISPOSIÇÕES GERAIS",
-  "propostaInicial": "CAPÍTULO VIII\nDAS DISPOSIÇÕES GERAIS",
-  "justificativa": "Renumeração do capítulo.",
-  "alteracaoTipo": "reorganizado",
   "filhos": [
     {
       "id": "art-28",
       "type": "artigo",
       "numero": "28",
       "titulo": null,
-      "textoVigente": "Os membros da Igreja Batista Olaria, individualmente, não respondem nem mesmo subsidiariamente pelas obrigações contraídas pela Igreja Batista Olaria e nem a Igreja Batista Olaria responde por quaisquer obrigações contraídas por qualquer de seus membros, salvo se por ela autorizado.",
-      "propostaInicial": "",
-      "justificativa": "Manter a redação. Redação adequada.",
-      "alteracaoTipo": "mantido"
+      "textoVigente": "Os membros da Igreja Batista Olaria, individualmente, não respondem nem mesmo subsidiariamente pelas obrigações contraídas pela Igreja Batista Olaria e nem a Igreja Batista Olaria responde por quaisquer obrigações contraídas por qualquer de seus membros, salvo se por ela autorizado."
     },
     {
       "id": "art-29",
       "type": "artigo",
       "numero": "29",
       "titulo": null,
-      "textoVigente": "É vedado aos membros da Igreja Batista Olaria o uso de nome da Igreja Batista Olaria em fianças, avais, obrigações ou similares.",
-      "propostaInicial": "",
-      "justificativa": "Manter a redação. Redação adequada.",
-      "alteracaoTipo": "mantido"
+      "textoVigente": "É vedado aos membros da Igreja Batista Olaria o uso de nome da Igreja Batista Olaria em fianças, avais, obrigações ou similares."
     },
     {
       "id": "art-30",
       "type": "artigo",
       "numero": "30",
       "titulo": null,
-      "textoVigente": "Os casos omissos neste Estatuto serão decididos pela Assembleia dos Membros.",
-      "propostaInicial": "",
-      "justificativa": "Manter a redação. Redação adequada.",
-      "alteracaoTipo": "mantido"
+      "textoVigente": "Os casos omissos neste Estatuto serão decididos pela Assembleia dos Membros."
     },
     {
       "id": "art-31",
       "type": "artigo",
       "numero": "31",
       "titulo": null,
-      "textoVigente": "Este Estatuto entrará em vigor na data de sua aprovação, e somente poderá ser reformado por votação favorável de 50% (cinquenta por cento) do número de membros mais um, presentes em sessão extraordinária devidamente convocada para deliberação do item 'Reforma de Estatuto', sendo absolutamente vedada a alteração do Artigo 1º, exceto o endereço; Artigo 2º; Artigo 11 Parágrafo 1º; Artigo 27; e Artigo 30.",
-      "propostaInicial": "",
-      "justificativa": "Manter a redação. Redação adequada.",
-      "alteracaoTipo": "mantido"
+      "textoVigente": "Este Estatuto entrará em vigor na data de sua aprovação, e somente poderá ser reformado por votação favorável de 50% (cinquenta por cento) do número de membros mais um, presentes em sessão extraordinária devidamente convocada para deliberação do item 'Reforma de Estatuto', sendo absolutamente vedada a alteração do Artigo 1º, exceto o endereço; Artigo 2º; Artigo 11 Parágrafo 1º; Artigo 27; e Artigo 30."
     },
     {
       "id": "art-32",
       "type": "artigo",
       "numero": "32",
       "titulo": null,
-      "textoVigente": "A Igreja Batista Olaria poderá ter seu Regimento Interno, que regulamentará as normas deste Estatuto, não podendo contrariar os termos do mesmo.",
-      "propostaInicial": "A Igreja Batista Olaria poderá ter seu Regimento Interno, que regulamentará as normas deste Estatuto, não podendo contrariar os termos do presente Estatuto.",
-      "justificativa": "Redação mais adequada",
-      "alteracaoTipo": "alteracao_redacional"
+      "textoVigente": "A Igreja Batista Olaria poderá ter seu Regimento Interno, que regulamentará as normas deste Estatuto, não podendo contrariar os termos do mesmo."
     },
     {
       "id": "art-33",
       "type": "artigo",
       "numero": "33",
       "titulo": null,
-      "textoVigente": "O presente Estatuto reforma o anterior e está registrado no Livro de Atas da Igreja Batista Olaria na Ata número 738 da Igreja Batista Olaria datada de 29 de novembro de 2015.",
-      "propostaInicial": "O presente Estatuto reforma o anterior e está registrado no Livro de Atas da Igreja Batista Olaria na Ata número _______ da Igreja Batista Olaria datada de ____ de ___________ de 2016.",
-      "justificativa": "Precisa ajustar essa data.",
-      "alteracaoTipo": "alteracao_redacional"
+      "textoVigente": "O presente Estatuto reforma o anterior e está registrado no Livro de Atas da Igreja Batista Olaria na Ata número 738 da Igreja Batista Olaria datada de 29 de novembro de 2015."
     }
   ]
 }

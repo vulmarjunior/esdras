@@ -52,7 +52,7 @@ const insertProvision = db.prepare(`
 
 function insertProv(node, parentId, irmaoIndex) {
   ordemCounter++;
-  const redacaoTrabalho = node.propostaInicial || node.textoVigente || "";
+  const redacaoTrabalho = "";
   insertProvision.run({
     id: node.id,
     parent_id: parentId,
@@ -78,7 +78,7 @@ function insertProv(node, parentId, irmaoIndex) {
 function loadChapters() {
   const files = [
     "cap1.json", "cap2.json", "cap3.json", "cap4.json", "cap5.json",
-    "cap6.json", "cap-dissolucao.json", "cap7.json",
+    "cap6.json", "art-27.json", "cap7.json",
   ];
   for (const f of files) {
     const data = JSON.parse(fs.readFileSync(path.join(__dirname, "..", "lib", "seed-data", f), "utf-8"));
@@ -88,28 +88,10 @@ function loadChapters() {
 
 function seedExamples() {
   const now = new Date().toISOString().replace("T", " ").slice(0, 19);
-  // Referências bíblicas de exemplo (Art. 8º - disciplina)
-  const refs = [
-    ["art-8", "biblica", "Mateus 18.15-17"],
-    ["art-8", "biblica", "1 Coríntios 5.1-13"],
-    ["art-8", "biblica", "Gálatas 6.1"],
-  ];
-  const insRef = db.prepare("INSERT INTO references_tb (provision_id, tipo, texto, author_id) VALUES (?, ?, ?, ?)");
-  for (const [pid, tipo, texto] of refs) insRef.run(pid, tipo, texto, 3);
-
-  // Sugestões de exemplo
-  const insSug = db.prepare("INSERT INTO suggestions (provision_id, author_id, texto, justificativa, status) VALUES (?, ?, ?, ?, ?)");
-  insSug.run("art-11", 3, "Sugiro manter a assembleia mensal, mas prever que a Tesouraria preste contas trimestralmente de forma consolidada.", "Permite manter a proximidade com a membresia e reduz a carga administrativa mensal.", "aberta");
-  insSug.run("art-12", 4, "Proponho que o Segundo Vice-Presidente não figure entre os que assumem a presidência em sucessão, para dar mais clareza à linha sucessória.", "Clareza na ordem de substituição.", "aberta");
-
-  // Pendências de exemplo
-  const insPend = db.prepare("INSERT INTO pending_issues (provision_id, author_id, categoria, descricao) VALUES (?, ?, ?, ?)");
-  insPend.run("art-5", 5, "referencia_cruzada", "Verificar se a remissão corrigida ao 'art. 32' no Art. 5º conflita com a redação final aprovada para o Art. 32 (Regimento Interno).");
-  insPend.run("art-31", 6, "juridica", "Confirmar a redação final quanto aos artigos cuja alteração é vedada, considerando a renumeração e a criação do novo capítulo de dissolução.");
 
   // Auditoria inicial
   const insAudit = db.prepare("INSERT INTO audit_logs (user_id, user_name, action, entity, entity_id, detail, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)");
-  insAudit.run(1, "Administrador do Sistema", "Importação de documentos", "project", "projeto-ibo", "Importados o Estatuto registrado e a Proposta de Reforma com estrutura hierárquica.", now);
+  insAudit.run(1, "Administrador do Sistema", "Importação de documentos", "project", "projeto-ibo", "Importado o Estatuto registrado com estrutura hierárquica. Texto da proposta removido — inserção manual em andamento.", now);
 }
 
 insertUsers();

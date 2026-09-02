@@ -2,36 +2,52 @@
 
 Pauta de trabalho para o próximo agente/dev. Estado do projeto: **MVP funcional e rodando** (Next.js 16 + SQLite local). Especificação: `../PRD_ESDRAS.md`.
 
+## Entregas recentes (nesta sessão)
+
+- Base limpa: removido o **seed da proposta inicial** (erro de projeto) — origem agora é só `original | novo`; raiz = Estatuto registrado (Cap. I–VI + Art. 27 dissolução + Cap. VII), artigos 1º–33.
+- **Editor de texto rico** (zero dependência) em Redação/Proposta/Justificativa; versionamento grava o texto salvo; navegação estrutural com colapse; helpers por campo; revogar original; contador por artigos.
+- **§18 Referências cruzadas — UI**: vincular/desvincular dispositivos (card na tela do dispositivo).
+- **§17 Renumeração — 2ª etapa**: botão "Aplicar numeração" (confirmação + auditoria + evento de reunião). Obs.: grava números conforme a ordem ATUAL da árvore; a reordenação física entre capítulos é etapa separada.
+- **§31 IA "Comparar versões"** (compara redação de trabalho x vigente).
+- **Votação de sugestões** (`votes.suggestion_id`) — consulta aos membros em cada sugestão.
+- **§23 Aprovar dispositivo dentro da reunião** (atalho na tela da reunião).
+- **§29 Ata — retificação**: ata aprovada fica bloqueada; correções viram retificação (nova tabela `minutes_retifications`).
+- **Auditoria — paginação** (100/página).
+- **§33 Análise de coerência com IA** (página /coerencia, só alerta).
+- **Testes automatizados** (Vitest, 13 testes: renumeração + sanitização de rich text) — `npm test`.
+- **Migração Supabase**: backend agora é **Postgres** (`lib/db.ts` → `pg` async; conversor SQLite→Postgres em runtime). `scripts/migrate-to-pg.mjs` porta schema+dados (idempotente). App verificado end-to-end contra o Supabase.
+- Groq: `GROQ_API_KEY` preenchida; `.env.local` com `DATABASE_URL` (shared pooler IPv4).
+
 ## 1. Decisões pendentes do usuário (perguntar antes de implementar)
 
-- [ ] **Migração para Supabase** (PRD §37–43): PostgreSQL, Auth, RLS, Realtime, Storage. O usuário ainda não decidiu quando. Quando for feito: cadastro de usuários continua no painel de Admin, mas criando no Supabase Auth + perfil em `profiles`; trocar `lib/auth.ts`/`lib/db.ts` por camada Supabase; portar `lib/schema.sql` (manter `ordem_pai`!).
-- [ ] **Nomes reais dos 9 membros da comissão** — os usuários seed são fictícios (`Membro 1`…`Coordenadora`). Coletar com o usuário e atualizar `scripts/seed.mjs`.
-- [ ] **Chave Groq** — usuário tem a chave, mas o serviço estava indisponível; `GROQ_API_KEY` continua vazia em `.env.local`. Modelo padrão atual: `openai/gpt-oss-120b` (o `llama-3.3-70b-versatile` foi descontinuado em 16/08/2026 — fallback em `app/api/ai/route.ts`).
+- [ ] **Supabase Auth/RLS/Realtime** (PRD §37–43) — backend já está em **Postgres (Supabase)** com auth local (JWT). Opcional evoluir para Supabase Auth + RLS + Realtime; requer Service Role key/decidir escopo.
+- [ ] **Deploy Vercel** — configurar env vars no painel Vercel (`DATABASE_URL`, `SESSION_SECRET`, `GROQ_API_KEY`) e publicar.
+- [ ] **Nomes reais dos 9 membros da comissão** — usuários seed são fictícios. Editar no painel Admin ou via SQL no Postgres.
 
 ## 2. Funcionalidades previstas no PRD, ainda não implementadas
 
-- [ ] **Renumeração automática** (PRD §17): ordenar dispositivos, atribuir numeração final, **alertar** sobre referências internas afetadas ("Existem 3 referências ao antigo Art. 13…"). Nunca aplicar automaticamente sem confirmação humana.
-- [ ] **Análise de coerência com IA** (PRD §33): duplicidades, contradições, nomenclaturas, competências conflitantes, referências internas incorretas — sempre como alerta.
-- [ ] **Realtime** (PRD §40): comentários/sugestões/status/eventos de reunião em tempo real (depende da migração Supabase; no SQLite local não há).
-- [ ] **Votação de sugestões** (`votes` já suporta `suggestion_id`; a UI de votos cobre só dispositivos) e **votação formal da comissão** (PRD §13 é consultivo — ok como está).
-- [ ] **Importação de novos documentos** (PRD §36): hoje a importação é feita manualmente via `lib/seed-data/*.json` + `npm run seed`.
+- [x] **Renumeração** (PRD §17): simulador + "Aplicar numeração" (números + auditoria). Limitação: reordenação física entre capítulos (mover) ainda é etapa separada.
+- [x] **Análise de coerência com IA** (PRD §33): página `/coerencia`, só alerta.
+- [ ] **Supabase Auth/RLS/Realtime** (evolução do backend já migrado para Postgres).
+- [ ] **Votação formal da comissão** (votação consultiva de sugestões já implementada).
+- [ ] **Importação de novos documentos** (PRD §36): requer definição do formato de entrada (PDF/texto) antes de implementar.
 
 ## 3. Melhorias conhecidas / dívidas técnicas
 
-- [ ] **Testes automatizados** — não existe nenhum (nem unitário nem E2E). Candidatos: lógica de versão/conflito, regras de perfil, geração de minuta.
-- [ ] **Deploy Vercel** (PRD §37): `.env.local` com `SESSION_SECRET` forte em produção; `better-sqlite3` funciona no servidor local, mas o deploy na Vercel exige definir `DATABASE_PATH`/estratégia (ou a migração Supabase antes).
-- [ ] **Aprovar dispositivo dentro da reunião**: hoje a aprovação ocorre na tela do dispositivo e o evento é registrado na reunião ativa (via `logMeetingEvent`); um atalho na tela da reunião seria UX melhor (PRD §23).
-- [ ] **Renumeração dos dispositivos novos** — hoje ficam "NOVO" até a consolidação; a numeração definitiva + ordem final é manual (ligada ao item de renumeração acima).
-- [ ] **`docs/` ou wiki do projeto** — o `AGENTS.md` resume a arquitetura; manter atualizado a cada mudança relevante.
-- [ ] **Índices/consultas de auditoria** — página de auditoria lista até 200 registros; paginação/filtro quando crescer.
-- [ ] **Append de eventos em `meeting_events`** — log é factual e não editável (PRD §24) — comportamento já correto; não adicionar edição.
+- [x] **Testes automatizados** — Vitest + 13 testes (renumeração, sanitização rich text). Expandir para versão/conflito e perfis.
+- [x] **Deploy Vercel** — backend migrado para Supabase Postgres (`pg`); falta só publicar (env vars + deploy).
+- [ ] **Numeração/ordem final dos dispositivos novos** — ligada à reordenação física (item §17 acima).
+- [ ] **`docs/` ou wiki do projeto** — manter `AGENTS.md` atualizado a cada mudança relevante.
+- [x] **Índices/paginação de auditoria** — paginação implementada (100/página).
+- [ ] **Append de eventos em `meeting_events`** — log factual e não editável (PRD §24) — comportamento já correto; não adicionar edição.
 
 ## 4. Documentação/observações de código
 
-- `components/status-badge.tsx` centraliza as cores semânticas de status (badges e dots) — usar sempre lá, não hardcode.
+- `components/status-badge.tsx` centraliza as cores semânticas de status — usar sempre lá, não hardcode.
 - `ConfirmDialog` (`components/confirm-dialog.tsx`) substituiu todos os `window.confirm` — usar para novas exclusões.
 - Ao alterar `lib/schema.sql`, avaliar se o banco existente precisa de migração (`scripts/migrate-*.mjs`) além do seed.
-- O `dev.log` na raiz do `ibo/` é lixo de debug — ignorado no git.
+- Editor rico: `components/rich-text-editor.tsx` (contenteditable + execCommand), sanitização em `lib/rich-text.ts` — colar/formatar passa pelo sanitizer.
+- Módulos puros (sem banco) para cliente: `lib/provision-label.ts`, `lib/renumeracao-core.ts`, `lib/rich-text.ts` — não importar `lib/db.ts`/`lib/data.ts` em componentes client.
 
 ## 5. Como rodar e verificar
 
