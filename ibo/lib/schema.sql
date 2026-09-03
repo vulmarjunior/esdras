@@ -178,6 +178,15 @@ CREATE TABLE IF NOT EXISTS minutes_retifications (
   created_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
 
+CREATE TABLE IF NOT EXISTS personal_notes (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  provision_id TEXT NOT NULL REFERENCES provisions(id) ON DELETE CASCADE,
+  user_id INTEGER NOT NULL REFERENCES users(id),
+  content TEXT NOT NULL DEFAULT '',
+  updated_at TEXT NOT NULL DEFAULT (datetime('now')),
+  UNIQUE (provision_id, user_id)
+);
+
 CREATE TABLE IF NOT EXISTS audit_logs (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   user_id INTEGER REFERENCES users(id),

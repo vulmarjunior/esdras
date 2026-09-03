@@ -192,6 +192,14 @@ CREATE TABLE IF NOT EXISTS audit_logs (
   detail TEXT,
   created_at TEXT NOT NULL DEFAULT (to_char(now(), 'YYYY-MM-DD HH24:MI:SS'))
 );
+CREATE TABLE IF NOT EXISTS personal_notes (
+  id BIGSERIAL PRIMARY KEY,
+  provision_id TEXT NOT NULL REFERENCES provisions(id) ON DELETE CASCADE,
+  user_id INTEGER NOT NULL REFERENCES users(id),
+  content TEXT NOT NULL DEFAULT '',
+  updated_at TEXT NOT NULL DEFAULT (to_char(now(), 'YYYY-MM-DD HH24:MI:SS')),
+  UNIQUE (provision_id, user_id)
+);
 `;
 
 const TABLES = [
@@ -199,6 +207,7 @@ const TABLES = [
   "pending_issues", "references_tb", "provision_relations", "votes",
   "meetings", "meeting_members", "meeting_events", "meeting_decisions",
   "minutes", "minutes_reviews", "minutes_retifications", "audit_logs",
+  "personal_notes",
 ];
 
 const client = new pg.Client({ connectionString: DATABASE_URL, ssl: { rejectUnauthorized: false } });

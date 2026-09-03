@@ -82,6 +82,11 @@ export default async function DevicePage({ params }: { params: Promise<{ id: str
     "SELECT opinion, COUNT(*) c FROM votes WHERE provision_id = ? GROUP BY opinion", [id]);
   const myVote = await get<{ opinion: string }>("SELECT opinion FROM votes WHERE provision_id = ? AND user_id = ?", [id, user.id]);
 
+  const personalNote = (await get<{ content: string }>(
+    "SELECT content FROM personal_notes WHERE provision_id = ? AND user_id = ?",
+    [id, user.id]
+  ))?.content ?? "";
+
   const votedCount = (await get<{ c: number }>("SELECT COUNT(DISTINCT user_id) c FROM votes WHERE provision_id = ?", [id]))?.c ?? 0;
 
   const directChildren = (await get<{ c: number }>("SELECT COUNT(*) c FROM provisions WHERE parent_id = ?", [id]))?.c ?? 0;
@@ -168,6 +173,7 @@ export default async function DevicePage({ params }: { params: Promise<{ id: str
           votes={votes}
           myVote={myVote?.opinion ?? null}
           votedCount={votedCount}
+          personalNote={personalNote}
         />
       </div>
     </div>

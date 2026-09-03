@@ -69,6 +69,14 @@ export interface PendingIssue {
   created_at: string;
 }
 
+export interface PersonalNote {
+  id: number;
+  provision_id: string;
+  user_id: number;
+  content: string;
+  updated_at: string;
+}
+
 export interface Meeting {
   id: number;
   numero: number;

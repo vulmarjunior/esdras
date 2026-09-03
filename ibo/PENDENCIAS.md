@@ -24,6 +24,7 @@ Pauta de trabalho para o próximo agente/dev. Estado do projeto: **MVP completo 
 - [x] **Índices/paginação de auditoria** — paginação implementada (100/página).
 - [x] **`meeting_events`** — log factual e não editável (PRD §24) — comportamento já correto.
 - [ ] **`docs/` ou wiki do projeto** — manter `AGENTS.md`/`PENDENCIAS.md` atualizados (contínuo).
+- [ ] **Refatorar `app/actions/provision.ts` (525 ln) e `components/provision/provision-forms.tsx` (944 ln)** — quebrar em módulos por domínio (sugestões, pendências, referências, votos, ações de dispositivo). Precedente criado: `app/actions/notes.ts` + `components/provision/personal-note-form.tsx`. Fazer como tarefa separada, com testes de aceite, sem risco para o MVP em produção.
 
 ## 4. Documentação/observações de código
 

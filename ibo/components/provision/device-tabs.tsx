@@ -8,6 +8,7 @@ import { FieldHelper } from "@/components/field-helper";
 import { RichTextContent } from "@/components/rich-text-content";
 import { REFERENCE_TYPE_LABELS } from "@/lib/labels";
 import { WorkingTextEditor } from "@/components/provision/working-text-editor";
+import { PersonalNoteForm } from "@/components/provision/personal-note-form";
 import {
   StatusControl,
   SuggestionForm,
@@ -68,6 +69,7 @@ interface Props {
   votes: { opinion: string; c: number }[];
   myVote: string | null;
   votedCount: number;
+  personalNote: string;
 }
 
 function NumBadge({ n, className }: { n: string; className?: string }) {
@@ -238,6 +240,8 @@ export function DeviceTabs(props: Props) {
       </div>
 
       <div className={cn(tab === "colaboracao" ? "space-y-4" : "hidden")}>
+        <PersonalNoteForm provisionId={id} initial={props.personalNote} />
+
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0">
             <CardTitle className="text-base">Sugestões dos membros</CardTitle>
