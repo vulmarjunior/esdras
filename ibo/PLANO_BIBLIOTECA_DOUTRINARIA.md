@@ -1,5 +1,10 @@
 # PLANO — Biblioteca doutrinária (`/documentos`)
 
+> **Status: IMPLEMENTADO** (ver `PENDENCIAS.md` e `lib/confissoes/`). Ajustes do usuário aplicados:
+> **Confissão da Filadélfia (1742) removida**; incluídos os demais documentos batistas de
+> `documentos-de-fe.md` (Declaração Doutrinária da CBB, Princípios Batistas e **Pacto das Igrejas Batistas**);
+> **Declaração de Fé da Igreja Local ignorada** (será trabalhada em outro projeto).
+
 Feature a implementar na próxima sessão. Contexto: PRD §15.3 "Fundamento doutrinário"
 menciona "Declaração Doutrinária; princípios batistas; documentos confessionais utilizados
 pela comissão". Complementa a `references_tb` (tipo `doutrinaria`) com os textos integrais

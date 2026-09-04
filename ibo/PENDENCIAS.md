@@ -18,14 +18,14 @@ Pauta de trabalho para o próximo agente/dev. Estado do projeto: **MVP completo 
 
 ## 3. Melhorias conhecidas / dívidas técnicas
 
-- [x] **Testes automatizados** — Vitest, 50 testes (renumeração, sanitização rich text, reordenação, versão/conflito §41, perfis, telefone, guia de redação).
+- [x] **Testes automatizados** — Vitest, 66 testes (renumeração, sanitização rich text, reordenação, versão/conflito §41, perfis, telefone, guia de redação, biblioteca doutrinária).
 - [x] **Deploy Vercel** — em produção.
 - [x] **Numeração/ordem final dos dispositivos novos** — mecanismo completo (mover + aplicar numeração).
 - [x] **Índices/paginação de auditoria** — paginação implementada (100/página).
 - [x] **`meeting_events`** — log factual e não editável (PRD §24) — comportamento já correto.
 - [x] **Guia de redação legislativa** — LC 95/1998 + Manual de Redação da Presidência curados em `lib/legal-refs.ts`; IA de redação enriquecida; `action: duvida` e `action: valida_tecnica` (checklist no editor); página `/guia-redacao`. Sem mudança de banco.
 - [ ] **`docs/` ou wiki do projeto** — manter `AGENTS.md`/`PENDENCIAS.md` atualizados (contínuo).
-- [ ] **Biblioteca doutrinária (`/documentos`)** — plano em `PLANO_BIBLIOTECA_DOUTRINARIA.md`. Usuário fornecerá os textos em português (Declaração Doutrinária da CBB, Princípios Batistas, Londres 1689, New Hampshire 1833, Filadélfia 1742, Fé e Mensagem 2000). Ver plano para os passos.
+- [x] **Biblioteca doutrinária (`/documentos`)** — implementada. Decisões do usuário: **Filadélfia 1742 removida**; incluídos os demais documentos batistas de `documentos-de-fe.md` (Declaração Doutrinária da CBB, Princípios Batistas e Pacto das Igrejas Batistas); **Declaração de Fé da Igreja Local ignorada** (projeto posterior). Total: 6 documentos. Dados gerados por `scripts/build-confissoes.mjs` (lê `../Documentos fonte`) em `lib/confissoes/data/*.json` (só `itens`); metadados nos módulos de `lib/confissoes/`; `recuperacao.ts` com `buscarTrechos`/`montarContextoConsulta` (controla tokens); `action: consulta_doutrinaria` no `/api/ai`; página `/documentos` com leitura por seções + busca (`components/documentos/biblioteca.tsx`) e consulta IA (`components/documentos/consulta-form.tsx`); nav + proxy protegido. Sem mudança de banco.
 - [x] **Refatorar `app/actions/provision.ts` (525 ln) e `components/provision/provision-forms.tsx` (944 ln)** — **CONCLUÍDO**: extração em módulos de domínio. Actions: `redacao.ts` (154), `dispositivos.ts` (254), `colaboracao.ts` (175), `state.ts` (tipo `ActionState`), com `provision.ts` como barrel (29). Componentes: `submit-btn.tsx`, `status-control.tsx`, `admin-forms.tsx`, `suggestion-forms.tsx`, `comment-forms.tsx`, `pending-forms.tsx`, `reference-form.tsx`, `vote-buttons.tsx`, `historical-text-editor.tsx`, `justificativa-editor.tsx`, `relation-form.tsx`, com `provision-forms.tsx` como barrel (10). Comportamento idêntico (importadores inalterados); lint/build/test 56 verdes.
 
 ## 4. Documentação/observações de código

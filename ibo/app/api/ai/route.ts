@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { requireRole } from "@/lib/auth";
 import { all, get } from "@/lib/db";
 import { formarGuia } from "@/lib/legal-refs";
+import { montarContextoConsulta } from "@/lib/confissoes/recuperacao";
 
 const GROQ_URL = "https://api.groq.com/openai/v1/chat/completions";
 const MODEL_CHAIN = [
@@ -153,6 +154,18 @@ export async function POST(req: NextRequest) {
         system,
         `Regras de referência:\n\n${GUIA_CONTEXTO}\n\n${rotulo ? `Dispositivo (${rotulo}):` : "Dispositivo:"}\n\n${texto}`
       );
+      return NextResponse.json({ result });
+    }
+
+    if (body.action === "consulta_doutrinaria") {
+      const pergunta = String(body.pergunta || "").trim();
+      if (!pergunta) {
+        return NextResponse.json({ error: "Digite sua pergunta." }, { status: 400 });
+      }
+      const contexto = montarContextoConsulta(pergunta);
+      const system =
+        "Você é um assessor doutrinário de uma comissão de reforma estatutária de uma igreja batista. Responda à pergunta APENAS com base nos documentos de fé fornecidos (confissões e declarações batistas), citando o nome da confissão e a seção correspondente. Se a pergunta não tiver cobertura nos documentos fornecidos, declare isso explicitamente e não invente conteúdo nem cite textos fora dos documentos. Seja objetivo, fiel ao texto e em português do Brasil.";
+      const result = await callGroq(system, `${contexto}\n\nPergunta: ${pergunta}`);
       return NextResponse.json({ result });
     }
 

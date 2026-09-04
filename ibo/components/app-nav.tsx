@@ -18,6 +18,7 @@ import {
   ListOrdered,
   ShieldAlert,
   BookOpenText,
+  BookMarked,
 } from "lucide-react";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger, SheetClose } from "@/components/ui/sheet";
 
@@ -29,6 +30,7 @@ export const NAV = [
   { href: "/renumeracao", label: "Renumeração", icon: ListOrdered },
   { href: "/coerencia", label: "Coerência", icon: ShieldAlert },
   { href: "/guia-redacao", label: "Guia de redação", icon: BookOpenText },
+  { href: "/documentos", label: "Documentos doutrinários", icon: BookMarked },
   { href: "/relatorios", label: "Relatórios", icon: FileDown },
   { href: "/auditoria", label: "Auditoria", icon: History, adminOnly: true },
   { href: "/admin", label: "Administração", icon: ShieldCheck, adminOnly: true },
