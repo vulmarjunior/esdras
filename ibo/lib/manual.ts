@@ -60,10 +60,10 @@ O trabalho segue o fluxo aprovado no projeto. Cada passo aponta para a tela corr
 2. **Selecionar um artigo** — no **Painel da Reforma**, navegue pelos capítulos e clique no dispositivo desejado.
 3. **Ler o texto vigente** — aba **Análise**, bloco 1. É o texto atual do Estatuto registrado (não editável).
 4. **Ler a proposta inicial** — bloco 2 da aba **Análise**. É o ponto de partida da reforma.
-5. **Apresentar sugestões** — aba **Colaboração** → "Sugestões dos membros".
-6. **Discutir** — comentários, opinião consultiva (concordo/discordo/tenho ressalva) e sugestões em discussão.
+5. **Apresentar sugestões de redação** — aba **Colaboração** → "Sugestões de redação".
+6. **Discutir** — comentários, opinião consultiva (concordo/discordo/tenho ressalva) e sugestões de redação em discussão.
 7. **Registrar fundamentos** — aba **Análise**, bloco **Fundamentação**: referências bíblicas, doutrinárias, jurídicas e pastorais.
-8. **Alterar a redação de trabalho** — aba **Análise**, bloco 3 (só coordenador/relator). Cada salvamento cria uma versão.
+8. **Alterar a redação de trabalho** — aba **Análise**, bloco 4 (só coordenador/relator). Cada salvamento cria uma versão.
 9. **Aprovar** — altere o status para **Aprovado** (congela a redação consolidada).
 10. **Registrar a decisão em reunião** — o módulo **Reuniões** guarda presença, eventos e deliberações.
 11. **Gerar a ata** — na reunião, use "Gerar minuta da ata" e siga o fluxo rascunho → revisão → aprovada.
@@ -94,18 +94,18 @@ Ao abrir um dispositivo, o trabalho fica organizado em quatro abas:
 ### Análise
 1. **Texto vigente** — texto do Estatuto registrado (referência, não editável).
 2. **Proposta inicial** — ponto de partida da reforma; use **negrito** ou destaque para marcar o que muda.
-3. **Redação de trabalho** — a versão atual da comissão; só coordenador/relator edita. Cada salvamento cria uma nova versão (há controle de conflito de versão).
-4. **Justificativa** — explicação do porquê da alteração; alimenta o Relatório da reforma.
-5. **Fundamentação** — referências bíblicas, doutrinárias, jurídicas e administrativas/pastorais que sustentam a proposta.
+3. **Justificativa** — explicação do porquê da alteração; alimenta o Relatório da reforma.
+4. **Redação de trabalho** — a versão atual da comissão; só coordenador/relator edita. Cada salvamento cria uma nova versão (há controle de conflito de versão).
+5. **Opinião consultiva** — concordo / discordo / tenho ressalva. Tem caráter consultivo, não é votação formal.
 6. **Dispositivos relacionados** — dispositivos vinculados a este (referências cruzadas), úteis para evitar contradições e detectar renumeração.
-7. **Redação consolidada (aprovada)** — aparece quando o dispositivo foi aprovado; fica bloqueada.
+7. **Fundamentação** — referências bíblicas, doutrinárias, jurídicas e administrativas/pastorais que sustentam a proposta.
+8. **Redação consolidada (aprovada)** — aparece quando o dispositivo foi aprovado; fica bloqueada.
 
 O **status** fica no topo: Não iniciado → Em análise → Em discussão → Redação definida → Aprovado (e Aprovado → Reaberto).
 
 ### Colaboração
 - **Anotações pessoais** — privadas, só você lê.
-- **Sugestões dos membros** — cada membro propõe mudanças; o coordenador decide o destino (aceita, aceita parcialmente, rejeitada, etc.).
-- **Opinião consultiva** — concordo / discordo / tenho ressalva. Tem caráter consultivo, não é votação formal.
+- **Sugestões de redação** — cada membro propõe uma nova redação; o coordenador decide o destino (aceita, aceita parcialmente, rejeitada, etc.).
 - **Comentários** — discussão livre sobre o dispositivo.
 
 ### Pendências
@@ -288,8 +288,8 @@ Estas telas são visíveis **somente para o Administrador** (menu **Administraç
 | **Proposta inicial** | Texto proveniente da proposta preliminar de reforma. |
 | **Redação de trabalho** | Versão em construção pela comissão. |
 | **Redação consolidada** | Texto aprovado, que entra no Estatuto consolidado. |
-| **Sugestão** | Proposta individual de mudança de texto (com autor e justificativa). |
-| **Comentário** | Observação, questionamento ou argumento (não é sugestão). |
+| **Sugestão de redação** | Proposta individual de mudança de texto (com autor e justificativa). |
+| **Comentário** | Observação, questionamento ou argumento (não é sugestão de redação). |
 | **Opinião consultiva** | Manifestação concordo/discordo/tenho ressalva — caráter consultivo. |
 | **Pendência** | Questão em aberto que precisa ser verificada. |
 | **Referência** | Fundamento bíblico, doutrinário, jurídico ou pastoral. |
@@ -307,8 +307,8 @@ Estas telas são visíveis **somente para o Administrador** (menu **Administraç
 ### Por que não consigo editar a redação de trabalho?
 A redação de trabalho é editada apenas por **coordenador/relator**. Como **membro**, sua contribuição acontece por **sugestões**, **comentários** e **fundamentos**.
 
-### Minha sugestão foi aceita. O texto muda automaticamente?
-Não. O **coordenador** decide o destino da sugestão (aceitar, aceitar parcialmente ou rejeitar) e incorpora o texto na redação de trabalho quando apropriado.
+### Minha sugestão de redação foi aceita. O texto muda automaticamente?
+Não. O **coordenador** decide o destino da sugestão de redação (aceitar, aceitar parcialmente ou rejeitar) e incorpora o texto na redação de trabalho quando apropriado.
 
 ### O que significa "opinião consultiva"?
 É a sua manifestação (concordo / discordo / tenho ressalva). Ela ajuda a comissão, mas **não é a votação formal**.

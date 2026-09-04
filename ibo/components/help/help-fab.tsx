@@ -16,7 +16,7 @@ import { HelpAssistant } from "@/components/help/help-assistant";
 const FAQ = [
   {
     q: "Por que não consigo editar a redação de trabalho?",
-    a: "A redação de trabalho é editada apenas pelo coordenador/relator. Como membro, contribua com sugestões, comentários e fundamentos.",
+    a: "A redação de trabalho é editada apenas pelo coordenador/relator. Como membro, contribua com sugestões de redação, comentários e fundamentos.",
   },
   {
     q: "O que é opinião consultiva?",

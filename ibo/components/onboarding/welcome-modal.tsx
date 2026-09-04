@@ -45,7 +45,7 @@ export function WelcomeModal({ userId, name }: { userId: number; name: string })
           <DialogTitle>Bem-vindo(a), {name}!</DialogTitle>
           <DialogDescription>
             Este é o ambiente da Comissão de Reforma do Estatuto Social da IBO. Aqui você analisa o
-            Estatuto dispositivo por dispositivo, propõe sugestões, registra fundamentos, participa das
+            Estatuto dispositivo por dispositivo, propõe sugestões de redação, registra fundamentos, participa das
             reuniões e acompanha a construção do novo Estatuto consolidado.
           </DialogDescription>
         </DialogHeader>

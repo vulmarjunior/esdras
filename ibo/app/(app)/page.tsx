@@ -49,7 +49,7 @@ export default async function DashboardPage() {
             </h2>
             <p className="mt-2 max-w-xl text-sm text-muted-foreground">
               {totalArtigos} artigos organizados em {tree.length} capítulos. Analise dispositivo por
-              dispositivo, apresente sugestões e acompanhe a consolidação do novo Estatuto.
+              dispositivo, apresente sugestões de redação e acompanhe a consolidação do novo Estatuto.
             </p>
           </div>
           <div className="w-full max-w-xs">

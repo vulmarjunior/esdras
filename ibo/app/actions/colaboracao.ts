@@ -35,7 +35,7 @@ export async function createSuggestion(
   ondeEsta: string
 ): Promise<ActionState> {
   const user = await requireRole(...rolesCom("contribuir"));
-  if (!texto.trim()) return { error: "Informe o texto da sugestão." };
+  if (!texto.trim()) return { error: "Informe o texto da sugestão de redação." };
   const res = await run(
     "INSERT INTO suggestions (provision_id, author_id, texto, justificativa, onde_esta, status) VALUES (?, ?, ?, ?, ?, 'aberta')",
     [provisionId, user.id, texto, justificativa || "", ondeEsta || ""]
@@ -44,7 +44,7 @@ export async function createSuggestion(
   await logMeetingEvent("sugestao", `Sugestão #${res.lastInsertRowid} criada em ${provisionId}`, user.id);
   revalidatePath(`/dispositivo/${provisionId}`);
   await publishRealtime({ entity: "provision", id: provisionId, action: "sugestao" });
-  return { ok: true, message: "Sugestão registrada." };
+  return { ok: true, message: "Sugestão de redação registrada." };
 }
 
 export async function updateSuggestionStatus(suggestionId: number, status: string): Promise<ActionState> {
@@ -52,7 +52,7 @@ export async function updateSuggestionStatus(suggestionId: number, status: strin
   const allowed = ["aberta", "em_discussao", "aceita", "aceita_parcialmente", "rejeitada", "retirada"];
   if (!allowed.includes(status)) return { error: "Status inválido." };
   const sug = await get<{ provision_id: string }>("SELECT provision_id FROM suggestions WHERE id = ?", [suggestionId]);
-  if (!sug) return { error: "Sugestão não encontrada." };
+  if (!sug) return { error: "Sugestão de redação não encontrada." };
   await run("UPDATE suggestions SET status = ? WHERE id = ?", [status, suggestionId]);
   await audit(user.id, user.name, `Sugestão #${suggestionId} ${status}`, "suggestion", String(suggestionId));
   await logMeetingEvent(status === "aceita" ? "sugestao_aceita" : "sugestao", `Sugestão #${suggestionId} ${status}`, user.id);

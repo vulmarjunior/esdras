@@ -28,8 +28,8 @@ const MEETING_STATUS: Record<string, string> = {
 const DECISION_TYPE_LABELS: Record<string, string> = {
   aprovacao: "Aprovação",
   manutencao: "Manter redação atual",
-  incorporacao: "Incorporar sugestão",
-  rejeicao: "Rejeitar sugestão",
+  incorporacao: "Incorporar sugestão de redação",
+  rejeicao: "Rejeitar sugestão de redação",
   alteracao: "Alterar redação",
   adiamento: "Adiar análise",
   outra: "Outra",

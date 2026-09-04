@@ -145,7 +145,7 @@ export function UserRow({ u, canDelete }: { u: User; canDelete: boolean }) {
             onClick={() =>
               setConfirmState({
                 title: `Remover ${u.name}`,
-                description: `O usuário ${u.name} (${u.email}) perderá o acesso ao sistema. As sugestões, comentários e registros já feitos por ele serão preservados. Esta ação não pode ser desfeita.`,
+                description: `O usuário ${u.name} (${u.email}) perderá o acesso ao sistema. As sugestões de redação, comentários e registros já feitos por ele serão preservados. Esta ação não pode ser desfeita.`,
                 confirmLabel: "Remover usuário",
               })
             }

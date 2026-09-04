@@ -343,8 +343,8 @@ export function DecisionForm({ meetingId, provisions, canEdit }: { meetingId: nu
         <select value={form.tipo} onChange={(e) => setForm({ ...form, tipo: e.target.value })} className="h-9 rounded-md border bg-background px-2 text-sm">
           <option value="aprovacao">Aprovação</option>
           <option value="manutencao">Manter redação atual</option>
-          <option value="incorporacao">Incorporar sugestão</option>
-          <option value="rejeicao">Rejeitar sugestão</option>
+          <option value="incorporacao">Incorporar sugestão de redação</option>
+          <option value="rejeicao">Rejeitar sugestão de redação</option>
           <option value="alteracao">Alterar redação</option>
           <option value="adiamento">Adiar análise</option>
           <option value="outra">Outra</option>

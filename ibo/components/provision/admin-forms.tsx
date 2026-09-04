@@ -163,7 +163,7 @@ export function ProvisionAdminActions({
 
   function askRemove() {
     const base =
-      "Todas as sugestões, comentários, pendências, referências, versões e vínculos associados a ele serão removidos permanentemente. Esta ação não pode ser desfeita.";
+      "Todas as sugestões de redação, comentários, pendências, referências, versões e vínculos associados a ele serão removidos permanentemente. Esta ação não pode ser desfeita.";
     setConfirmState({
       title: "Excluir dispositivo",
       description:

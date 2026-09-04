@@ -22,7 +22,7 @@ export function SuggestionForm({ provisionId }: { provisionId: string }) {
     const res = await createSuggestion(provisionId, form.texto, form.justificativa, form.ondeEsta);
     setPending(false);
     if (res.error) return toast.error(res.error);
-    toast.success("Sugestão registrada.");
+    toast.success("Sugestão de redação registrada.");
     setForm({ texto: "", justificativa: "", ondeEsta: "" });
     setOpen(false);
     router.refresh();
@@ -31,7 +31,7 @@ export function SuggestionForm({ provisionId }: { provisionId: string }) {
   if (!open) {
     return (
       <Button size="sm" variant="outline" onClick={() => setOpen(true)}>
-        Nova sugestão
+        Nova sugestão de redação
       </Button>
     );
   }
@@ -50,7 +50,7 @@ export function SuggestionForm({ provisionId }: { provisionId: string }) {
         <textarea rows={2} value={form.justificativa} onChange={(e) => setForm({ ...form, justificativa: e.target.value })} className="w-full rounded-md border bg-background px-3 py-2 text-sm" placeholder="Por que sugerir esta alteração?" />
       </div>
       <div className="flex gap-2">
-        <SubmitBtn label="Registrar sugestão" pending={pending} onClick={submit} />
+        <SubmitBtn label="Registrar sugestão de redação" pending={pending} onClick={submit} />
         <Button type="button" size="sm" variant="ghost" onClick={() => setOpen(false)}>Cancelar</Button>
       </div>
     </div>
@@ -89,7 +89,7 @@ export function SuggestionItem({
     const res = await vote(null, opinion, sug.id);
     setPending(false);
     if (res.error) return toast.error(res.error);
-    toast.success("Voto registrado na sugestão.");
+    toast.success("Voto registrado na sugestão de redação.");
     router.refresh();
   }
 

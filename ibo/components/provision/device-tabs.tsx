@@ -188,10 +188,23 @@ export function DeviceTabs(props: Props) {
           </CardContent>
         </Card>
 
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="flex items-center gap-2 text-base">
+              <NumBadge n="3" className="bg-muted text-muted-foreground" />
+              Justificativa
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-2">
+            <JustificativaEditor provisionId={id} initial={prov.justificativa} canEdit={canManage} />
+            <FieldHelper>Explique o porquê da alteração. Alimenta o Relatório da reforma.</FieldHelper>
+          </CardContent>
+        </Card>
+
         <Card className="border-blue-300/70 bg-blue-50/40 dark:border-blue-700/60 dark:bg-blue-950/20">
           <CardHeader className="pb-2">
             <CardTitle className="flex flex-wrap items-center gap-2 text-base">
-              <NumBadge n="3" className="bg-primary text-primary-foreground" />
+              <NumBadge n="4" className="bg-primary text-primary-foreground" />
               Redação de trabalho
               <Badge variant="outline" className="border-blue-200 bg-blue-100/60 text-[10px] text-blue-700 dark:border-blue-800 dark:bg-blue-950/40 dark:text-blue-300">
                 versão atual da comissão
@@ -213,20 +226,42 @@ export function DeviceTabs(props: Props) {
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="flex items-center gap-2 text-base">
-              <NumBadge n="4" className="bg-muted text-muted-foreground" />
-              Justificativa
+              <NumBadge n="5" className="bg-muted text-muted-foreground" />
+              Opinião consultiva
             </CardTitle>
           </CardHeader>
-          <CardContent className="space-y-2">
-            <JustificativaEditor provisionId={id} initial={prov.justificativa} canEdit={canManage} />
-            <FieldHelper>Explique o porquê da alteração. Alimenta o Relatório da reforma.</FieldHelper>
+          <CardContent className="space-y-3">
+            <VoteButtons provisionId={id} currentOpinion={props.myVote} />
+            <FieldHelper>Manifestação consultiva dos membros sobre o dispositivo — não é a votação formal da comissão.</FieldHelper>
+            <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+              <span>{props.votedCount} membro(s) se manifestaram. Caráter consultivo — não constitui votação formal da comissão.</span>
+              {props.votes.map((v) => (
+                <span key={v.opinion} className="inline-flex items-center gap-1 rounded-full border bg-muted/50 px-2 py-0.5">
+                  <span className={`h-1.5 w-1.5 rounded-full ${v.opinion === "concordo" ? "bg-emerald-500" : v.opinion === "discordo" ? "bg-red-500" : "bg-amber-500"}`} />
+                  {v.opinion}: {v.c}
+                </span>
+              ))}
+            </div>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="flex items-center gap-2 text-base">
-              <NumBadge n="5" className="bg-muted text-muted-foreground" />
+              <NumBadge n="6" className="bg-muted text-muted-foreground" />
+              Dispositivos relacionados
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <FieldHelper>Dispositivos vinculados a este — úteis para evitar contradições e detectar renumeração.</FieldHelper>
+            <RelationForm provisionId={id} devices={props.devices} relations={props.relations} canManage={canManage} />
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="flex items-center gap-2 text-base">
+              <NumBadge n="7" className="bg-muted text-muted-foreground" />
               Fundamentação
             </CardTitle>
           </CardHeader>
@@ -258,19 +293,6 @@ export function DeviceTabs(props: Props) {
           </CardContent>
         </Card>
 
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="flex items-center gap-2 text-base">
-              <NumBadge n="6" className="bg-muted text-muted-foreground" />
-              Dispositivos relacionados
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            <FieldHelper>Dispositivos vinculados a este — úteis para evitar contradições e detectar renumeração.</FieldHelper>
-            <RelationForm provisionId={id} devices={props.devices} relations={props.relations} canManage={canManage} />
-          </CardContent>
-        </Card>
-
         {prov.redacao_consolidada && (
           <Card className="border-emerald-200 bg-emerald-50/50 dark:border-emerald-800 dark:bg-emerald-950/20">
             <CardHeader>
@@ -292,13 +314,13 @@ export function DeviceTabs(props: Props) {
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0">
-            <CardTitle className="text-base">Sugestões dos membros</CardTitle>
+            <CardTitle className="text-base">Sugestões de redação</CardTitle>
             <Badge variant="secondary">{props.suggestions.length}</Badge>
           </CardHeader>
           <CardContent className="space-y-3">
             <SuggestionForm provisionId={id} />
-            <FieldHelper>Membros propõem o que mudar no texto; o coordenador decide o destino de cada sugestão.</FieldHelper>
-            {props.suggestions.length === 0 && <p className="text-sm text-muted-foreground">Nenhuma sugestão ainda.</p>}
+            <FieldHelper>Membros propõem o que mudar no texto; o coordenador decide o destino de cada sugestão de redação.</FieldHelper>
+            {props.suggestions.length === 0 && <p className="text-sm text-muted-foreground">Nenhuma sugestão de redação ainda.</p>}
             {props.suggestions.map((s) => (
               <SuggestionItem
                 key={s.id}
@@ -308,25 +330,6 @@ export function DeviceTabs(props: Props) {
                 myVote={props.mySugVotesMap[s.id]}
               />
             ))}
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">Opinião consultiva</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            <VoteButtons provisionId={id} currentOpinion={props.myVote} />
-            <FieldHelper>Manifestação consultiva dos membros — não é a votação formal da comissão.</FieldHelper>
-            <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
-              <span>{props.votedCount} membro(s) se manifestaram. Caráter consultivo — não constitui votação formal da comissão.</span>
-              {props.votes.map((v) => (
-                <span key={v.opinion} className="inline-flex items-center gap-1 rounded-full border bg-muted/50 px-2 py-0.5">
-                  <span className={`h-1.5 w-1.5 rounded-full ${v.opinion === "concordo" ? "bg-emerald-500" : v.opinion === "discordo" ? "bg-red-500" : "bg-amber-500"}`} />
-                  {v.opinion}: {v.c}
-                </span>
-              ))}
-            </div>
           </CardContent>
         </Card>
 
