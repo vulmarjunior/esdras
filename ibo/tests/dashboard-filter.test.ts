@@ -11,6 +11,7 @@ function node(partial: Partial<TreeNode>): TreeNode {
     numero: null,
     titulo: null,
     ordem: 0,
+    ordem_pai: 0,
     origem: "original",
     alteracao_tipo: "sem_alteracao",
     status: "nao_iniciado",

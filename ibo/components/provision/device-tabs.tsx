@@ -57,6 +57,7 @@ interface Props {
   canManage: boolean;
   canFixExtraction: boolean;
   directChildren: number;
+  parentType: string | null;
   suggestions: Suggestion[];
   sugVotesMap: Record<number, Record<string, number>>;
   mySugVotesMap: Record<number, string>;
@@ -106,6 +107,8 @@ export function DeviceTabs(props: Props) {
               childCount={props.directChildren}
               canEdit={canManage}
               alteracaoTipo={prov.alteracao_tipo}
+              type={prov.type}
+              parentType={props.parentType}
             />
           </div>
         </details>

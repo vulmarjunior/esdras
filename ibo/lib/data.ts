@@ -1,5 +1,6 @@
 import { get, all } from "./db";
 import type { Provision, ProvisionStatus } from "./types";
+import { ordenarIrmaos } from "./tree-order";
 export { provisionLabel } from "./provision-label";
 
 export interface TreeNode extends Provision {
@@ -21,6 +22,13 @@ export async function getTree(): Promise<TreeNode[]> {
       roots.push(node);
     }
   }
+  // Hierarquia normativa: incisos → parágrafos → alíneas, preservando ordem_pai
+  // dentro de cada grupo (ordenação estável, sem mutar o array original).
+  const ordenar = (nodes: TreeNode[]) => {
+    for (const n of nodes) ordenar(n.children);
+    return ordenarIrmaos(nodes);
+  };
+  ordenar(roots);
   const count = (n: TreeNode): number => {
     let c = 0;
     for (const ch of n.children) c += 1 + count(ch);

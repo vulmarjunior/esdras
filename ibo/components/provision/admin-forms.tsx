@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -125,24 +125,41 @@ export function ProvisionAdminActions({
   childCount,
   canEdit,
   alteracaoTipo,
+  type,
+  parentType,
 }: {
   provisionId: string;
   origem: string;
   childCount: number;
   canEdit: boolean;
   alteracaoTipo: string;
+  type?: string;
+  parentType?: string | null;
 }) {
   const [editing, setEditing] = useState(false);
   const [pending, setPending] = useState(false);
   const [confirmState, setConfirmState] = useState<ConfirmDialogState | null>(null);
-  const [form, setForm] = useState({ numero: "", titulo: "", posicaoSugerida: "" });
+  const [form, setForm] = useState({ numero: "", titulo: "", posicaoSugerida: "", type: "" });
   const router = useRouter();
+
+  const tiposValidos = useMemo(() => {
+    const HIERARQUIA: Record<string, string[]> = {
+      capitulo: ["secao", "artigo"],
+      secao: ["artigo"],
+      artigo: ["paragrafo", "inciso", "alinea"],
+      paragrafo: ["inciso", "alinea"],
+      inciso: ["alinea"],
+      alinea: [],
+    };
+    if (!parentType) return ["capitulo", "secao", "artigo"];
+    return HIERARQUIA[parentType] || [];
+  }, [parentType]);
 
   if (!canEdit) return null;
 
   async function save() {
     setPending(true);
-    const res = await updateProvision(provisionId, form);
+    const res = await updateProvision(provisionId, { ...form, type: form.type || undefined });
     setPending(false);
     if (res.error) return toast.error(res.error);
     toast.success(res.message || "Dispositivo atualizado.");
@@ -200,6 +217,19 @@ export function ProvisionAdminActions({
             Posição sugerida
             <input value={form.posicaoSugerida} onChange={(e) => setForm({ ...form, posicaoSugerida: e.target.value })} placeholder="Ex.: Após o atual Art. 12" className="mt-1 h-9 w-full rounded-md border bg-background px-3 text-sm" />
           </label>
+          {type && tiposValidos.length > 0 && (
+            <label className="text-sm sm:col-span-3">
+              Classificação
+              <select value={form.type || type} onChange={(e) => setForm({ ...form, type: e.target.value === type ? "" : e.target.value })} className="mt-1 h-9 w-full rounded-md border bg-background px-2 text-sm">
+                {tiposValidos.map((t) => (
+                  <option key={t} value={t}>{PROVISION_TYPE_LABELS[t]}</option>
+                ))}
+              </select>
+              <span className="mt-1 block text-xs text-muted-foreground">
+                Altera o tipo do dispositivo. Filhos incompatíveis bloqueiam a troca.
+              </span>
+            </label>
+          )}
           <div className="flex gap-2 sm:col-span-3">
             <SubmitBtn label="Salvar" pending={pending} onClick={save} />
             <Button size="sm" variant="ghost" onClick={() => setEditing(false)}>Cancelar</Button>
@@ -207,7 +237,7 @@ export function ProvisionAdminActions({
         </div>
       )}
       <div className="flex flex-wrap gap-2">
-        <Button size="sm" variant="outline" onClick={() => { setForm({ numero: "", titulo: "", posicaoSugerida: "" }); setEditing(!editing); }}>
+        <Button size="sm" variant="outline" onClick={() => { setForm({ numero: "", titulo: "", posicaoSugerida: "", type: "" }); setEditing(!editing); }}>
           {editing ? "Fechar edição" : "Editar dispositivo"}
         </Button>
         {origem !== "original" && (

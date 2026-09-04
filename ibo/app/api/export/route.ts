@@ -2,7 +2,7 @@
 import { jwtVerify } from "jose";
 import { cookies } from "next/headers";
 import { getDb, all } from "@/lib/db";
-import { provisionLabel } from "@/lib/data";
+import { provisionLabel, getTree, type TreeNode } from "@/lib/data";
 import { ALTERACAO_TYPE_LABELS, PENDING_CATEGORY_LABELS, REFERENCE_TYPE_LABELS } from "@/lib/labels";
 import { htmlToText } from "@/lib/rich-text";
 
@@ -39,28 +39,31 @@ export async function GET(req: NextRequest) {
   getDb();
 
   if (type === "consolidado") {
-    const rows = await all<{ id: string; type: string; numero: string | null; titulo: string | null; origem: string; redacao: string }>(`
-      SELECT p.id, p.type, p.numero, p.titulo, p.origem,
-        COALESCE(NULLIF(p.redacao_consolidada, ''), NULLIF(p.redacao_trabalho, ''), p.texto_vigente) AS redacao
-      FROM provisions p
-      WHERE p.status = 'aprovado'
-      ORDER BY p.ordem_pai`);
+    const tree = await getTree();
     const lines: string[] = ["ESTATUTO CONSOLIDADO", "Igreja Batista Olaria", "=".repeat(60), ""];
-    const marca = (r: { origem: string }) => (r.origem === "novo" ? " (novo)" : "");
-    for (const r of rows) {
-      const label = provisionLabel(r as never) + marca(r);
-      if (r.type === "capitulo") {
-        lines.push("", label.toUpperCase() + (r.titulo ? ` â€” ${r.titulo}` : ""), "-".repeat(40), "");
-      } else if (r.type === "artigo") {
-        lines.push(`${label} â€” ${htmlToText(r.redacao)}`);
-      } else if (r.type === "paragrafo") {
-        lines.push(`    ${label.toLowerCase()}: ${htmlToText(r.redacao)}`);
-      } else if (r.type === "inciso") {
-        lines.push(`        ${r.numero}) ${htmlToText(r.redacao)}`);
+    const marca = (origem: string) => (origem === "novo" ? " (novo)" : "");
+    const emit = (n: TreeNode, depth: number) => {
+      const approved = n.status === "aprovado";
+      const hasApproved = (node: TreeNode): boolean => node.status === "aprovado" || node.children.some(hasApproved);
+      if (!approved && !n.children.some(hasApproved)) return;
+      const label = provisionLabel(n as never) + marca(n.origem);
+      const redacao = approved
+        ? n.redacao_consolidada || n.redacao_trabalho || n.texto_vigente
+        : "";
+      if (n.type === "capitulo") {
+        lines.push("", label.toUpperCase() + (n.titulo ? ` — ${n.titulo}` : ""), "-".repeat(40), "");
+      } else if (n.type === "artigo") {
+        lines.push(`${label} — ${htmlToText(redacao)}`);
+      } else if (n.type === "paragrafo") {
+        lines.push(`    ${label.toLowerCase()}: ${htmlToText(redacao)}`);
+      } else if (n.type === "inciso") {
+        lines.push(`        ${n.numero}) ${htmlToText(redacao)}`);
       } else {
-        lines.push(`${label}: ${htmlToText(r.redacao)}`);
+        lines.push(`${label}: ${htmlToText(redacao)}`);
       }
-    }
+      for (const c of n.children) emit(c, depth + 1);
+    };
+    for (const chapter of tree) emit(chapter, 0);
     return download(lines.join("\n"), "estatuto-consolidado.txt");
   }
 

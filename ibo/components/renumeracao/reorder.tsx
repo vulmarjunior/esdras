@@ -9,7 +9,9 @@ import { FieldHelper } from "@/components/field-helper";
 import { NovoBadge } from "@/components/status-badge";
 import { provisionLabel } from "@/lib/provision-label";
 import { moveProvision } from "@/app/actions/provision";
+import { HIERARQUIA } from "@/lib/reorder-core";
 import type { TreeNode } from "@/lib/data";
+import type { ProvisionType } from "@/lib/types";
 
 interface Props {
   nodes: TreeNode[];
@@ -20,15 +22,22 @@ interface Container {
   label: string;
 }
 
+interface Movivel {
+  node: TreeNode;
+  parentId: string | null;
+  tipo: ProvisionType;
+}
+
 /**
- * PRD §17 (2ª etapa) — reordenação física de artigos entre capítulos/seções.
- * Move de verdade na árvore (parent_id/ordem_pai), com auditoria e evento de
- * reunião. Textos nunca são alterados; a numeração é reaplicada em "Aplicar numeração".
+ * PRD §17 (2ª etapa) — reordenação física de artigos entre capítulos/seções e
+ * de parágrafos/incisos dentro de artigos. Move de verdade na árvore
+ * (parent_id/ordem_pai), com auditoria e evento de reunião. Textos nunca são
+ * alterados; a numeração é reaplicada em "Aplicar numeração".
  */
 export function Reorder({ nodes }: Props) {
   const router = useRouter();
 
-  const { artigos, containers, parentLabel, artigosDoContainer } = useMemo(() => {
+  const { moviveis, containers, parentLabel, irmãosDe } = useMemo(() => {
     const byId = new Map<string, TreeNode>();
     const walk = (list: TreeNode[]) => {
       for (const n of list) {
@@ -47,25 +56,25 @@ export function Reorder({ nodes }: Props) {
     const containers: Container[] = [{ id: null, label: "Raiz do documento" }];
     const collect = (list: TreeNode[]) => {
       for (const n of list) {
-        if (n.type === "capitulo" || n.type === "secao") containers.push({ id: n.id, label: provisionLabel(n) });
+        containers.push({ id: n.id, label: provisionLabel(n) });
         collect(n.children);
       }
     };
     collect(nodes);
 
-    const artigos: { node: TreeNode; parentId: string | null }[] = [];
-    const collectArtigos = (list: TreeNode[]) => {
+    const moviveis: Movivel[] = [];
+    const collectMoviveis = (list: TreeNode[]) => {
       for (const n of list) {
-        if (n.type === "artigo") artigos.push({ node: n, parentId: n.parent_id });
-        collectArtigos(n.children);
+        moviveis.push({ node: n, parentId: n.parent_id, tipo: n.type });
+        collectMoviveis(n.children);
       }
     };
-    collectArtigos(nodes);
+    collectMoviveis(nodes);
 
-    const artigosDoContainer = (parentId: string | null): TreeNode[] =>
-      artigos.filter((a) => a.parentId === parentId).map((a) => a.node);
+    const irmãosDe = (parentId: string | null): TreeNode[] =>
+      moviveis.filter((m) => m.parentId === parentId).map((m) => m.node);
 
-    return { artigos, containers, parentLabel, artigosDoContainer };
+    return { moviveis, containers, parentLabel, irmãosDe };
   }, [nodes]);
 
   const [openId, setOpenId] = useState<string | null>(null);
@@ -73,9 +82,24 @@ export function Reorder({ nodes }: Props) {
   const [posicao, setPosicao] = useState<string>("");
   const [pending, setPending] = useState(false);
 
-  const artigoAtual = artigos.find((a) => a.node.id === openId)?.node ?? null;
+  const atual = moviveis.find((m) => m.node.id === openId) ?? null;
   const destinoId = destino === "" ? null : destino;
-  const irmaosDestino = destino === "" && artigoAtual?.parent_id ? artigosDoContainer(artigoAtual.parent_id) : artigosDoContainer(destinoId);
+
+  // Destinos válidos para o tipo do dispositivo (mesma regra do HIERARQUIA).
+  const destinosValidos: Container[] = useMemo(() => {
+    if (!atual) return [];
+    if (atual.tipo === "capitulo") return [{ id: null, label: "Raiz do documento" }];
+    return containers.filter((c) => {
+      if (c.id === null) return true;
+      const node = moviveis.find((m) => m.node.id === c.id)?.node;
+      return node ? (HIERARQUIA[node.type] ?? []).includes(atual.tipo) : false;
+    });
+  }, [containers, moviveis, atual]);
+
+  const irmãosDestino =
+    destinoId === "" && atual?.parentId != null
+      ? irmãosDe(atual.parentId)
+      : irmãosDe(destinoId);
 
   function abrir(id: string, parentId: string | null) {
     setOpenId(id);
@@ -107,23 +131,23 @@ export function Reorder({ nodes }: Props) {
           <div>
             <h3 className="text-sm font-semibold">Reordenação física (PRD §17 — 2ª etapa)</h3>
             <p className="text-xs text-muted-foreground">
-              Mova artigos entre capítulos/seções ou reordene dentro do mesmo destino. A mudança grava a posição na
-              árvore com auditoria; depois use o simulador acima e <strong>Aplicar numeração</strong> para renumerar.
+              Mova artigos entre capítulos/seções ou reordene parágrafos/incisos dentro de um artigo. A mudança grava
+              a posição na árvore com auditoria; depois use o simulador acima e <strong>Aplicar numeração</strong> para renumerar.
             </p>
           </div>
         </div>
         <FieldHelper>
-          Textos nunca são alterados nesta operação. Mova apenas artigos; capítulos permanecem na raiz do documento.
+          Textos nunca são alterados nesta operação. Capítulos permanecem na raiz do documento.
         </FieldHelper>
       </div>
 
       <div className="overflow-x-auto rounded-xl border bg-card">
         <div className="grid grid-cols-[1fr_auto_auto] items-center gap-2 border-b bg-muted/40 px-4 py-2 text-xs font-semibold text-muted-foreground">
-          <span>Artigo</span>
+          <span>Dispositivo</span>
           <span>Onde está</span>
           <span className="w-16 text-right">Ações</span>
         </div>
-        {artigos.map(({ node, parentId }) => {
+        {moviveis.map(({ node, parentId }) => {
           const aberto = openId === node.id;
           return (
             <div key={node.id} className="border-b last:border-0">
@@ -158,8 +182,8 @@ export function Reorder({ nodes }: Props) {
                       }}
                       className="h-8 w-full rounded-md border bg-background px-2 text-sm"
                     >
-                      {containers.map((c) => (
-                        <option key={c.id ?? "__raiz" } value={c.id ?? ""}>
+                      {destinosValidos.map((c) => (
+                        <option key={c.id ?? "__raiz"} value={c.id ?? ""}>
                           {c.label}
                         </option>
                       ))}
@@ -173,7 +197,7 @@ export function Reorder({ nodes }: Props) {
                       className="h-8 w-full rounded-md border bg-background px-2 text-sm"
                     >
                       <option value="">— no início —</option>
-                      {irmaosDestino
+                      {irmãosDestino
                         .filter((a) => a.id !== node.id)
                         .map((a) => (
                           <option key={a.id} value={a.id}>

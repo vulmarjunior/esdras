@@ -94,11 +94,45 @@ export async function createProvision(
 
 export async function updateProvision(
   provisionId: string,
-  data: { numero: string; titulo: string; posicaoSugerida: string }
+  data: { numero: string; titulo: string; posicaoSugerida: string; type?: string }
 ): Promise<ActionState> {
   const user = await requireRole(...rolesCom("gerenciar_dispositivos"));
   const prov = await get<Provision>("SELECT * FROM provisions WHERE id = ?", [provisionId]);
   if (!prov) return { error: "Dispositivo não encontrado." };
+
+  const HIERARQUIA: Record<string, string[]> = {
+    capitulo: ["secao", "artigo"],
+    secao: ["artigo"],
+    artigo: ["paragrafo", "inciso", "alinea"],
+    paragrafo: ["inciso", "alinea"],
+    inciso: ["alinea"],
+    alinea: [],
+  };
+  const tipos = ["capitulo", "secao", "artigo", "paragrafo", "inciso", "alinea"];
+
+  let novoType: Provision["type"] = prov.type;
+  if (data.type !== undefined) {
+    if (!tipos.includes(data.type)) return { error: "Tipo de dispositivo inválido." };
+    if (data.type !== prov.type) {
+      // Novo tipo deve ser compatível com o pai atual.
+      const pai = prov.parent_id ? await get<Provision>("SELECT * FROM provisions WHERE id = ?", [prov.parent_id]) : null;
+      const parentType = pai?.type ?? null;
+      if (parentType !== null && !(HIERARQUIA[parentType] ?? []).includes(data.type)) {
+        return { error: `Não é possível classificar ${data.type} dentro de ${parentType}.` };
+      }
+      // Filhos existentes devem continuar compatíveis com o novo tipo.
+      const filhos = await all<{ type: string }>("SELECT type FROM provisions WHERE parent_id = ?", [provisionId]);
+      const aceitos = HIERARQUIA[data.type] ?? [];
+      const invalidos = filhos.filter((f) => !aceitos.includes(f.type));
+      if (invalidos.length) {
+        return {
+          error: `A troca de classificação deixaria ${invalidos.length} dispositivo(s) filho(s) incompatível(is). Ajuste os filhos antes.`,
+        };
+      }
+      novoType = data.type as Provision["type"];
+    }
+  }
+
   const ts = now();
   await transaction(async () => {
     await run("UPDATE provisions SET numero = ?, titulo = ?, posicao_sugerida = ?, updated_at = ? WHERE id = ?", [
@@ -108,7 +142,14 @@ export async function updateProvision(
       ts,
       provisionId,
     ]);
-    await audit(user.id, user.name, "Editou dispositivo", "provision", provisionId, "Dados de numeração/posição atualizados");
+    if (novoType !== prov.type) {
+      await run("UPDATE provisions SET type = ?, updated_at = ? WHERE id = ?", [novoType, ts, provisionId]);
+    }
+    const detalhe =
+      novoType !== prov.type
+        ? `Classificação alterada: ${prov.type} → ${novoType}; dados de numeração/posição atualizados`
+        : "Dados de numeração/posição atualizados";
+    await audit(user.id, user.name, "Editou dispositivo", "provision", provisionId, detalhe);
   });
   revalidatePath(`/dispositivo/${provisionId}`);
   revalidatePath("/");

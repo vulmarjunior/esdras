@@ -27,6 +27,8 @@ export default async function DevicePage({ params }: { params: Promise<{ id: str
   const prov = await getProvision(id);
   if (!prov) notFound();
 
+  const parentType = prov.parent_id ? (await getProvision(prov.parent_id))?.type ?? null : null;
+
   const canEditWork = user.role === "coordenador" || user.role === "admin";
   const canManage = canEditWork;
   const canFixExtraction = user.role === "admin";
@@ -168,6 +170,7 @@ export default async function DevicePage({ params }: { params: Promise<{ id: str
           canManage={canManage}
           canFixExtraction={canFixExtraction}
           directChildren={directChildren}
+          parentType={parentType}
           suggestions={suggestions}
           sugVotesMap={Object.fromEntries(sugVotesMap)}
           mySugVotesMap={Object.fromEntries(mySugVotesMap)}
