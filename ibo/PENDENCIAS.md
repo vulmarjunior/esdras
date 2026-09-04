@@ -25,6 +25,7 @@ Pauta de trabalho para o próximo agente/dev. Estado do projeto: **MVP completo 
 - [x] **`meeting_events`** — log factual e não editável (PRD §24) — comportamento já correto.
 - [x] **Guia de redação legislativa** — LC 95/1998 + Manual de Redação da Presidência curados em `lib/legal-refs.ts`; IA de redação enriquecida; `action: duvida` e `action: valida_tecnica` (checklist no editor); página `/guia-redacao`. Sem mudança de banco.
 - [ ] **`docs/` ou wiki do projeto** — manter `AGENTS.md`/`PENDENCIAS.md` atualizados (contínuo).
+- [ ] **Biblioteca doutrinária (`/documentos`)** — plano em `PLANO_BIBLIOTECA_DOUTRINARIA.md`. Usuário fornecerá os textos em português (Declaração Doutrinária da CBB, Princípios Batistas, Londres 1689, New Hampshire 1833, Filadélfia 1742, Fé e Mensagem 2000). Ver plano para os passos.
 - [x] **Refatorar `app/actions/provision.ts` (525 ln) e `components/provision/provision-forms.tsx` (944 ln)** — **CONCLUÍDO**: extração em módulos de domínio. Actions: `redacao.ts` (154), `dispositivos.ts` (254), `colaboracao.ts` (175), `state.ts` (tipo `ActionState`), com `provision.ts` como barrel (29). Componentes: `submit-btn.tsx`, `status-control.tsx`, `admin-forms.tsx`, `suggestion-forms.tsx`, `comment-forms.tsx`, `pending-forms.tsx`, `reference-form.tsx`, `vote-buttons.tsx`, `historical-text-editor.tsx`, `justificativa-editor.tsx`, `relation-form.tsx`, com `provision-forms.tsx` como barrel (10). Comportamento idêntico (importadores inalterados); lint/build/test 56 verdes.
 
 ## 4. Documentação/observações de código
