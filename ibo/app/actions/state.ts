@@ -1,0 +1,1 @@
+export type ActionState = { error?: string; conflict?: boolean; ok?: boolean; message?: string };
