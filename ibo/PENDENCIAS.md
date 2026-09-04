@@ -18,11 +18,12 @@ Pauta de trabalho para o próximo agente/dev. Estado do projeto: **MVP completo 
 
 ## 3. Melhorias conhecidas / dívidas técnicas
 
-- [x] **Testes automatizados** — Vitest, 50 testes (renumeração, sanitização rich text, reordenação, versão/conflito §41, perfis, telefone).
+- [x] **Testes automatizados** — Vitest, 50 testes (renumeração, sanitização rich text, reordenação, versão/conflito §41, perfis, telefone, guia de redação).
 - [x] **Deploy Vercel** — em produção.
 - [x] **Numeração/ordem final dos dispositivos novos** — mecanismo completo (mover + aplicar numeração).
 - [x] **Índices/paginação de auditoria** — paginação implementada (100/página).
 - [x] **`meeting_events`** — log factual e não editável (PRD §24) — comportamento já correto.
+- [x] **Guia de redação legislativa** — LC 95/1998 + Manual de Redação da Presidência curados em `lib/legal-refs.ts`; IA de redação enriquecida; `action: duvida` e `action: valida_tecnica` (checklist no editor); página `/guia-redacao`. Sem mudança de banco.
 - [ ] **`docs/` ou wiki do projeto** — manter `AGENTS.md`/`PENDENCIAS.md` atualizados (contínuo).
 - [ ] **Refatorar `app/actions/provision.ts` (525 ln) e `components/provision/provision-forms.tsx` (944 ln)** — quebrar em módulos por domínio (sugestões, pendências, referências, votos, ações de dispositivo). Precedente criado: `app/actions/notes.ts` + `components/provision/personal-note-form.tsx`. Fazer como tarefa separada, com testes de aceite, sem risco para o MVP em produção.
 

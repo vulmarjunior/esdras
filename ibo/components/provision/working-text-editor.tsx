@@ -17,6 +17,7 @@ const AI_TOOLS = [
   { key: "estatutario", label: "Linguagem estatutária" },
   { key: "simplificar", label: "Simplificar redação" },
   { key: "comparar", label: "Comparar com vigente", needsComparar: true },
+  { key: "valida_tecnica", label: "Checklist técnico (LC 95)" },
 ];
 
 interface Props {
@@ -43,15 +44,20 @@ export function WorkingTextEditor({ provisionId, initialText, version, canEdit, 
     setAiLoading(true);
     setAiTool(toolKey);
     try {
+      const isChecklist = toolKey === "valida_tecnica";
       const res = await fetch("/api/ai", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          action: "editorial",
-          tool: toolKey,
-          text: plainText,
-          comparar: toolKey === "comparar" ? htmlToText(compararTexto || "") : undefined,
-        }),
+        body: JSON.stringify(
+          isChecklist
+            ? { action: "valida_tecnica", texto: plainText, rotulo: "Redação de trabalho" }
+            : {
+                action: "editorial",
+                tool: toolKey,
+                text: plainText,
+                comparar: toolKey === "comparar" ? htmlToText(compararTexto || "") : undefined,
+              }
+        ),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Erro na IA");
@@ -117,15 +123,19 @@ export function WorkingTextEditor({ provisionId, initialText, version, canEdit, 
             <div className="rounded-xl border border-violet-200 bg-violet-50/60 p-4 dark:border-violet-800 dark:bg-violet-950/30">
               <p className="mb-2 flex items-center gap-1.5 text-sm font-semibold text-violet-800 dark:text-violet-200">
                 <Sparkles className="h-4 w-4" />
-                Sugestão gerada por IA — revisar antes de incorporar.
+                {aiTool === "valida_tecnica"
+                  ? "Checklist de técnica legislativa — gerado por IA, revisar antes de agir."
+                  : "Sugestão gerada por IA — revisar antes de incorporar."}
               </p>
               <p className="mb-3 whitespace-pre-wrap rounded-lg bg-white/70 p-3 font-serif text-sm leading-relaxed dark:bg-black/20">
                 {aiResult}
               </p>
               <div className="flex gap-2">
-                <Button type="button" size="sm" onClick={() => { setText(plainToHtml(aiResult)); setAiResult(null); }}>
-                  <Check className="mr-1 h-4 w-4" /> Aplicar sugestão
-                </Button>
+                {aiTool !== "valida_tecnica" && (
+                  <Button type="button" size="sm" onClick={() => { setText(plainToHtml(aiResult)); setAiResult(null); }}>
+                    <Check className="mr-1 h-4 w-4" /> Aplicar sugestão
+                  </Button>
+                )}
                 <Button type="button" size="sm" variant="outline" onClick={() => setAiResult(null)}>
                   <X className="mr-1 h-4 w-4" /> Descartar
                 </Button>

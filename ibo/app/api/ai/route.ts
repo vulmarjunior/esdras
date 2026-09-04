@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireRole } from "@/lib/auth";
 import { all, get } from "@/lib/db";
+import { formarGuia } from "@/lib/legal-refs";
 
 const GROQ_URL = "https://api.groq.com/openai/v1/chat/completions";
 const MODEL_CHAIN = [
@@ -10,6 +11,9 @@ const MODEL_CHAIN = [
   "openai/gpt-oss-20b",
 ].filter((m, i, arr) => m && arr.indexOf(m) === i);
 
+const GUIA_CONTEXTO = formarGuia();
+const GUIA_BLOCO = `\n\nReferências normativas (obrigatórias) — Lei Complementar nº 95/1998 e Manual de Redação da Presidência da República:\n${GUIA_CONTEXTO}`;
+
 const TOOLS: Record<string, { system: string; prompt: (t: string) => string }> = {
   gramatica: {
     system:
@@ -18,17 +22,17 @@ const TOOLS: Record<string, { system: string; prompt: (t: string) => string }> =
   },
   clareza: {
     system:
-      "Você é um assistente de redação. Melhore a clareza do texto sem alterar seu significado. Mantenha o tom formal e institucional. Devolva somente o texto reescrito.",
+      "Você é um assistente de redação. Melhore a clareza do texto sem alterar seu significado. Mantenha o tom formal e institucional. Devolva somente o texto reescrito." + GUIA_BLOCO,
     prompt: (t) => `Reescreva o texto a seguir com mais clareza, sem mudar o sentido:\n\n${t}`,
   },
   estatutario: {
     system:
-      "Você é especialista em redação estatutária de associações religiosas no Brasil. Sugira uma formulação mais normativa, formal e jurídica, mantendo o sentido. Devolva somente o texto sugerido.",
+      "Você é especialista em redação estatutária de associações religiosas no Brasil. Sugira uma formulação mais normativa, formal e jurídica, mantendo o sentido. Devolva somente o texto sugerido." + GUIA_BLOCO,
     prompt: (t) => `Reescreva em linguagem estatutária formal e normativa:\n\n${t}`,
   },
   simplificar: {
     system:
-      "Você é um redator. Simplifique o texto eliminando redundâncias e repetições, sem alterar o significado nem o tom formal. Devolva somente o texto simplificado.",
+      "Você é um redator. Simplifique o texto eliminando redundâncias e repetições, sem alterar o significado nem o tom formal. Devolva somente o texto simplificado." + GUIA_BLOCO,
     prompt: (t) => `Simplifique o texto eliminando redundâncias, mantendo o sentido:\n\n${t}`,
   },
   comparar: {
@@ -38,7 +42,7 @@ const TOOLS: Record<string, { system: string; prompt: (t: string) => string }> =
   },
   justificativa: {
     system:
-      "Você é assistente de uma comissão de reforma estatutária. Melhore a clareza argumentativa de uma justificativa de alteração, mantendo os fatos. Devolva somente o texto melhorado.",
+      "Você é assistente de uma comissão de reforma estatutária. Melhore a clareza argumentativa de uma justificativa de alteração, mantendo os fatos. Devolva somente o texto melhorado." + GUIA_BLOCO,
     prompt: (t) => `Melhore a clareza argumentativa desta justificativa, sem inventar fatos:\n\n${t}`,
   },
 };
@@ -123,6 +127,32 @@ export async function POST(req: NextRequest) {
       const system =
         "Você é um revisor técnico de estatutos de associações religiosas. Analise a coerência dos dispositivos fornecidos procurando: duplicidades, contradições, nomenclaturas divergentes, competências conflitantes, conceitos indefinidos, referências internas incorretas e lacunas. Aponte APENAS alertas objetivos e acionáveis, citando o dispositivo. Não reescreva os textos nem invente conteúdo. Se não houver problemas, diga que a análise não encontrou alertas.";
       const result = await callGroq(system, `Analise a coerência destes dispositivos:\n\n${textos.join("\n\n")}`);
+      return NextResponse.json({ result });
+    }
+
+    if (body.action === "duvida") {
+      const pergunta = String(body.pergunta || "").trim();
+      if (!pergunta) {
+        return NextResponse.json({ error: "Digite sua dúvida." }, { status: 400 });
+      }
+      const system =
+        "Você é um assessor de redação legislativa e estatutária em português do Brasil. Responda às dúvidas usando APENAS as regras fornecidas (Lei Complementar nº 95/1998 e Manual de Redação da Presidência da República), citando a fonte de cada orientação. Se a pergunta não for sobre redação ou técnica legislativa, diga que está fora do seu escopo. Seja objetivo e prático, com exemplos quando útil.";
+      const result = await callGroq(system, `Regras de referência:\n\n${GUIA_CONTEXTO}\n\nPergunta: ${pergunta}`);
+      return NextResponse.json({ result });
+    }
+
+    if (body.action === "valida_tecnica") {
+      const texto = String(body.texto || "").trim();
+      if (!texto) {
+        return NextResponse.json({ error: "Texto vazio." }, { status: 400 });
+      }
+      const rotulo = String(body.rotulo || "").trim();
+      const system =
+        "Você aplica o checklist de técnica legislativa (Lei Complementar nº 95/1998 e Manual de Redação da Presidência da República) a um dispositivo estatutário. Aponte APENAS desvios objetivos e acionáveis em relação às regras (ex.: 'este artigo trata de mais de um assunto', 'use Parágrafo único', 'evite 'bem como' em enumeração', 'prefira ordem direta'). Não reescreva o texto. Formate em lista, citando a regra aplicável. Se não houver desvios, diga que o dispositivo está conforme.";
+      const result = await callGroq(
+        system,
+        `Regras de referência:\n\n${GUIA_CONTEXTO}\n\n${rotulo ? `Dispositivo (${rotulo}):` : "Dispositivo:"}\n\n${texto}`
+      );
       return NextResponse.json({ result });
     }
 
