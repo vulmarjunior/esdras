@@ -1,5 +1,6 @@
 import { cn } from "@/lib/utils";
 import { STATUS_LABELS } from "@/lib/labels";
+import { StickyNote } from "lucide-react";
 
 export const STATUS_COLORS: Record<string, string> = {
   nao_iniciado: "border-border bg-muted text-muted-foreground",
@@ -67,6 +68,22 @@ export function NovoBadge({ className }: { className?: string }) {
       )}
     >
       novo
+    </span>
+  );
+}
+
+/** Marca de dispositivo em que o usuário tem anotação pessoal (visível só para ele). */
+export function NotedBadge({ className }: { className?: string }) {
+  return (
+    <span
+      title="Você tem uma anotação pessoal neste dispositivo"
+      className={cn(
+        "inline-flex h-4 shrink-0 items-center gap-0.5 rounded-full border border-violet-300 bg-violet-50 px-1.5 text-[10px] font-bold uppercase tracking-wide text-violet-700 dark:border-violet-800 dark:bg-violet-950/40 dark:text-violet-300",
+        className
+      )}
+    >
+      <StickyNote className="h-3 w-3" />
+      nota
     </span>
   );
 }

@@ -63,6 +63,15 @@ export async function getActiveMeeting() {
   return get<{ id: number }>("SELECT id FROM meetings WHERE status = 'em_andamento' ORDER BY id DESC LIMIT 1");
 }
 
+/** IDs dos dispositivos em que o usuário tem anotação pessoal (com conteúdo). */
+export async function getPersonalNoteIds(userId: number): Promise<string[]> {
+  const rows = await all<{ provision_id: string }>(
+    "SELECT provision_id FROM personal_notes WHERE user_id = ? AND content != ''",
+    [userId]
+  );
+  return rows.map((r) => r.provision_id);
+}
+
 export async function parentChain(id: string): Promise<Provision[]> {
   const chain: Provision[] = [];
   let cur = await getProvision(id);

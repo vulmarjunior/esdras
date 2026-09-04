@@ -18,7 +18,7 @@ Pauta de trabalho para o próximo agente/dev. Estado do projeto: **MVP completo 
 
 ## 3. Melhorias conhecidas / dívidas técnicas
 
-- [x] **Testes automatizados** — Vitest, 66 testes (renumeração, sanitização rich text, reordenação, versão/conflito §41, perfis, telefone, guia de redação, biblioteca doutrinária).
+- [x] **Testes automatizados** — Vitest, 72 testes (renumeração, sanitização rich text, reordenação, versão/conflito §41, perfis, telefone, guia de redação, biblioteca doutrinária, filtro do painel por anotação).
 - [x] **Deploy Vercel** — em produção.
 - [x] **Numeração/ordem final dos dispositivos novos** — mecanismo completo (mover + aplicar numeração).
 - [x] **Índices/paginação de auditoria** — paginação implementada (100/página).

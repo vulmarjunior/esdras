@@ -5,12 +5,14 @@ import Link from "next/link";
 import { cn } from "@/lib/utils";
 import { ChevronRight } from "lucide-react";
 import { provisionLabel } from "@/lib/provision-label";
-import { NovoBadge } from "@/components/status-badge";
+import { NovoBadge, NotedBadge } from "@/components/status-badge";
 import type { TreeNode } from "@/lib/data";
 
 interface Props {
   nodes: TreeNode[];
   activeId: string;
+  /** IDs de dispositivos com anotação pessoal do usuário (privada). */
+  notedIds?: string[];
 }
 
 /**
@@ -18,7 +20,8 @@ interface Props {
  * Por padrão: capítulos e artigos visíveis; parágrafos/incisos recolhidos.
  * O caminho até o dispositivo ativo fica expandido.
  */
-export function StructuralNav({ nodes, activeId }: Props) {
+export function StructuralNav({ nodes, activeId, notedIds = [] }: Props) {
+  const notas = useMemo(() => new Set(notedIds), [notedIds]);
   const ancestors = useMemo(() => {
     const set = new Set<string>();
     const walk = (list: TreeNode[], path: TreeNode[]): boolean => {
@@ -59,7 +62,7 @@ export function StructuralNav({ nodes, activeId }: Props) {
   return (
     <ul className="space-y-0.5">
       {nodes.map((n) => (
-        <TreeItem key={n.id} node={n} activeId={activeId} collapsed={collapsed} onToggle={toggle} depth={0} />
+        <TreeItem key={n.id} node={n} activeId={activeId} collapsed={collapsed} onToggle={toggle} depth={0} notas={notas} />
       ))}
     </ul>
   );
@@ -71,12 +74,14 @@ function TreeItem({
   collapsed,
   onToggle,
   depth,
+  notas,
 }: {
   node: TreeNode;
   activeId: string;
   collapsed: Set<string>;
   onToggle: (id: string) => void;
   depth: number;
+  notas: ReadonlySet<string>;
 }) {
   const hasChildren = node.children.length > 0;
   const isCollapsed = collapsed.has(node.id);
@@ -107,6 +112,7 @@ function TreeItem({
           <span className="flex min-w-0 items-center gap-1">
             <span className="truncate">{provisionLabel(node)}</span>
             {node.origem === "novo" && <NovoBadge />}
+            {notas.has(node.id) && <NotedBadge />}
           </span>
           {node.titulo && <span className="block truncate text-[11px] text-muted-foreground/70">{node.titulo}</span>}
         </Link>
@@ -114,7 +120,7 @@ function TreeItem({
       {hasChildren && !isCollapsed && (
         <ul className="space-y-0.5">
           {node.children.map((c) => (
-            <TreeItem key={c.id} node={c} activeId={activeId} collapsed={collapsed} onToggle={onToggle} depth={depth + 1} />
+            <TreeItem key={c.id} node={c} activeId={activeId} collapsed={collapsed} onToggle={onToggle} depth={depth + 1} notas={notas} />
           ))}
         </ul>
       )}

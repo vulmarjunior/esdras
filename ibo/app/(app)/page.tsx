@@ -1,15 +1,13 @@
-import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getSessionUser } from "@/lib/auth";
-import { getTree, getStatusCounts, getArticleCount, provisionLabel } from "@/lib/data";
+import { getTree, getStatusCounts, getArticleCount, getPersonalNoteIds } from "@/lib/data";
 import { all } from "@/lib/db";
-import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
-import { StatusDot, StatusBadge, NovoBadge } from "@/components/status-badge";
+import { StatusDot } from "@/components/status-badge";
 import { NewProvisionForm } from "@/components/provision/provision-forms";
+import { DashboardTree } from "@/components/dashboard/dashboard-tree";
 import { CheckCircle2, Circle, Loader2, PenLine, RotateCcw, AlertCircle, Layers } from "lucide-react";
-import type { TreeNode } from "@/lib/data";
 
 const ORDER = ["nao_iniciado", "em_analise", "em_discussao", "redacao_definida", "aprovado", "reaberto"];
 
@@ -29,6 +27,7 @@ export default async function DashboardPage() {
   if (!user) redirect("/login");
 
   const tree = await getTree();
+  const notedIds = await getPersonalNoteIds(user.id);
   const counts = await getStatusCounts();
   const totalArtigos = await getArticleCount();
   const analyzed = totalArtigos - counts.nao_iniciado;
@@ -102,64 +101,7 @@ export default async function DashboardPage() {
         </div>
       )}
 
-      <div className="grid gap-4 lg:grid-cols-2">
-        {tree.map((chapter) => (
-          <ChapterSection key={chapter.id} chapter={chapter} />
-        ))}
-      </div>
+      <DashboardTree chapters={tree} notedIds={notedIds} />
     </div>
-  );
-}
-
-function ChapterSection({ chapter }: { chapter: TreeNode }) {
-  const approved = chapter.children.filter((c) => c.status === "aprovado").length;
-  return (
-    <section className="overflow-hidden rounded-xl border bg-card">
-      <div className="flex items-center justify-between gap-2 border-b bg-muted/40 px-4 py-2.5">
-        <Link href={`/dispositivo/${chapter.id}`} className="min-w-0 transition-opacity hover:opacity-80">
-          <h3 className="truncate font-heading text-sm font-semibold leading-tight">
-            {provisionLabel(chapter)}{chapter.titulo ? ` — ${chapter.titulo}` : ""}
-          </h3>
-        </Link>
-        <Badge variant="secondary" className="shrink-0">
-          {approved}/{chapter.child_count} aprovados
-        </Badge>
-      </div>
-      <ul className="divide-y divide-border">
-        {chapter.children.map((child) => (
-          <DeviceRow key={child.id} node={child} depth={0} />
-        ))}
-      </ul>
-    </section>
-  );
-}
-
-function DeviceRow({ node, depth }: { node: TreeNode; depth: number }) {
-  const label = provisionLabel(node);
-  return (
-    <li>
-      <Link
-        href={`/dispositivo/${node.id}`}
-        className="group flex items-center justify-between gap-2 px-4 py-2 transition-colors hover:bg-muted/50"
-        style={{ paddingLeft: `${16 + depth * 22}px` }}
-      >
-        <span className="flex min-w-0 items-center gap-2.5 text-sm">
-          <StatusDot status={node.status} />
-          <span className="font-medium transition-colors group-hover:text-primary">{label}</span>
-          {node.titulo && (
-            <span className="truncate text-muted-foreground">— {node.titulo}</span>
-          )}
-          {node.origem === "novo" && <NovoBadge />}
-        </span>
-        <StatusBadge status={node.status} className="shrink-0" />
-      </Link>
-      {node.children.length > 0 && (
-        <ul>
-          {node.children.map((child) => (
-            <DeviceRow key={child.id} node={child} depth={depth + 1} />
-          ))}
-        </ul>
-      )}
-    </li>
   );
 }

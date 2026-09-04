@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { getSessionUser } from "@/lib/auth";
-import { getProvision, getTree, provisionLabel, parentChain } from "@/lib/data";
+import { getProvision, getTree, provisionLabel, parentChain, getPersonalNoteIds } from "@/lib/data";
 import type { TreeNode } from "@/lib/data";
 import { all, get } from "@/lib/db";
 import {
@@ -34,6 +34,7 @@ export default async function DevicePage({ params }: { params: Promise<{ id: str
   const chain = await parentChain(id);
   const tree = await getTree();
   const devices = flattenDevices(tree);
+  const notedIds = await getPersonalNoteIds(user.id);
 
   const suggestions = await all<Suggestion>(`
     SELECT s.*, u.name AS author_name FROM suggestions s
@@ -99,7 +100,7 @@ export default async function DevicePage({ params }: { params: Promise<{ id: str
             Navegação estrutural
           </summary>
           <div className="max-h-[60vh] overflow-auto border-t p-2">
-            <StructuralNav nodes={tree} activeId={id} />
+            <StructuralNav nodes={tree} activeId={id} notedIds={notedIds} />
           </div>
         </details>
         <div className="hidden lg:block">
@@ -108,7 +109,7 @@ export default async function DevicePage({ params }: { params: Promise<{ id: str
               <CardTitle className="text-sm font-medium">Navegação estrutural</CardTitle>
             </CardHeader>
             <CardContent className="max-h-[70vh] overflow-auto pr-1">
-              <StructuralNav nodes={tree} activeId={id} />
+              <StructuralNav nodes={tree} activeId={id} notedIds={notedIds} />
             </CardContent>
           </Card>
         </div>
@@ -139,6 +140,11 @@ export default async function DevicePage({ params }: { params: Promise<{ id: str
             {prov.posicao_sugerida && (
               <Badge variant="outline" className="border-amber-200 bg-amber-50/60 text-amber-700 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-300">
                 {prov.posicao_sugerida}
+              </Badge>
+            )}
+            {personalNote && (
+              <Badge variant="outline" className="border-violet-300 bg-violet-50/60 text-violet-700 dark:border-violet-800 dark:bg-violet-950/40 dark:text-violet-300">
+                Anotação pessoal
               </Badge>
             )}
           </div>
