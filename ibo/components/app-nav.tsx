@@ -20,6 +20,7 @@ import {
   BookOpenText,
   BookMarked,
   ChevronDown,
+  Layers,
 } from "lucide-react";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger, SheetClose } from "@/components/ui/sheet";
 import {
@@ -36,23 +37,58 @@ interface NavItem {
   adminOnly?: boolean;
 }
 
-/** Itens principais, sempre visíveis no desktop. */
-const NAV: NavItem[] = [
-  { href: "/", label: "Painel", icon: LayoutDashboard },
-  { href: "/reunioes", label: "Reuniões", icon: CalendarDays },
-  { href: "/pendentes", label: "Pendências", icon: CircleAlert },
-  { href: "/consolidado", label: "Consolidado", icon: ScrollText },
-  { href: "/renumeracao", label: "Renumeração", icon: ListOrdered },
-  { href: "/coerencia", label: "Coerência", icon: ShieldAlert },
-  { href: "/relatorios", label: "Relatórios", icon: FileDown },
-];
+interface NavTema {
+  id: string;
+  label: string;
+  icon: typeof LayoutDashboard;
+  itens: NavItem[];
+  adminOnly?: boolean;
+}
 
-/** Itens secundários, agrupados no menu "Mais". */
-const NAV_MAIS: NavItem[] = [
-  { href: "/guia-redacao", label: "Guia de redação", icon: BookOpenText },
-  { href: "/documentos", label: "Documentos", icon: BookMarked },
-  { href: "/auditoria", label: "Auditoria", icon: History, adminOnly: true },
-  { href: "/admin", label: "Administração", icon: ShieldCheck, adminOnly: true },
+/** Item principal fixo (home). */
+const NAV_PRINCIPAL: NavItem = { href: "/", label: "Painel", icon: LayoutDashboard };
+
+/** Navegação organizada por temas. */
+const NAV_TEMAS: NavTema[] = [
+  {
+    id: "reforma",
+    label: "Reforma",
+    icon: Layers,
+    itens: [
+      { href: "/pendentes", label: "Pendências", icon: CircleAlert },
+      { href: "/renumeracao", label: "Renumeração", icon: ListOrdered },
+      { href: "/coerencia", label: "Coerência", icon: ShieldAlert },
+      { href: "/consolidado", label: "Consolidado", icon: ScrollText },
+    ],
+  },
+  {
+    id: "reunioes",
+    label: "Reuniões",
+    icon: CalendarDays,
+    itens: [
+      { href: "/reunioes", label: "Reuniões", icon: CalendarDays },
+      { href: "/relatorios", label: "Relatórios", icon: FileDown },
+    ],
+  },
+  {
+    id: "consulta",
+    label: "Consulta",
+    icon: BookOpen,
+    itens: [
+      { href: "/guia-redacao", label: "Guia de redação", icon: BookOpenText },
+      { href: "/documentos", label: "Documentos", icon: BookMarked },
+    ],
+  },
+  {
+    id: "administracao",
+    label: "Administração",
+    icon: ShieldCheck,
+    adminOnly: true,
+    itens: [
+      { href: "/auditoria", label: "Auditoria", icon: History, adminOnly: true },
+      { href: "/admin", label: "Administração", icon: ShieldCheck, adminOnly: true },
+    ],
+  },
 ];
 
 function isActive(pathname: string, href: string): boolean {
@@ -61,61 +97,64 @@ function isActive(pathname: string, href: string): boolean {
 
 export function AppNav({ isAdmin }: { isAdmin: boolean }) {
   const pathname = usePathname();
-  const mais = NAV_MAIS.filter((n) => !n.adminOnly || isAdmin);
-  const maisAtivo = mais.some((n) => isActive(pathname, n.href));
+  const temas = NAV_TEMAS.filter((t) => !t.adminOnly || isAdmin);
 
   return (
     <nav className="sticky top-0 z-40 hidden border-b bg-background/90 backdrop-blur md:block">
       <div className="mx-auto flex max-w-6xl items-center gap-1 px-4 py-1.5">
-        {NAV.map((n) => {
-          const active = isActive(pathname, n.href);
-          const Icon = n.icon;
+        {(() => {
+          const active = isActive(pathname, NAV_PRINCIPAL.href);
+          const Icon = NAV_PRINCIPAL.icon;
           return (
             <Link
-              key={n.href}
-              href={n.href}
+              href={NAV_PRINCIPAL.href}
               className={cn(
                 "relative flex shrink-0 items-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground",
                 active && "text-foreground"
               )}
             >
               <Icon className="h-4 w-4" />
-              {n.label}
+              {NAV_PRINCIPAL.label}
               {active && <span className="absolute inset-x-3 -bottom-[7px] h-0.5 rounded-full bg-primary" />}
             </Link>
           );
-        })}
+        })()}
 
-        {mais.length > 0 && (
-          <DropdownMenu>
-            <DropdownMenuTrigger
-              className={cn(
-                "relative flex shrink-0 cursor-default items-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium text-muted-foreground outline-none transition-colors hover:bg-muted hover:text-foreground select-none",
-                maisAtivo && "text-foreground"
-              )}
-            >
-              <span>Mais</span>
-              <ChevronDown className="h-4 w-4" />
-              {maisAtivo && <span className="absolute inset-x-3 -bottom-[7px] h-0.5 rounded-full bg-primary" />}
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="start" sideOffset={6} className="min-w-52">
-              {mais.map((n) => {
-                const active = isActive(pathname, n.href);
-                const Icon = n.icon;
-                return (
-                  <DropdownMenuItem
-                    key={n.href}
-                    render={<Link href={n.href} />}
-                    className={cn("gap-2.5 px-2.5 py-2", active && "bg-muted font-semibold text-foreground")}
-                  >
-                    <Icon className={cn("h-4 w-4 text-muted-foreground", active && "text-primary")} />
-                    {n.label}
-                  </DropdownMenuItem>
-                );
-              })}
-            </DropdownMenuContent>
-          </DropdownMenu>
-        )}
+        {temas.map((tema) => {
+          const temaAtivo = tema.itens.some((n) => isActive(pathname, n.href));
+          const TemaIcon = tema.icon;
+          return (
+            <DropdownMenu key={tema.id}>
+              <DropdownMenuTrigger
+                className={cn(
+                  "relative flex shrink-0 cursor-default items-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium text-muted-foreground outline-none transition-colors hover:bg-muted hover:text-foreground select-none",
+                  temaAtivo && "text-foreground"
+                )}
+              >
+                <TemaIcon className="h-4 w-4" />
+                <span>{tema.label}</span>
+                <ChevronDown className="h-4 w-4" />
+                {temaAtivo && <span className="absolute inset-x-3 -bottom-[7px] h-0.5 rounded-full bg-primary" />}
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="start" sideOffset={6} className="min-w-52">
+                {tema.itens.map((n) => {
+                  const active = isActive(pathname, n.href);
+                  const Icon = n.icon;
+                  return (
+                    <DropdownMenuItem
+                      key={n.href}
+                      render={<Link href={n.href} />}
+                      className={cn("gap-2.5 px-2.5 py-2", active && "bg-muted font-semibold text-foreground")}
+                    >
+                      <Icon className={cn("h-4 w-4 text-muted-foreground", active && "text-primary")} />
+                      {n.label}
+                    </DropdownMenuItem>
+                  );
+                })}
+              </DropdownMenuContent>
+            </DropdownMenu>
+          );
+        })}
       </div>
     </nav>
   );
@@ -124,7 +163,10 @@ export function AppNav({ isAdmin }: { isAdmin: boolean }) {
 export function MobileNav({ isAdmin }: { isAdmin: boolean }) {
   const [open, setOpen] = useState(false);
   const pathname = usePathname();
-  const items = [...NAV, ...NAV_MAIS].filter((n) => !n.adminOnly || isAdmin);
+  const items = [
+    NAV_PRINCIPAL,
+    ...NAV_TEMAS.filter((t) => !t.adminOnly || isAdmin).flatMap((t) => t.itens),
+  ].filter((n) => !n.adminOnly || isAdmin);
 
   return (
     <Sheet open={open} onOpenChange={setOpen}>
