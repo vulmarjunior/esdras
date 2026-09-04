@@ -62,12 +62,12 @@ O trabalho segue o fluxo aprovado no projeto. Cada passo aponta para a tela corr
 4. **Ler a proposta inicial** — bloco 2 da aba **Análise**. É o ponto de partida da reforma.
 5. **Apresentar sugestões** — aba **Colaboração** → "Sugestões dos membros".
 6. **Discutir** — comentários, opinião consultiva (concordo/discordo/tenho ressalva) e sugestões em discussão.
-7. **Registrar fundamentos** — aba **Pendências & Fundamentos**: referências bíblicas, doutrinárias, jurídicas e pastorais.
+7. **Registrar fundamentos** — aba **Análise**, bloco **Fundamentação**: referências bíblicas, doutrinárias, jurídicas e pastorais.
 8. **Alterar a redação de trabalho** — aba **Análise**, bloco 3 (só coordenador/relator). Cada salvamento cria uma versão.
 9. **Aprovar** — altere o status para **Aprovado** (congela a redação consolidada).
 10. **Registrar a decisão em reunião** — o módulo **Reuniões** guarda presença, eventos e deliberações.
 11. **Gerar a ata** — na reunião, use "Gerar minuta da ata" e siga o fluxo rascunho → revisão → aprovada.
-12. **Consultar o histórico** — aba **Histórico & Referências** do dispositivo.
+12. **Consultar o histórico** — aba **Histórico** do dispositivo.
 13. **Visualizar o Estatuto consolidado** — menu **Reforma → Consolidado**.
 14. **Exportar relatórios** — menu **Reuniões → Relatórios**.
 `,
@@ -96,7 +96,9 @@ Ao abrir um dispositivo, o trabalho fica organizado em quatro abas:
 2. **Proposta inicial** — ponto de partida da reforma; use **negrito** ou destaque para marcar o que muda.
 3. **Redação de trabalho** — a versão atual da comissão; só coordenador/relator edita. Cada salvamento cria uma nova versão (há controle de conflito de versão).
 4. **Justificativa** — explicação do porquê da alteração; alimenta o Relatório da reforma.
-5. **Redação consolidada (aprovada)** — aparece quando o dispositivo foi aprovado; fica bloqueada.
+5. **Fundamentação** — referências bíblicas, doutrinárias, jurídicas e administrativas/pastorais que sustentam a proposta.
+6. **Dispositivos relacionados** — dispositivos vinculados a este (referências cruzadas), úteis para evitar contradições e detectar renumeração.
+7. **Redação consolidada (aprovada)** — aparece quando o dispositivo foi aprovado; fica bloqueada.
 
 O **status** fica no topo: Não iniciado → Em análise → Em discussão → Redação definida → Aprovado (e Aprovado → Reaberto).
 
@@ -106,13 +108,11 @@ O **status** fica no topo: Não iniciado → Em análise → Em discussão → R
 - **Opinião consultiva** — concordo / discordo / tenho ressalva. Tem caráter consultivo, não é votação formal.
 - **Comentários** — discussão livre sobre o dispositivo.
 
-### Pendências & Fundamentos
+### Pendências
 - **Pendências** — questões em aberto que precisam ser verificadas antes da aprovação (jurídica, bíblica, doutrinária, eclesiológica, administrativa, redação, referência cruzada, outra).
-- **Fundamentação** — referências bíblicas, doutrinárias, jurídicas e administrativas/pastorais que sustentam a proposta.
 
-### Histórico & Referências
+### Histórico
 - **Histórico de versões** — todas as versões da redação de trabalho, com autor, data e motivo.
-- **Referências cruzadas** — dispositivos vinculados a este, úteis para evitar contradições e detectar renumeração.
 `,
   },
   {
@@ -171,7 +171,7 @@ Qualquer membro pode registrar uma **questão pendente** sobre um dispositivo �
 
 Categorias: jurídica, bíblica, doutrinária, eclesiológica, administrativa, redação, referência cruzada e outra.
 
-- As pendências abertas ficam listadas no menu **Reforma → Pendências** e também na aba **Pendências & Fundamentos** de cada dispositivo.
+- As pendências abertas ficam listadas no menu **Reforma → Pendências** e também na aba **Pendências** de cada dispositivo.
 - Uma pendência em aberto sinaliza que o dispositivo ainda não deve ser aprovado sem verificação.
 `,
   },
@@ -189,7 +189,7 @@ Quando a ordem muda (por inclusão, exclusão ou reorganização de artigos), us
 A numeração final só é definida na **consolidação**; dispositivos novos nascem com rótulo **NOVO** e posição sugerida.
 
 ### Referências cruzadas
-Na aba **Histórico & Referências**, vincule dispositivos relacionados. Isso ajuda a evitar contradições, encontrar dependências e detectar impactos de renumeração.
+Na aba **Análise**, bloco **Dispositivos relacionados**, vincule dispositivos relacionados. Isso ajuda a evitar contradições, encontrar dependências e detectar impactos de renumeração.
 `,
   },
   {

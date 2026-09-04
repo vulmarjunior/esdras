@@ -87,8 +87,8 @@ export function DeviceTabs(props: Props) {
   const tabs: { key: TabKey; label: string; count?: number }[] = [
     { key: "analise", label: "Análise" },
     { key: "colaboracao", label: "Colaboração", count: props.suggestions.length + props.comments.length },
-    { key: "pendencias", label: "Pendências & Fundamentos", count: props.pendings.length },
-    { key: "historico", label: "Histórico & Referências" },
+    { key: "pendencias", label: "Pendências", count: props.pendings.length },
+    { key: "historico", label: "Histórico" },
   ];
 
   return (
@@ -223,6 +223,54 @@ export function DeviceTabs(props: Props) {
           </CardContent>
         </Card>
 
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="flex items-center gap-2 text-base">
+              <NumBadge n="5" className="bg-muted text-muted-foreground" />
+              Fundamentação
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <ReferenceForm provisionId={id} />
+            <FieldHelper>Referências que sustentam a proposta — bíblicas, doutrinárias, jurídicas ou pastorais.</FieldHelper>
+            <div className="grid gap-4 sm:grid-cols-2">
+              {(["biblica", "doutrinaria", "juridica", "pastoral"] as const).map((tipo) => {
+                const list = props.references.filter((r) => r.tipo === tipo);
+                return (
+                  <div key={tipo} className="rounded-lg border bg-muted/30 p-3">
+                    <h4 className="mb-1.5 text-sm font-semibold">{REFERENCE_TYPE_LABELS[tipo]}</h4>
+                    {list.length ? (
+                      <ul className="space-y-1 text-sm">
+                        {list.map((r) => (
+                          <li key={r.id} className="flex items-start gap-2">
+                            <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-primary/60" />
+                            <span className="text-muted-foreground">{r.texto}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    ) : (
+                      <p className="text-sm italic text-muted-foreground">—</p>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="flex items-center gap-2 text-base">
+              <NumBadge n="6" className="bg-muted text-muted-foreground" />
+              Dispositivos relacionados
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <FieldHelper>Dispositivos vinculados a este — úteis para evitar contradições e detectar renumeração.</FieldHelper>
+            <RelationForm provisionId={id} devices={props.devices} relations={props.relations} canManage={canManage} />
+          </CardContent>
+        </Card>
+
         {prov.redacao_consolidada && (
           <Card className="border-emerald-200 bg-emerald-50/50 dark:border-emerald-800 dark:bg-emerald-950/20">
             <CardHeader>
@@ -307,38 +355,6 @@ export function DeviceTabs(props: Props) {
             {props.pendings.map((p) => <PendingItem key={p.id} p={p} />)}
           </CardContent>
         </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0">
-            <CardTitle className="text-base">Fundamentação</CardTitle>
-            <ReferenceForm provisionId={id} />
-          </CardHeader>
-          <CardContent className="space-y-3">
-            <FieldHelper>Referências que sustentam a proposta — bíblicas, doutrinárias, jurídicas ou pastorais.</FieldHelper>
-            <div className="grid gap-4 sm:grid-cols-2">
-              {(["biblica", "doutrinaria", "juridica", "pastoral"] as const).map((tipo) => {
-                const list = props.references.filter((r) => r.tipo === tipo);
-                return (
-                  <div key={tipo} className="rounded-lg border bg-muted/30 p-3">
-                    <h4 className="mb-1.5 text-sm font-semibold">{REFERENCE_TYPE_LABELS[tipo]}</h4>
-                    {list.length ? (
-                      <ul className="space-y-1 text-sm">
-                        {list.map((r) => (
-                          <li key={r.id} className="flex items-start gap-2">
-                            <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-primary/60" />
-                            <span className="text-muted-foreground">{r.texto}</span>
-                          </li>
-                        ))}
-                      </ul>
-                    ) : (
-                      <p className="text-sm italic text-muted-foreground">—</p>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-          </CardContent>
-        </Card>
       </div>
 
       <div className={cn(tab === "historico" ? "space-y-4" : "hidden")}>
@@ -373,16 +389,6 @@ export function DeviceTabs(props: Props) {
                 ))}
               </ol>
             )}
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">Referências cruzadas</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            <FieldHelper>Dispositivos vinculados a este — úteis para evitar contradições e detectar renumeração.</FieldHelper>
-            <RelationForm provisionId={id} devices={props.devices} relations={props.relations} canManage={canManage} />
           </CardContent>
         </Card>
       </div>
