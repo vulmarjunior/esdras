@@ -19,19 +19,38 @@ import {
   ShieldAlert,
   BookOpenText,
   BookMarked,
+  ChevronDown,
 } from "lucide-react";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger, SheetClose } from "@/components/ui/sheet";
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem,
+} from "@/components/ui/dropdown-menu";
 
-export const NAV = [
-  { href: "/", label: "Painel da Reforma", icon: LayoutDashboard },
+interface NavItem {
+  href: string;
+  label: string;
+  icon: typeof LayoutDashboard;
+  adminOnly?: boolean;
+}
+
+/** Itens principais, sempre visíveis no desktop. */
+const NAV: NavItem[] = [
+  { href: "/", label: "Painel", icon: LayoutDashboard },
   { href: "/reunioes", label: "Reuniões", icon: CalendarDays },
   { href: "/pendentes", label: "Pendências", icon: CircleAlert },
-  { href: "/consolidado", label: "Estatuto consolidado", icon: ScrollText },
+  { href: "/consolidado", label: "Consolidado", icon: ScrollText },
   { href: "/renumeracao", label: "Renumeração", icon: ListOrdered },
   { href: "/coerencia", label: "Coerência", icon: ShieldAlert },
-  { href: "/guia-redacao", label: "Guia de redação", icon: BookOpenText },
-  { href: "/documentos", label: "Documentos doutrinários", icon: BookMarked },
   { href: "/relatorios", label: "Relatórios", icon: FileDown },
+];
+
+/** Itens secundários, agrupados no menu "Mais". */
+const NAV_MAIS: NavItem[] = [
+  { href: "/guia-redacao", label: "Guia de redação", icon: BookOpenText },
+  { href: "/documentos", label: "Documentos", icon: BookMarked },
   { href: "/auditoria", label: "Auditoria", icon: History, adminOnly: true },
   { href: "/admin", label: "Administração", icon: ShieldCheck, adminOnly: true },
 ];
@@ -42,10 +61,13 @@ function isActive(pathname: string, href: string): boolean {
 
 export function AppNav({ isAdmin }: { isAdmin: boolean }) {
   const pathname = usePathname();
+  const mais = NAV_MAIS.filter((n) => !n.adminOnly || isAdmin);
+  const maisAtivo = mais.some((n) => isActive(pathname, n.href));
+
   return (
     <nav className="sticky top-0 z-40 hidden border-b bg-background/90 backdrop-blur md:block">
       <div className="mx-auto flex max-w-6xl items-center gap-1 px-4 py-1.5">
-        {NAV.filter((n) => !n.adminOnly || isAdmin).map((n) => {
+        {NAV.map((n) => {
           const active = isActive(pathname, n.href);
           const Icon = n.icon;
           return (
@@ -63,6 +85,37 @@ export function AppNav({ isAdmin }: { isAdmin: boolean }) {
             </Link>
           );
         })}
+
+        {mais.length > 0 && (
+          <DropdownMenu>
+            <DropdownMenuTrigger
+              className={cn(
+                "relative flex shrink-0 cursor-default items-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium text-muted-foreground outline-none transition-colors hover:bg-muted hover:text-foreground select-none",
+                maisAtivo && "text-foreground"
+              )}
+            >
+              <span>Mais</span>
+              <ChevronDown className="h-4 w-4" />
+              {maisAtivo && <span className="absolute inset-x-3 -bottom-[7px] h-0.5 rounded-full bg-primary" />}
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="start" sideOffset={6} className="min-w-52">
+              {mais.map((n) => {
+                const active = isActive(pathname, n.href);
+                const Icon = n.icon;
+                return (
+                  <DropdownMenuItem
+                    key={n.href}
+                    render={<Link href={n.href} />}
+                    className={cn("gap-2.5 px-2.5 py-2", active && "bg-muted font-semibold text-foreground")}
+                  >
+                    <Icon className={cn("h-4 w-4 text-muted-foreground", active && "text-primary")} />
+                    {n.label}
+                  </DropdownMenuItem>
+                );
+              })}
+            </DropdownMenuContent>
+          </DropdownMenu>
+        )}
       </div>
     </nav>
   );
@@ -71,7 +124,7 @@ export function AppNav({ isAdmin }: { isAdmin: boolean }) {
 export function MobileNav({ isAdmin }: { isAdmin: boolean }) {
   const [open, setOpen] = useState(false);
   const pathname = usePathname();
-  const items = NAV.filter((n) => !n.adminOnly || isAdmin);
+  const items = [...NAV, ...NAV_MAIS].filter((n) => !n.adminOnly || isAdmin);
 
   return (
     <Sheet open={open} onOpenChange={setOpen}>

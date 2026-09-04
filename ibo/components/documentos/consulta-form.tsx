@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Loader2, Sparkles, TriangleAlert } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { FieldHelper } from "@/components/field-helper";
+import { Markdown } from "@/components/markdown";
 
 export function ConsultaForm() {
   const [pergunta, setPergunta] = useState("");
@@ -64,7 +65,7 @@ export function ConsultaForm() {
             <p className="mb-2 flex items-center gap-1.5 text-sm font-semibold text-violet-800 dark:text-violet-200">
               <TriangleAlert className="h-4 w-4" /> Resposta gerada por IA — revisar antes de usar.
             </p>
-            <div className="whitespace-pre-wrap text-sm leading-relaxed text-foreground">{resposta}</div>
+            <Markdown>{resposta}</Markdown>
           </div>
         )}
       </CardContent>

@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { createMeeting, updateMeeting, deleteMeeting, startMeeting, endMeeting, setPresence, addManualEvent, addDecision, generateMinutes, setMinutesStatus, saveMinutes, reviewMinutes, addMinuteRetification } from "@/app/actions/meetings";
 import { ROLE_LABELS, STATUS_LABELS } from "@/lib/labels";
 import { ConfirmDialog, type ConfirmDialogState } from "@/components/confirm-dialog";
+import { Markdown } from "@/components/markdown";
 import type { User } from "@/lib/types";
 import { whatsappLink } from "@/lib/phone";
 import { MessageCircle } from "lucide-react";
@@ -469,7 +470,9 @@ export function MinutesPanel({
       </div>
 
       {minutes?.conteudo && (
-        <div className="whitespace-pre-wrap rounded-lg border bg-muted/40 p-4 text-sm leading-relaxed">{minutes.conteudo}</div>
+        <div className="rounded-lg border bg-muted/40 p-4">
+          <Markdown>{minutes.conteudo}</Markdown>
+        </div>
       )}
 
       {reviews.length > 0 && (

@@ -9,6 +9,7 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Loader2, Sparkles, Check, X } from "lucide-react";
 import { RichTextEditor } from "@/components/rich-text-editor";
 import { RichTextContent } from "@/components/rich-text-content";
+import { Markdown } from "@/components/markdown";
 import { htmlToText, plainToHtml } from "@/lib/rich-text";
 
 const AI_TOOLS = [
@@ -127,9 +128,7 @@ export function WorkingTextEditor({ provisionId, initialText, version, canEdit, 
                   ? "Checklist de técnica legislativa — gerado por IA, revisar antes de agir."
                   : "Sugestão gerada por IA — revisar antes de incorporar."}
               </p>
-              <p className="mb-3 whitespace-pre-wrap rounded-lg bg-white/70 p-3 font-serif text-sm leading-relaxed dark:bg-black/20">
-                {aiResult}
-              </p>
+              <Markdown className="mb-3 rounded-lg bg-white/70 p-3 font-serif dark:bg-black/20">{aiResult}</Markdown>
               <div className="flex gap-2">
                 {aiTool !== "valida_tecnica" && (
                   <Button type="button" size="sm" onClick={() => { setText(plainToHtml(aiResult)); setAiResult(null); }}>

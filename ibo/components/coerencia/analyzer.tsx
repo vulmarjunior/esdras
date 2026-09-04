@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Loader2, Sparkles, TriangleAlert } from "lucide-react";
 import { toast } from "sonner";
+import { Markdown } from "@/components/markdown";
 
 export function CoherenceAnalyzer({ textos }: { textos: { id: string; label: string; texto: string }[] }) {
   const [loading, setLoading] = useState(false);
@@ -45,7 +46,7 @@ export function CoherenceAnalyzer({ textos }: { textos: { id: string; label: str
           <p className="mb-2 flex items-center gap-1.5 text-sm font-semibold text-amber-800 dark:text-amber-200">
             <TriangleAlert className="h-4 w-4" /> Relatório de coerência — gerado por IA, revisar antes de agir.
           </p>
-          <div className="whitespace-pre-wrap text-sm leading-relaxed text-foreground">{result}</div>
+          <Markdown>{result}</Markdown>
         </div>
       )}
     </div>
