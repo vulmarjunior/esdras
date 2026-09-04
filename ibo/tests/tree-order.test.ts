@@ -1,15 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { RANK_TIPO, compararIrmaos, ordenarIrmaos } from "../lib/tree-order";
-
-describe("RANK_TIPO", () => {
-  it("define precedência: capitulo < secao < artigo < inciso < paragrafo < alinea", () => {
-    expect(RANK_TIPO.capitulo).toBeLessThan(RANK_TIPO.secao);
-    expect(RANK_TIPO.secao).toBeLessThan(RANK_TIPO.artigo);
-    expect(RANK_TIPO.artigo).toBeLessThan(RANK_TIPO.inciso);
-    expect(RANK_TIPO.inciso).toBeLessThan(RANK_TIPO.paragrafo);
-    expect(RANK_TIPO.paragrafo).toBeLessThan(RANK_TIPO.alinea);
-  });
-});
+import { compararIrmaos, ordenarIrmaos } from "../lib/tree-order";
 
 describe("compararIrmaos", () => {
   it("coloca incisos antes de parágrafos", () => {
@@ -34,10 +24,14 @@ describe("compararIrmaos", () => {
     expect(compararIrmaos(paragrafo, alinea)).toBeLessThan(0);
   });
 
-  it("capítulos precedem artigos na raiz", () => {
-    const artigo = { type: "artigo" as const, ordem_pai: 1 };
-    const capitulo = { type: "capitulo" as const, ordem_pai: 0 };
-    expect(compararIrmaos(capitulo, artigo)).toBeLessThan(0);
+  it("não reordena capitulo/secao/artigo entre si (preserva ordem_pai)", () => {
+    // Estruturais têm peso 0: a ordem entre eles é a posição física.
+    const artigo1 = { type: "artigo" as const, ordem_pai: 0 };
+    const capitulo = { type: "capitulo" as const, ordem_pai: 1 };
+    expect(compararIrmaos(artigo1, capitulo)).toBeLessThan(0);
+    expect(compararIrmaos(capitulo, artigo1)).toBeGreaterThan(0);
+    const artigo2 = { type: "artigo" as const, ordem_pai: 2 };
+    expect(compararIrmaos(artigo1, artigo2)).toBeLessThan(0);
   });
 });
 

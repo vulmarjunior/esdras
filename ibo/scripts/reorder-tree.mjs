@@ -28,13 +28,13 @@ if (!DATABASE_URL) {
   process.exit(1);
 }
 
-const RANK_TIPO = {
+const PESO_TIPO = {
   capitulo: 0,
-  secao: 1,
-  artigo: 2,
-  inciso: 3,
-  paragrafo: 4,
-  alinea: 5,
+  secao: 0,
+  artigo: 0,
+  inciso: 1,
+  paragrafo: 2,
+  alinea: 3,
 };
 
 /** Correções pontuais de numeração: art-8 p4/p5 eram §4º/§5º, são §1º/§2º. */
@@ -48,7 +48,7 @@ const client = new pg.Client({ connectionString: DATABASE_URL, ssl: { rejectUnau
 async function main() {
   await client.connect();
   const res = await client.query(
-    `SELECT id, parent_id, type, numero, ordem_pai FROM provisions ORDER BY parent_id NULLS FIRST, ordem_pai`
+    `SELECT id, parent_id, type, numero, ordem, ordem_pai FROM provisions ORDER BY ordem`
   );
   const rows = res.rows;
 
@@ -63,12 +63,14 @@ async function main() {
   let numerosCorrigidos = 0;
 
   for (const [, filhos] of filhosPorPai) {
-    // Ordena por hierarquia normativa; dentro do mesmo tipo, mantém ordem_pai atual.
+    // Ordena por hierarquia normativa; dentro do mesmo peso, usa a sequência
+    // global `ordem` (imutável, reflete a leitura do documento) — NUNCA a
+    // ordem_pai atual, que pode estar corrompida (ex.: capítulos com 0).
     const ordenados = [...filhos].sort((a, b) => {
-      const ra = RANK_TIPO[a.type] ?? 99;
-      const rb = RANK_TIPO[b.type] ?? 99;
-      if (ra !== rb) return ra - rb;
-      return a.ordem_pai - b.ordem_pai;
+      const pa = PESO_TIPO[a.type] ?? 0;
+      const pb = PESO_TIPO[b.type] ?? 0;
+      if (pa !== pb) return pa - pb;
+      return a.ordem - b.ordem;
     });
 
     for (let i = 0; i < ordenados.length; i++) {

@@ -1,17 +1,19 @@
 import type { ProvisionType } from "./types";
 
 /**
- * Precedência normativa entre tipos de dispositivo (LC 95): dentro de um mesmo
- * pai, dispositivos de tipo "superior" na hierarquia aparecem antes.
- * Ex.: em um artigo, incisos (3) precedem parágrafos (4) e alíneas (5).
+ * Precedência normativa dentro de um mesmo pai, apenas para os níveis finos do
+ * dispositivo (LC 95): num artigo, incisos precedem parágrafos e alíneas. Os
+ * níveis estruturais (capítulo/seção/artigo) têm peso 0 — NÃO são reordenados
+ * entre si: a ordem deles é a posição física (`ordem_pai`), preservando a
+ * sequência do documento.
  */
-export const RANK_TIPO: Record<ProvisionType, number> = {
+const PESO_TIPO: Record<ProvisionType, number> = {
   capitulo: 0,
-  secao: 1,
-  artigo: 2,
-  inciso: 3,
-  paragrafo: 4,
-  alinea: 5,
+  secao: 0,
+  artigo: 0,
+  inciso: 1,
+  paragrafo: 2,
+  alinea: 3,
 };
 
 export interface IrmaoOrdenavel {
@@ -20,14 +22,15 @@ export interface IrmaoOrdenavel {
 }
 
 /**
- * Compara dois irmãos pela hierarquia normativa e, em caso de empate, pela
- * posição física (`ordem_pai`). Não ordena por número — originais e propostas
- * com numeração provisória permanecem na ordem em que o admin as dispôs.
+ * Compara dois irmãos. Só interfere na ordem entre incisos/parágrafos/alíneas
+ * (agrupando incisos antes de parágrafos); capitulos/seções/artigos mantêm a
+ * posição física. Não ordena por número — originais e propostas com numeração
+ * provisória permanecem na ordem em que o admin as dispôs.
  */
 export function compararIrmaos(a: IrmaoOrdenavel, b: IrmaoOrdenavel): number {
-  const ra = RANK_TIPO[a.type] ?? 99;
-  const rb = RANK_TIPO[b.type] ?? 99;
-  if (ra !== rb) return ra - rb;
+  const pa = PESO_TIPO[a.type] ?? 0;
+  const pb = PESO_TIPO[b.type] ?? 0;
+  if (pa !== pb) return pa - pb;
   return a.ordem_pai - b.ordem_pai;
 }
 
