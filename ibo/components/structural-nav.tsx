@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
 import { ChevronRight } from "lucide-react";
@@ -50,6 +50,12 @@ export function StructuralNav({ nodes, activeId, notedIds = [] }: Props) {
     return s;
   });
 
+  const activeRef = useRef<HTMLAnchorElement | null>(null);
+
+  useEffect(() => {
+    activeRef.current?.scrollIntoView({ block: "center", behavior: "auto" });
+  }, [activeId]);
+
   function toggle(id: string) {
     setCollapsed((prev) => {
       const next = new Set(prev);
@@ -62,7 +68,16 @@ export function StructuralNav({ nodes, activeId, notedIds = [] }: Props) {
   return (
     <ul className="space-y-0.5">
       {nodes.map((n) => (
-        <TreeItem key={n.id} node={n} activeId={activeId} collapsed={collapsed} onToggle={toggle} depth={0} notas={notas} />
+        <TreeItem
+          key={n.id}
+          node={n}
+          activeId={activeId}
+          collapsed={collapsed}
+          onToggle={toggle}
+          depth={0}
+          notas={notas}
+          activeRef={activeRef}
+        />
       ))}
     </ul>
   );
@@ -75,6 +90,7 @@ function TreeItem({
   onToggle,
   depth,
   notas,
+  activeRef,
 }: {
   node: TreeNode;
   activeId: string;
@@ -82,6 +98,7 @@ function TreeItem({
   onToggle: (id: string) => void;
   depth: number;
   notas: ReadonlySet<string>;
+  activeRef: { current: HTMLAnchorElement | null };
 }) {
   const hasChildren = node.children.length > 0;
   const isCollapsed = collapsed.has(node.id);
@@ -103,6 +120,7 @@ function TreeItem({
           <span className="shrink-0" style={{ width: 8, marginLeft: depth * 12 - 8 }} />
         )}
         <Link
+          ref={isActive ? activeRef : undefined}
           href={`/dispositivo/${node.id}`}
           className={cn(
             "min-w-0 flex-1 rounded px-1.5 py-1 text-sm leading-snug transition-colors hover:bg-muted",
@@ -120,7 +138,16 @@ function TreeItem({
       {hasChildren && !isCollapsed && (
         <ul className="space-y-0.5">
           {node.children.map((c) => (
-            <TreeItem key={c.id} node={c} activeId={activeId} collapsed={collapsed} onToggle={onToggle} depth={depth + 1} notas={notas} />
+            <TreeItem
+              key={c.id}
+              node={c}
+              activeId={activeId}
+              collapsed={collapsed}
+              onToggle={onToggle}
+              depth={depth + 1}
+              notas={notas}
+              activeRef={activeRef}
+            />
           ))}
         </ul>
       )}
