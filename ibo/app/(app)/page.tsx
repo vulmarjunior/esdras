@@ -6,7 +6,7 @@ import { all } from "@/lib/db";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
-import { StatusDot, StatusBadge } from "@/components/status-badge";
+import { StatusDot, StatusBadge, NovoBadge } from "@/components/status-badge";
 import { NewProvisionForm } from "@/components/provision/provision-forms";
 import { CheckCircle2, Circle, Loader2, PenLine, RotateCcw, AlertCircle, Layers } from "lucide-react";
 import type { TreeNode } from "@/lib/data";
@@ -149,9 +149,7 @@ function DeviceRow({ node, depth }: { node: TreeNode; depth: number }) {
           {node.titulo && (
             <span className="truncate text-muted-foreground">— {node.titulo}</span>
           )}
-          {node.origem === "novo" && (
-            <Badge variant="outline" className="shrink-0 border-primary/40 text-[10px] text-primary">novo</Badge>
-          )}
+          {node.origem === "novo" && <NovoBadge />}
         </span>
         <StatusBadge status={node.status} className="shrink-0" />
       </Link>

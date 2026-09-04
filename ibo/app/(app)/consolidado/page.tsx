@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { getSessionUser } from "@/lib/auth";
 import { getTree, provisionLabel } from "@/lib/data";
 import type { TreeNode } from "@/lib/data";
+import { NovoBadge } from "@/components/status-badge";
 import { RichTextContent } from "@/components/rich-text-content";
 
 export const dynamic = "force-dynamic";
@@ -63,9 +64,10 @@ function ChapterView({ node, depth = 0 }: { node: TreeNode; depth?: number }) {
         className="flex flex-wrap items-center justify-between gap-2 border-l-2 border-primary/40 px-4 py-2"
         style={{ paddingLeft: `${16 + depth * 20}px` }}
       >
-        <h3 className="font-semibold leading-tight">
+        <h3 className="flex flex-wrap items-center gap-1.5 font-semibold leading-tight">
           {label}
           {node.titulo ? ` — ${node.titulo}` : ""}
+          {node.origem === "novo" && <NovoBadge />}
         </h3>
         {approved && (
           <span className="inline-flex items-center gap-1 rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-[11px] font-medium text-emerald-700 dark:border-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-300">

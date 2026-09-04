@@ -5,6 +5,7 @@ import Link from "next/link";
 import { cn } from "@/lib/utils";
 import { ChevronRight } from "lucide-react";
 import { provisionLabel } from "@/lib/provision-label";
+import { NovoBadge } from "@/components/status-badge";
 import type { TreeNode } from "@/lib/data";
 
 interface Props {
@@ -103,7 +104,10 @@ function TreeItem({
             isActive ? "bg-muted font-medium" : "text-muted-foreground"
           )}
         >
-          <span className="block truncate">{provisionLabel(node)}</span>
+          <span className="flex min-w-0 items-center gap-1">
+            <span className="truncate">{provisionLabel(node)}</span>
+            {node.origem === "novo" && <NovoBadge />}
+          </span>
           {node.titulo && <span className="block truncate text-[11px] text-muted-foreground/70">{node.titulo}</span>}
         </Link>
       </div>

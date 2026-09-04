@@ -56,3 +56,17 @@ export function StatusDot({ status, className }: { status: string; className?: s
     />
   );
 }
+
+/** Marca distintiva de dispositivo novo (inserido na proposta de reforma). */
+export function NovoBadge({ className }: { className?: string }) {
+  return (
+    <span
+      className={cn(
+        "inline-flex h-4 shrink-0 items-center rounded-full bg-amber-400 px-1.5 text-[10px] font-bold uppercase tracking-wide text-amber-950 shadow-sm dark:bg-amber-500",
+        className
+      )}
+    >
+      novo
+    </span>
+  );
+}

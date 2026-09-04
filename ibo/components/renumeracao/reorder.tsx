@@ -5,8 +5,8 @@ import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { FolderTree, MoveRight, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { FieldHelper } from "@/components/field-helper";
+import { NovoBadge } from "@/components/status-badge";
 import { provisionLabel } from "@/lib/provision-label";
 import { moveProvision } from "@/app/actions/provision";
 import type { TreeNode } from "@/lib/data";
@@ -130,11 +130,7 @@ export function Reorder({ nodes }: Props) {
               <div className="grid grid-cols-[1fr_auto_auto] items-center gap-2 px-4 py-2">
                 <span className="flex items-center gap-1.5 text-sm font-medium">
                   {provisionLabel(node)}
-                  {node.origem === "novo" && (
-                    <Badge variant="outline" className="text-[10px] text-muted-foreground">
-                      novo
-                    </Badge>
-                  )}
+                  {node.origem === "novo" && <NovoBadge />}
                 </span>
                 <span className="text-xs text-muted-foreground">{parentLabel(parentId)}</span>
                 <div className="w-16 text-right">

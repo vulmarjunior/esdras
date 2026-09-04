@@ -11,7 +11,7 @@ import {
 } from "@/lib/labels";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { StatusBadge } from "@/components/status-badge";
+import { StatusBadge, NovoBadge } from "@/components/status-badge";
 import { StructuralNav } from "@/components/structural-nav";
 import { DeviceTabs } from "@/components/provision/device-tabs";
 import type { RelationDeviceOption } from "@/components/provision/provision-forms";
@@ -126,8 +126,9 @@ export default async function DevicePage({ params }: { params: Promise<{ id: str
             <span className="font-medium text-foreground">{provisionLabel(prov)}</span>
           </nav>
           <div className="flex flex-wrap items-center gap-2">
-            <h2 className="text-2xl font-semibold tracking-tight">
+            <h2 className="flex flex-wrap items-center gap-2 text-2xl font-semibold tracking-tight">
               {provisionLabel(prov)}{prov.titulo ? ` — ${prov.titulo}` : ""}
+              {prov.origem === "novo" && <NovoBadge className="mt-1.5" />}
             </h2>
           </div>
           <div className="mt-2.5 flex flex-wrap gap-1.5">

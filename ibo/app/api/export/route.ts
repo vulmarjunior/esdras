@@ -39,15 +39,16 @@ export async function GET(req: NextRequest) {
   getDb();
 
   if (type === "consolidado") {
-    const rows = await all<{ id: string; type: string; numero: string | null; titulo: string | null; redacao: string }>(`
-      SELECT p.id, p.type, p.numero, p.titulo,
+    const rows = await all<{ id: string; type: string; numero: string | null; titulo: string | null; origem: string; redacao: string }>(`
+      SELECT p.id, p.type, p.numero, p.titulo, p.origem,
         COALESCE(NULLIF(p.redacao_consolidada, ''), NULLIF(p.redacao_trabalho, ''), p.texto_vigente) AS redacao
       FROM provisions p
       WHERE p.status = 'aprovado'
       ORDER BY p.ordem_pai`);
     const lines: string[] = ["ESTATUTO CONSOLIDADO", "Igreja Batista Olaria", "=".repeat(60), ""];
+    const marca = (r: { origem: string }) => (r.origem === "novo" ? " (novo)" : "");
     for (const r of rows) {
-      const label = provisionLabel(r as never);
+      const label = provisionLabel(r as never) + marca(r);
       if (r.type === "capitulo") {
         lines.push("", label.toUpperCase() + (r.titulo ? ` â€” ${r.titulo}` : ""), "-".repeat(40), "");
       } else if (r.type === "artigo") {
