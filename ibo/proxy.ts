@@ -5,7 +5,7 @@ const secret = new TextEncoder().encode(
   process.env.SESSION_SECRET || "esdras-dev-secret-nao-use-em-producao"
 );
 const SESSION_COOKIE = "esdras_session";
-const PROTECTED_PREFIXES = ["/dispositivo", "/reunioes", "/pendentes", "/consolidado", "/relatorios", "/auditoria", "/admin", "/trocar-senha", "/guia-redacao", "/documentos"];
+const PROTECTED_PREFIXES = ["/dispositivo", "/reunioes", "/pendentes", "/consolidado", "/relatorios", "/auditoria", "/admin", "/trocar-senha", "/guia-redacao", "/documentos", "/manual"];
 
 export async function proxy(req: NextRequest) {
   const { pathname } = req.nextUrl;
@@ -45,5 +45,5 @@ export async function proxy(req: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/", "/login", "/dispositivo/:path*", "/reunioes/:path*", "/pendentes", "/consolidado", "/relatorios", "/auditoria", "/admin", "/trocar-senha", "/guia-redacao", "/documentos"],
+  matcher: ["/", "/login", "/dispositivo/:path*", "/reunioes/:path*", "/pendentes", "/consolidado", "/relatorios", "/auditoria", "/admin", "/trocar-senha", "/guia-redacao", "/documentos", "/manual"],
 };

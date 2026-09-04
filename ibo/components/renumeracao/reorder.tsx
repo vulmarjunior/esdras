@@ -117,7 +117,7 @@ export function Reorder({ nodes }: Props) {
         </FieldHelper>
       </div>
 
-      <div className="overflow-hidden rounded-xl border bg-card">
+      <div className="overflow-x-auto rounded-xl border bg-card">
         <div className="grid grid-cols-[1fr_auto_auto] items-center gap-2 border-b bg-muted/40 px-4 py-2 text-xs font-semibold text-muted-foreground">
           <span>Artigo</span>
           <span>Onde está</span>

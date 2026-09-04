@@ -7,6 +7,7 @@ import { Progress } from "@/components/ui/progress";
 import { StatusDot } from "@/components/status-badge";
 import { NewProvisionForm } from "@/components/provision/provision-forms";
 import { DashboardTree } from "@/components/dashboard/dashboard-tree";
+import { FirstSteps } from "@/components/onboarding/first-steps";
 import { CheckCircle2, Circle, Loader2, PenLine, RotateCcw, AlertCircle, Layers } from "lucide-react";
 
 const ORDER = ["nao_iniciado", "em_analise", "em_discussao", "redacao_definida", "aprovado", "reaberto"];
@@ -91,6 +92,8 @@ export default async function DashboardPage() {
           </CardContent>
         </Card>
       </div>
+
+      <FirstSteps userId={user.id} />
 
       {(user.role === "coordenador" || user.role === "admin") && (
         <div className="flex flex-wrap items-center gap-2">

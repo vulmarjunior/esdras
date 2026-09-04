@@ -5,6 +5,8 @@ import { AppNav, MobileNav } from "@/components/app-nav";
 import { logoutAction } from "@/app/actions/auth";
 import { getActiveMeeting } from "@/lib/data";
 import { RealtimeBridge } from "@/components/realtime-bridge";
+import { WelcomeModal } from "@/components/onboarding/welcome-modal";
+import { HelpFab } from "@/components/help/help-fab";
 import Link from "next/link";
 import { BookOpen, LogOut, Radio } from "lucide-react";
 
@@ -24,6 +26,8 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   return (
     <div className="flex min-h-screen flex-col bg-background">
       <RealtimeBridge />
+      <WelcomeModal userId={user.id} name={user.name} />
+      <HelpFab />
       <header className="border-b bg-card">
         <div className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-3 py-3 sm:px-4 sm:py-3.5">
           <div className="flex min-w-0 items-center gap-2.5 sm:gap-3">

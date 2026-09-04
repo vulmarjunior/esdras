@@ -3,6 +3,7 @@ import { requireRole } from "@/lib/auth";
 import { all, get } from "@/lib/db";
 import { formarGuia } from "@/lib/legal-refs";
 import { montarContextoConsulta } from "@/lib/confissoes/recuperacao";
+import { formarContextoManual } from "@/lib/manual";
 
 const GROQ_URL = "https://api.groq.com/openai/v1/chat/completions";
 const MODEL_CHAIN = [
@@ -166,6 +167,18 @@ export async function POST(req: NextRequest) {
       const system =
         "Você é um assessor doutrinário de uma comissão de reforma estatutária de uma igreja batista. Responda à pergunta APENAS com base nos documentos de fé fornecidos (confissões e declarações batistas), citando o nome da confissão e a seção correspondente. Se a pergunta não tiver cobertura nos documentos fornecidos, declare isso explicitamente e não invente conteúdo nem cite textos fora dos documentos. Seja objetivo, fiel ao texto e em português do Brasil.";
       const result = await callGroq(system, `${contexto}\n\nPergunta: ${pergunta}`);
+      return NextResponse.json({ result });
+    }
+
+    if (body.action === "ajuda") {
+      const pergunta = String(body.pergunta || "").trim();
+      if (!pergunta) {
+        return NextResponse.json({ error: "Digite sua dúvida." }, { status: 400 });
+      }
+      const contexto = formarContextoManual();
+      const system =
+        "Você é o assistente de ajuda do ESDRAS, sistema de apoio à Comissão de Reforma do Estatuto Social da IBO. Responda às dúvidas de uso APENAS com base no manual fornecido, indicando a seção correspondente quando útil. Se a dúvida não estiver coberta no manual, diga isso e aponte onde o usuário pode procurar (ex.: Manual de utilização, Guia de redação, Documentos). Não invente funcionalidades que não existem no manual. Seja objetivo e prático.";
+      const result = await callGroq(system, `Manual de utilização do ESDRAS:\n\n${contexto}\n\nPergunta: ${pergunta}`);
       return NextResponse.json({ result });
     }
 

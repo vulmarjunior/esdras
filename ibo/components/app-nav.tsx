@@ -21,6 +21,7 @@ import {
   BookMarked,
   ChevronDown,
   Layers,
+  CircleHelp,
 } from "lucide-react";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger, SheetClose } from "@/components/ui/sheet";
 import {
@@ -75,6 +76,7 @@ const NAV_TEMAS: NavTema[] = [
     label: "Consulta",
     icon: BookOpen,
     itens: [
+      { href: "/manual", label: "Manual de utilização", icon: CircleHelp },
       { href: "/guia-redacao", label: "Guia de redação", icon: BookOpenText },
       { href: "/documentos", label: "Documentos", icon: BookMarked },
     ],
