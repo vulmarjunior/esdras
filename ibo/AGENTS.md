@@ -21,6 +21,8 @@ Aplicação web para a **Comissão de Reforma do Estatuto Social da Igreja Batis
 - **PWA + responsividade** — o app é **PWA instalável**: `app/manifest.ts` (manifest + ícones PNG gerados por `scripts/generate-icons.mjs` a partir de `public/icon.svg`), service worker `public/sw.js` (rede-primeiro para navegações — evita servir conteúdo autenticado velho; cache-primeiro para estáticos; nunca cacheia `/api/*`; fallback `public/offline.html`), registro via `components/pwa-register.tsx` (só produção), `viewport`/`appleWebApp`/tema no layout raiz. Responsividade auditada (PRD §42): layout fluido, menu mobile em Sheet, grids `sm/lg`, tabelas do simulador/reordenação com `overflow-x-auto`; `input/textarea/select` com fonte ≥16px no mobile (evita zoom do iOS).
 - Veja `PENDENCIAS.md` para a pauta de trabalho do próximo agente.
 
+- **Estatuto em revisão (`/revisao`)** — leitura integral emparelhada com o vigente, incluindo não aprovados; busca, capítulos, filtros, diff por palavras, marcas de conteúdo separadas do status. `lib/review-core.ts` monta os pares na ordem atual; texto atual: trabalho → proposta inicial → vigente (ignora HTML vazio). `lib/review-original.ts` preserva numeração/título/parentesco/ordem da importação via JSONs por ID; o texto anterior usa `texto_vigente` para respeitar correções de extração. Não substituir metadados históricos pelos números atuais; identidades desconhecidas mostram numeração indisponível. Sem migração de banco. Revogados permanecem visíveis como retirada indicada; filhos têm análise independente. Menu Reforma, proxy protegido e manual atualizados.
+
 ## Comandos
 
 ```bash

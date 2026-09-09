@@ -56,6 +56,7 @@ const NAV_TEMAS: NavTema[] = [
     label: "Reforma",
     icon: Layers,
     itens: [
+      { href: "/revisao", label: "Estatuto em revisão", icon: BookOpenText },
       { href: "/pendentes", label: "Pendências", icon: CircleAlert },
       { href: "/renumeracao", label: "Renumeração", icon: ListOrdered },
       { href: "/coerencia", label: "Coerência", icon: ShieldAlert },

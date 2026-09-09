@@ -324,6 +324,12 @@ Não. A IA é **assistiva**: sugere e responde, sempre rotulada. Toda alteraçã
 
 ### Onde vejo o resultado final?
 Em **Reforma → Consolidado** (apenas aprovados) e em **Reuniões → Relatórios** (exportações).
+
+### Como vejo o Estatuto inteiro enquanto a reforma está em andamento?
+Abra **Reforma → Estatuto em revisão**. As versões anterior e atual ficam emparelhadas, na ordem atual, incluindo dispositivos não aprovados. No celular, cada par aparece um abaixo do outro.
+O texto atual usa a redação de trabalho; se estiver vazia, a proposta inicial; por último, o texto vigente. Sugestões individuais não entram automaticamente.
+As marcas **Não alterado**, **Alterado**, **Novo** e **Revogado** são separadas da etapa de análise. A comparação ignora formatação e espaços. Trechos retirados e acrescentados podem ser destacados. Revogado indica a classificação de retirada, não uma aprovação automática.
+Use busca, seleção de capítulo e filtros para localizar mudanças. Alterações de posição e numeração são indicadas usando os identificadores da importação original. **Abrir dispositivo** leva à análise; **Atualizar leitura** recarrega os dados.
 `,
   },
 ];

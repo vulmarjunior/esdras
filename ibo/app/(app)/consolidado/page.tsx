@@ -1,4 +1,5 @@
 import { redirect } from "next/navigation";
+import Link from "next/link";
 import { getSessionUser } from "@/lib/auth";
 import { getTree, provisionLabel } from "@/lib/data";
 import type { TreeNode } from "@/lib/data";
@@ -21,6 +22,9 @@ export default async function ConsolidatedPage() {
         <p className="text-sm text-muted-foreground">
           Exibe exclusivamente os dispositivos aprovados, na ordem final. {approvedCount} dispositivo(s) aprovado(s).
         </p>
+        <Link href="/revisao" className="mt-2 inline-block text-sm text-primary underline underline-offset-4">
+          Comparar o Estatuto inteiro, incluindo os textos em revisão
+        </Link>
       </div>
 
       {approvedCount === 0 ? (

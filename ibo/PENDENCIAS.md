@@ -18,6 +18,8 @@ Pauta de trabalho para o próximo agente/dev. Estado do projeto: **MVP completo 
 
 ## 3. Melhorias conhecidas / dívidas técnicas
 
+- [x] **Visualizador comparativo (`/revisao`)** — versões anterior e atual emparelhadas, todas as etapas, filtros/busca/capítulos, diferenças textuais e mudanças estruturais. Metadados originais por identidade a partir dos JSONs de importação, sem migração; testes de seleção de texto, novos/revogados, ordem, numeração e diff.
+
 - [x] **Testes automatizados** — Vitest, 77 testes (renumeração, sanitização rich text, reordenação, versão/conflito §41, perfis, telefone, guia de redação, biblioteca doutrinária, filtro do painel por anotação, manual).
 - [x] **Deploy Vercel** — em produção.
 - [x] **Numeração/ordem final dos dispositivos novos** — mecanismo completo (mover + aplicar numeração).
