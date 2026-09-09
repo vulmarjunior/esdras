@@ -76,12 +76,17 @@ export function UserRow({ u, canDelete }: { u: User; canDelete: boolean }) {
   }
   async function remove() {
     setPending(true);
-    const res = await deleteUser(u.id);
-    setPending(false);
-    setConfirmState(null);
-    if (res.error) return toast.error(res.error);
-    toast.success("Usuário removido.");
-    router.refresh();
+    try {
+      const res = await deleteUser(u.id);
+      if (res.error) return toast.error(res.error);
+      setConfirmState(null);
+      toast.success("Usuário removido.");
+      router.refresh();
+    } catch {
+      toast.error("Não foi possível remover o usuário. Tente novamente.");
+    } finally {
+      setPending(false);
+    }
   }
 
   const wa = whatsappLink(u.phone);

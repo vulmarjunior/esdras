@@ -18,7 +18,7 @@ export async function loginAction(_state: LoginState | undefined, formData: Form
   const password = String(formData.get("password") || "");
 
   const user = await get<{ id: number; name: string; password_hash: string; must_change_password: number }>(
-    "SELECT id, name, password_hash, must_change_password FROM users WHERE email = ?",
+    "SELECT id, name, password_hash, must_change_password FROM users WHERE email = ? AND deleted_at IS NULL",
     [email]
   );
   if (!user || !verifyPassword(password, user.password_hash)) {

@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { get, run, all } from "@/lib/db";
 import { hashPassword, requireRole, requireUser } from "@/lib/auth";
 import { rolesCom } from "@/lib/permissions";
+import { removeUserPreservingHistory } from "@/lib/user-removal";
 import { normalizarTelefone } from "@/lib/phone";
 import type { ActionState } from "./provision";
 
@@ -36,7 +37,7 @@ export async function createUser(data: { name: string; email: string; password: 
 
 export async function updateUser(data: { id: number; name: string; email: string; role: string; password?: string; phone?: string }): Promise<ActionState> {
   const user = await requireRole(...rolesCom("gerenciar_usuarios"));
-  const target = await get<{ email: string; name: string }>("SELECT email, name FROM users WHERE id = ?", [data.id]);
+  const target = await get<{ email: string; name: string }>("SELECT email, name FROM users WHERE id = ? AND deleted_at IS NULL", [data.id]);
   if (!target) return { error: "Usuário não encontrado." };
   const email = data.email.trim().toLowerCase();
   if (!email) return { error: "Informe o e-mail." };
@@ -76,13 +77,13 @@ export async function updateUser(data: { id: number; name: string; email: string
 
 export async function deleteUser(id: number): Promise<ActionState> {
   const user = await requireRole(...rolesCom("gerenciar_usuarios"));
-  const target = await get<{ role: string }>("SELECT role FROM users WHERE id = ?", [id]);
+  const target = await get<{ role: string }>("SELECT role FROM users WHERE id = ? AND deleted_at IS NULL", [id]);
   if (!target) return { error: "Usuário não encontrado." };
-  if (target.role === "admin" && (await all("SELECT id FROM users WHERE role='admin'")).length <= 1) {
+  if (target.role === "admin" && (await all("SELECT id FROM users WHERE role='admin' AND deleted_at IS NULL")).length <= 1) {
     return { error: "Não é possível remover o único administrador." };
   }
-  await run("DELETE FROM users WHERE id = ?", [id]);
-  await audit(user.id, user.name, "Removeu usuário", "user", String(id));
+  if (String(user.id) === String(id)) return { error: "Não é possível remover sua própria conta." };
+  await removeUserPreservingHistory(id, user.id, user.name);
   revalidatePath("/admin");
   return { ok: true };
 }

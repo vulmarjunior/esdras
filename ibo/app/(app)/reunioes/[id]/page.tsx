@@ -91,7 +91,7 @@ export default async function MeetingPage({ params }: { params: Promise<{ id: st
   const provisions = await all<{ id: string; type: string; numero: string }>(
     "SELECT id, type, numero FROM provisions WHERE type IN ('artigo','capitulo') ORDER BY ordem");
 
-  const allUsers = await all<User>("SELECT id, name, email, role, created_at FROM users ORDER BY name");
+  const allUsers = await all<User>("SELECT id, name, email, role, created_at FROM users WHERE deleted_at IS NULL ORDER BY name");
 
   const presentCount = members.filter((m) => m.presente).length;
   const aprovados = decisions.filter((d) => d.tipo === "aprovacao").length;

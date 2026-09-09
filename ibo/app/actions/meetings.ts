@@ -29,7 +29,7 @@ export async function createMeeting(data: {
     "INSERT INTO meetings (numero, data, horario, local, pauta, coordenador_id, secretario_id) VALUES (?, ?, ?, ?, ?, ?, ?)",
     [data.numero, data.data, data.horario, data.local, data.pauta, data.coordenador_id, data.secretario_id]
   );
-  const members = await all<{ id: number }>("SELECT id FROM users WHERE role IN ('coordenador','membro')");
+  const members = await all<{ id: number }>("SELECT id FROM users WHERE role IN ('coordenador','membro') AND deleted_at IS NULL");
   for (const m of members) {
     await run("INSERT INTO meeting_members (meeting_id, user_id) VALUES (?, ?)", [Number(res.lastInsertRowid), m.id]);
   }

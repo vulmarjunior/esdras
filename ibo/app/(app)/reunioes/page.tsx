@@ -30,7 +30,7 @@ export default async function MeetingsPage() {
     LEFT JOIN users su ON su.id = m.secretario_id
     ORDER BY m.data DESC, m.numero DESC`);
 
-  const users = await all<User>("SELECT id, name, email, role, created_at FROM users ORDER BY name");
+  const users = await all<User>("SELECT id, name, email, role, created_at FROM users WHERE deleted_at IS NULL ORDER BY name");
   const canEdit = user.role === "coordenador" || user.role === "admin";
 
   return (

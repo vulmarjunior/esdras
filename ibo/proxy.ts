@@ -31,12 +31,8 @@ export async function proxy(req: NextRequest) {
     url.pathname = "/login";
     return NextResponse.redirect(url);
   }
-  if (isLogin && authed) {
-    const url = req.nextUrl.clone();
-    url.pathname = mustChange ? "/trocar-senha" : "/";
-    return NextResponse.redirect(url);
-  }
-  if (authed && mustChange && pathname !== "/trocar-senha") {
+  // O login deve continuar acessível quando o JWT pertence a uma conta removida.
+  if (!isLogin && authed && mustChange && pathname !== "/trocar-senha") {
     const url = req.nextUrl.clone();
     url.pathname = "/trocar-senha";
     return NextResponse.redirect(url);
