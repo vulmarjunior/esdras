@@ -39,6 +39,25 @@ CREATE TABLE IF NOT EXISTS provisions (
 CREATE INDEX IF NOT EXISTS idx_provisions_parent ON provisions(parent_id);
 CREATE INDEX IF NOT EXISTS idx_provisions_ordem ON provisions(ordem);
 
+-- Localização independente por versão do documento. A identidade do dispositivo
+-- permanece em `provisions`; esta tabela permite que a proposta mova e renumere
+-- dispositivos sem alterar a estrutura histórica do Estatuto vigente.
+CREATE TABLE IF NOT EXISTS provision_placements (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  provision_id TEXT NOT NULL REFERENCES provisions(id) ON DELETE CASCADE,
+  version_key TEXT NOT NULL CHECK (version_key IN ('vigente','proposta','consolidada')),
+  parent_id TEXT REFERENCES provisions(id) ON DELETE SET NULL,
+  numero TEXT,
+  titulo TEXT,
+  ordem_pai INTEGER NOT NULL DEFAULT 0,
+  updated_at TEXT NOT NULL DEFAULT (datetime('now')),
+  updated_by INTEGER REFERENCES users(id),
+  UNIQUE (version_key, provision_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_provision_placements_version_parent
+  ON provision_placements(version_key, parent_id, ordem_pai);
+
 CREATE TABLE IF NOT EXISTS provision_versions (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   provision_id TEXT NOT NULL REFERENCES provisions(id) ON DELETE CASCADE,

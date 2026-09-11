@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { getSessionUser } from "@/lib/auth";
-import { getProvision, getTree, provisionLabel, parentChain, getPersonalNoteIds } from "@/lib/data";
+import { getProposalTree, getProvision, getTree, getVigenteTree, provisionLabel, parentChain, getPersonalNoteIds } from "@/lib/data";
 import type { TreeNode } from "@/lib/data";
 import { all, get } from "@/lib/db";
 import {
@@ -35,6 +35,12 @@ export default async function DevicePage({ params }: { params: Promise<{ id: str
 
   const chain = await parentChain(id);
   const tree = await getTree();
+  const proposalTree = await getProposalTree();
+  const proposalNode = findNode(proposalTree, id);
+  const proposalChain = proposalNode ? nodeChain(proposalTree, id) : [];
+  const vigenteTree = await getVigenteTree();
+  const vigenteNode = findNode(vigenteTree, id);
+  const vigenteChain = vigenteNode ? nodeChain(vigenteTree, id) : chain;
   const devices = flattenDevices(tree);
   const notedIds = await getPersonalNoteIds(user.id);
 
@@ -152,10 +158,38 @@ export default async function DevicePage({ params }: { params: Promise<{ id: str
           </div>
         </div>
 
+        {proposalNode && (
+          <Card className="mt-4 border-amber-300/70 bg-amber-50/40 dark:border-amber-700/60 dark:bg-amber-950/20">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm">Localização nas versões</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-2 text-sm">
+              <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
+                <span className="w-28 shrink-0 text-xs font-medium uppercase tracking-wide text-muted-foreground">Vigente</span>
+                <span>{vigenteNode ? vigenteChain.map((c) => provisionLabel(c)).concat(provisionLabel(vigenteNode)).join(" / ") : "Não existe no Estatuto vigente"}</span>
+              </div>
+              <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
+                <span className="w-28 shrink-0 text-xs font-medium uppercase tracking-wide text-amber-700 dark:text-amber-300">Proposta</span>
+                <span>{proposalChain.map((c) => provisionLabel(c)).concat(provisionLabel(proposalNode)).join(" / ")}</span>
+                {!vigenteNode ? (
+                  <Badge className="bg-amber-600 text-white hover:bg-amber-600">novo na proposta</Badge>
+                ) : (proposalNode.parent_id !== vigenteNode.parent_id || proposalNode.numero !== vigenteNode.numero) ? (
+                  <Badge className="bg-amber-600 text-white hover:bg-amber-600">movido/renumerado</Badge>
+                ) : null}
+              </div>
+              <p className="text-xs text-muted-foreground">
+                A proposta possui localização e numeração próprias. O identificador interno deste dispositivo permanece o mesmo para preservar o histórico.
+              </p>
+            </CardContent>
+          </Card>
+        )}
+
         <DeviceTabs
           id={id}
           prov={{
             type: prov.type,
+            numero: prov.numero,
+            titulo: prov.titulo,
             origem: prov.origem,
             alteracao_tipo: prov.alteracao_tipo,
             status: prov.status,
@@ -221,4 +255,27 @@ function findNode(nodes: TreeNode[], id: string): TreeNode | undefined {
     if (found) return found;
   }
   return undefined;
+}
+
+function nodeChain(nodes: TreeNode[], id: string): TreeNode[] {
+  const byId = new Map<string, TreeNode>();
+  const visit = (list: TreeNode[]) => {
+    for (const n of list) {
+      byId.set(n.id, n);
+      visit(n.children);
+    }
+  };
+  visit(nodes);
+  const node = byId.get(id);
+  if (!node) return [];
+  const chain: TreeNode[] = [];
+  let cur = node;
+  const seen = new Set<string>();
+  while (cur.parent_id && byId.has(cur.parent_id) && !seen.has(cur.id)) {
+    seen.add(cur.id);
+    const parent = byId.get(cur.parent_id)!;
+    chain.unshift(parent);
+    cur = parent;
+  }
+  return chain;
 }

@@ -1,5 +1,5 @@
 import { get, all } from "./db";
-import type { Provision, ProvisionStatus } from "./types";
+import type { DocumentVersion, Provision, ProvisionPlacement, ProvisionStatus } from "./types";
 import { ordenarIrmaos } from "./tree-order";
 export { provisionLabel } from "./provision-label";
 
@@ -8,22 +8,14 @@ export interface TreeNode extends Provision {
   child_count: number;
 }
 
-export async function getTree(): Promise<TreeNode[]> {
-  const rows = await all<Provision>("SELECT * FROM provisions ORDER BY ordem_pai, ordem");
+function buildTree(rows: Provision[]): TreeNode[] {
   const map = new Map<string, TreeNode>();
-  for (const r of rows) {
-    map.set(r.id, { ...r, children: [], child_count: 0 });
-  }
+  for (const r of rows) map.set(r.id, { ...r, children: [], child_count: 0 });
   const roots: TreeNode[] = [];
   for (const node of map.values()) {
-    if (node.parent_id && map.has(node.parent_id)) {
-      map.get(node.parent_id)!.children.push(node);
-    } else {
-      roots.push(node);
-    }
+    if (node.parent_id && map.has(node.parent_id)) map.get(node.parent_id)!.children.push(node);
+    else roots.push(node);
   }
-  // Hierarquia normativa: incisos → parágrafos → alíneas, preservando ordem_pai
-  // dentro de cada grupo (ordenação estável, sem mutar o array original).
   const ordenar = (nodes: TreeNode[]) => {
     for (const n of nodes) ordenar(n.children);
     return ordenarIrmaos(nodes);
@@ -37,6 +29,85 @@ export async function getTree(): Promise<TreeNode[]> {
   };
   roots.forEach(count);
   return roots;
+}
+
+export async function getTree(): Promise<TreeNode[]> {
+  const rows = await all<Provision>("SELECT * FROM provisions ORDER BY ordem_pai, ordem");
+  return buildTree(rows);
+}
+
+/** Árvore proposta com localização e numeração independentes da versão vigente. */
+export async function getProposalTree(): Promise<TreeNode[]> {
+  const rows = await all<Provision>(`
+    SELECT
+      p.id,
+      CASE WHEN pp.id IS NULL THEN p.parent_id ELSE pp.parent_id END AS parent_id,
+      p.project_id,
+      p.type,
+      CASE WHEN pp.id IS NULL THEN p.numero ELSE pp.numero END AS numero,
+      CASE WHEN pp.id IS NULL THEN p.titulo ELSE pp.titulo END AS titulo,
+      p.ordem,
+      CASE WHEN pp.id IS NULL THEN p.ordem_pai ELSE pp.ordem_pai END AS ordem_pai,
+      p.origem,
+      p.alteracao_tipo,
+      p.status,
+      p.texto_vigente,
+      p.proposta_inicial,
+      p.redacao_trabalho,
+      p.justificativa,
+      p.redacao_consolidada,
+      p.posicao_sugerida,
+      p.version,
+      p.updated_at,
+      p.updated_by
+    FROM provisions p
+    LEFT JOIN provision_placements pp
+      ON pp.provision_id = p.id AND pp.version_key = 'proposta'
+    ORDER BY COALESCE(pp.ordem_pai, p.ordem_pai), p.ordem
+  `);
+  return buildTree(rows);
+}
+
+/** Árvore histórica do Estatuto vigente, congelada no momento da importação. */
+export async function getVigenteTree(): Promise<TreeNode[]> {
+  const rows = await all<Provision>(`
+    SELECT
+      p.id,
+      vp.parent_id,
+      p.project_id,
+      p.type,
+      vp.numero,
+      vp.titulo,
+      p.ordem,
+      vp.ordem_pai,
+      p.origem,
+      p.alteracao_tipo,
+      p.status,
+      p.texto_vigente,
+      p.proposta_inicial,
+      p.redacao_trabalho,
+      p.justificativa,
+      p.redacao_consolidada,
+      p.posicao_sugerida,
+      p.version,
+      p.updated_at,
+      p.updated_by
+    FROM provisions p
+    JOIN provision_placements vp
+      ON vp.provision_id = p.id AND vp.version_key = 'vigente'
+    ORDER BY vp.ordem_pai, p.ordem
+  `);
+  return buildTree(rows);
+}
+
+export async function getProvisionPlacement(
+  provisionId: string,
+  version: DocumentVersion = "proposta"
+): Promise<ProvisionPlacement | undefined> {
+  return get<ProvisionPlacement>(
+    "SELECT * FROM provision_placements WHERE provision_id = ? AND version_key = ?",
+    [provisionId, version]
+  );
 }
 
 export async function getFlatProvisions(): Promise<Provision[]> {

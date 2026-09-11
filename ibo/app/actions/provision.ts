@@ -12,6 +12,7 @@ export {
   createProvision,
   updateProvision,
   moveProvision,
+  moveProposalProvision,
   deleteProvision,
 } from "./dispositivos";
 

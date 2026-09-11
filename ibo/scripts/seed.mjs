@@ -94,8 +94,25 @@ function seedExamples() {
   insAudit.run(1, "Administrador do Sistema", "Importação de documentos", "project", "projeto-ibo", "Importado o Estatuto registrado com estrutura hierárquica. Texto da proposta removido — inserção manual em andamento.", now);
 }
 
+function seedPlacements() {
+  const insert = db.prepare(`
+    INSERT INTO provision_placements
+      (provision_id, version_key, parent_id, numero, titulo, ordem_pai)
+    VALUES (?, ?, ?, ?, ?, ?)
+  `);
+  const rows = db.prepare("SELECT id, parent_id, numero, titulo, ordem_pai, origem FROM provisions").all();
+  const tx = db.transaction(() => {
+    for (const r of rows) {
+      insert.run(r.id, "proposta", r.parent_id, r.numero, r.titulo, r.ordem_pai);
+      if (r.origem === "original") insert.run(r.id, "vigente", r.parent_id, r.numero, r.titulo, r.ordem_pai);
+    }
+  });
+  tx();
+}
+
 insertUsers();
 loadChapters();
+seedPlacements();
 seedExamples();
 
 const counts = {

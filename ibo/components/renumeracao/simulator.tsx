@@ -82,7 +82,7 @@ export function Simulator({ artigos, referencias }: Props) {
     <div className="space-y-6">
       <div className="rounded-xl border border-amber-200 bg-amber-50/50 p-4 text-sm text-amber-800 dark:border-amber-800 dark:bg-amber-950/30 dark:text-amber-200">
         <FieldHelper className="text-amber-800 dark:text-amber-200">
-          Simulação apenas — <strong>nenhuma alteração é aplicada</strong> ao documento. Para cada artigo, escolha
+          Simulação apenas — <strong>nenhuma alteração é aplicada</strong> à proposta. Para cada artigo, escolha
           &quot;mover após&quot; para montar a ordem final; o sistema calcula a numeração nova e alerta as referências
           internas afetadas.
         </FieldHelper>
@@ -109,7 +109,7 @@ export function Simulator({ artigos, referencias }: Props) {
             setApplyState({
               title: "Aplicar numeração final",
               description:
-                "Grava os números dos artigos conforme a ordem ATUAL da árvore, com auditoria. A reordenação física entre capítulos ainda é etapa separada. Referências nos textos NÃO são reescritas — apenas alertadas. Continuar?",
+                "Grava os números dos artigos conforme a ordem ATUAL da estrutura proposta, com auditoria. A estrutura vigente permanece intacta. Referências nos textos NÃO são reescritas — apenas alertadas. Continuar?",
               confirmLabel: "Aplicar numeração",
             })
           }

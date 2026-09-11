@@ -31,9 +31,8 @@ async function logMeetingEvent(tipo: string, descricao: string, userId: number |
 export type RenumeracaoState = { ok?: boolean; error?: string; message?: string };
 
 /**
- * PRD §17 — aplica a numeração final dos artigos conforme a ORDEM ATUAL da árvore.
- * A reordenação física entre capítulos é etapa separada; aqui apenas os números são
- * gravados, com auditoria e registro de evento de reunião. Nunca reescreve textos.
+ * PRD §17 — aplica a numeração proposta dos artigos conforme a ordem da árvore
+ * proposta. A estrutura vigente e seus números históricos permanecem intactos.
  */
 export async function applyRenumeracao(): Promise<RenumeracaoState> {
   const user = await requireRole(...rolesCom("renumerar"));
@@ -48,7 +47,10 @@ export async function applyRenumeracao(): Promise<RenumeracaoState> {
     for (const a of artigos) {
       const novo = numeros.get(a.id)!;
       if (a.numeroAtual !== novo) {
-        await run("UPDATE provisions SET numero = ?, updated_at = ? WHERE id = ?", [novo, now(), a.id]);
+        await run(
+          "UPDATE provision_placements SET numero = ?, updated_at = ?, updated_by = ? WHERE version_key = 'proposta' AND provision_id = ?",
+          [novo, now(), user.id, a.id]
+        );
         detalhes.push(`${a.label}: ${a.numeroAtual || "NOVO"} → ${novo}`);
         alterados++;
       }

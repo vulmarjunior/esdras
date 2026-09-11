@@ -12,6 +12,7 @@ export interface User {
 
 export type ProvisionType = "capitulo" | "secao" | "artigo" | "paragrafo" | "inciso" | "alinea";
 export type ProvisionStatus = "nao_iniciado" | "em_analise" | "em_discussao" | "redacao_definida" | "aprovado" | "reaberto";
+export type DocumentVersion = "vigente" | "proposta" | "consolidada";
 
 export interface Provision {
   id: string;
@@ -32,6 +33,18 @@ export interface Provision {
   redacao_consolidada: string;
   posicao_sugerida: string | null;
   version: number;
+  updated_at: string;
+  updated_by: number | null;
+}
+
+export interface ProvisionPlacement {
+  id: number;
+  provision_id: string;
+  version_key: DocumentVersion;
+  parent_id: string | null;
+  numero: string | null;
+  titulo: string | null;
+  ordem_pai: number;
   updated_at: string;
   updated_by: number | null;
 }

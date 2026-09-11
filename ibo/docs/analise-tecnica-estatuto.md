@@ -142,3 +142,11 @@ A estrutura histórica cadastrada é utilizável para comparação, mas a propos
 - [Decreto nº 12.002/2024 — técnica legislativa](https://www.planalto.gov.br/ccivil_03/_ato2023-2026/2024/decreto/d12002.htm)
 - [Código Civil — Lei nº 10.406/2002, arts. 53 a 61](https://www.planalto.gov.br/ccivil_03/leis/2002/l10406compilada.htm)
 - Arquivo analisado: `PROPOSTA DE REFORMA DO ESTATUTO SOCIAL DA IBO ATAULIZADO EM 9-9-26.pdf`.
+
+## Implementação posterior da separação de versões
+
+Em 11 de setembro de 2026 foi criada no Supabase a tabela `provision_placements`, que guarda a localização, a ordem e a numeração de cada dispositivo por versão do documento. A identidade dos dispositivos continua em `provisions`, preservando os vínculos, o histórico e as referências já existentes.
+
+A tabela foi preenchida com 128 posicionamentos da proposta e 120 posicionamentos do Estatuto vigente. Os marcadores explícitos encontrados nos textos da proposta foram sincronizados em 31 registros, sempre sem alterar a numeração vigente. Por exemplo, o dispositivo histórico `art-6` permanece como Art. 6º no Estatuto vigente e passa a ser exibido como Art. 5º na proposta.
+
+O simulador de renumeração e a reordenação da proposta agora gravam somente na estrutura proposta. A tela do dispositivo mostra as duas localizações e identifica dispositivos movidos ou renumerados. As decisões jurídicas pendentes deste relatório continuam dependendo da comissão e não foram presumidas pela implementação.

@@ -1,4 +1,5 @@
-import { getTree, provisionLabel, type TreeNode } from "./data";
+import { getProposalTree, getTree, provisionLabel, type TreeNode } from "./data";
+import type { DocumentVersion } from "./types";
 import { all } from "./db";
 import { htmlToText } from "./rich-text";
 export {
@@ -35,8 +36,8 @@ export function chapterFor(node: TreeNode, allNodes: Map<string, TreeNode>): str
 }
 
 /** Lista os artigos da árvore na ordem atual, com rótulo de capítulo. */
-export async function getArtigosOrdenados() {
-  const tree = await getTree();
+export async function getArtigosOrdenados(version: DocumentVersion = "proposta") {
+  const tree = version === "proposta" ? await getProposalTree() : await getTree();
   const allNodes = new Map<string, TreeNode>();
   const visit = (n: TreeNode) => {
     allNodes.set(n.id, n);

@@ -74,14 +74,27 @@ export async function createProvision(
   await transaction(async () => {
     const maxOrdem = (await get<{ m: number }>("SELECT COALESCE(MAX(ordem), 0) m FROM provisions"))?.m ?? 0;
     const maxOrdemPai = pai
-      ? (await get<{ m: number }>("SELECT COALESCE(MAX(ordem_pai), -1) m FROM provisions WHERE parent_id = ?", [pai.id]))?.m ?? -1
-      : (await get<{ m: number }>("SELECT COALESCE(MAX(ordem_pai), -1) m FROM provisions WHERE parent_id IS NULL"))?.m ?? -1;
+      ? (await get<{ m: number }>("SELECT COALESCE(MAX(ordem_pai), -1) m FROM provision_placements WHERE version_key = 'proposta' AND parent_id = ?", [pai.id]))?.m ?? -1
+      : (await get<{ m: number }>("SELECT COALESCE(MAX(ordem_pai), -1) m FROM provision_placements WHERE version_key = 'proposta' AND parent_id IS NULL"))?.m ?? -1;
     await run(
       `INSERT INTO provisions
        (id, parent_id, type, numero, titulo, ordem, ordem_pai, origem, alteracao_tipo, status,
         proposta_inicial, redacao_trabalho, justificativa, posicao_sugerida, version, updated_at, updated_by)
        VALUES (?, ?, ?, ?, ?, ?, ?, 'novo', 'novo', 'nao_iniciado', ?, ?, ?, ?, 0, ?, ?)`,
       [id, parentId, tipo, numero?.trim() || null, titulo?.trim() || null, maxOrdem + 1, maxOrdemPai + 1, cleanTexto, cleanTexto, sanitizeHtml(justificativa || ""), posicao, ts, user.id]
+    );
+    await run(
+      `INSERT INTO provision_placements
+       (provision_id, version_key, parent_id, numero, titulo, ordem_pai, updated_at, updated_by)
+       VALUES (?, 'proposta', ?, ?, ?, ?, ?, ?)
+       ON CONFLICT (version_key, provision_id) DO UPDATE SET
+         parent_id = EXCLUDED.parent_id,
+         numero = EXCLUDED.numero,
+         titulo = EXCLUDED.titulo,
+         ordem_pai = EXCLUDED.ordem_pai,
+         updated_at = EXCLUDED.updated_at,
+         updated_by = EXCLUDED.updated_by`,
+      [id, parentId, numero?.trim() || null, titulo?.trim() || null, maxOrdemPai + 1, ts, user.id]
     );
     await audit(user.id, user.name, `Criou novo ${tipo}`, "provision", id, `Posição: ${posicao}`);
   });
@@ -135,20 +148,24 @@ export async function updateProvision(
 
   const ts = now();
   await transaction(async () => {
-    await run("UPDATE provisions SET numero = ?, titulo = ?, posicao_sugerida = ?, updated_at = ? WHERE id = ?", [
-      data.numero.trim() || null,
-      data.titulo.trim() || null,
+    await run("UPDATE provisions SET posicao_sugerida = ?, updated_at = ? WHERE id = ?", [
       data.posicaoSugerida.trim() || null,
       ts,
       provisionId,
     ]);
+    await run(
+      `UPDATE provision_placements
+          SET numero = ?, titulo = ?, updated_at = ?, updated_by = ?
+        WHERE version_key = 'proposta' AND provision_id = ?`,
+      [data.numero.trim() || null, data.titulo.trim() || null, ts, user.id, provisionId]
+    );
     if (novoType !== prov.type) {
       await run("UPDATE provisions SET type = ?, updated_at = ? WHERE id = ?", [novoType, ts, provisionId]);
     }
     const detalhe =
       novoType !== prov.type
-        ? `Classificação alterada: ${prov.type} → ${novoType}; dados de numeração/posição atualizados`
-        : "Dados de numeração/posição atualizados";
+        ? `Classificação alterada: ${prov.type} → ${novoType}; dados de numeração da proposta atualizados`
+        : "Dados de numeração e posição da proposta atualizados";
     await audit(user.id, user.name, "Editou dispositivo", "provision", provisionId, detalhe);
   });
   revalidatePath(`/dispositivo/${provisionId}`);
@@ -255,6 +272,101 @@ export async function moveProvision(
   revalidatePath("/consolidado");
   await publishRealtime({ entity: "provision", id: provisionId, action: "movido" });
   return { ok: true, message: `${provisionLabel(prov)} movido para ${paiNovo}.` };
+}
+
+/** Move um dispositivo apenas na estrutura da proposta, preservando a árvore vigente. */
+export async function moveProposalProvision(
+  provisionId: string,
+  newParentId: string | null,
+  afterId: string | null
+): Promise<ActionState> {
+  const user = await requireRole(...rolesCom("gerenciar_dispositivos"));
+  const prov = await get<Provision>("SELECT * FROM provisions WHERE id = ?", [provisionId]);
+  if (!prov) return { error: "Dispositivo não encontrado." };
+
+  const rows = await all<NoEstrutural>(`
+    SELECT p.id, p.type,
+           CASE WHEN pp.id IS NULL THEN p.parent_id ELSE pp.parent_id END AS parent_id
+      FROM provisions p
+      LEFT JOIN provision_placements pp
+        ON pp.provision_id = p.id AND pp.version_key = 'proposta'`);
+  const mapa = new Map(rows.map((r) => [r.id, r]));
+  const erro = validarMovimento(mapa, provisionId, newParentId, afterId);
+  if (erro) return { error: erro };
+
+  const irmaos = async (parentId: string | null) => {
+    const where = parentId === null ? "pp.parent_id IS NULL" : "pp.parent_id = ?";
+    const params = parentId === null ? [] : [parentId];
+    return all<{ id: string; ordem_pai: number }>(`
+      SELECT pp.provision_id AS id, pp.ordem_pai
+        FROM provision_placements pp
+       WHERE pp.version_key = 'proposta' AND ${where}
+       ORDER BY pp.ordem_pai`, params);
+  };
+
+  const irmaosAntigos = await irmaos(mapa.get(provisionId)!.parent_id);
+  const irmaosNovos = newParentId === mapa.get(provisionId)!.parent_id ? irmaosAntigos : await irmaos(newParentId);
+  const novaOrdem = inserirApos(irmaosNovos.map((x) => x.id), provisionId, afterId);
+  const semMoved = irmaosAntigos.map((x) => x.id).filter((x) => x !== provisionId);
+  const novaOrdemPai = new Map<string, number>();
+  semMoved.forEach((id, i) => novaOrdemPai.set(id, i));
+  novaOrdem.forEach((id, i) => novaOrdemPai.set(id, i));
+
+  const ordemAtualPorId = new Map<string, number>();
+  irmaosAntigos.forEach((x) => ordemAtualPorId.set(x.id, x.ordem_pai));
+  irmaosNovos.forEach((x) => {
+    if (!ordemAtualPorId.has(x.id)) ordemAtualPorId.set(x.id, x.ordem_pai);
+  });
+  const sameParent = newParentId === mapa.get(provisionId)!.parent_id;
+  const noOp = sameParent && irmaosAntigos.map((x) => x.id).every((id, i) => novaOrdem[i] === id);
+  if (noOp) return { ok: true, message: "O dispositivo já está nesta posição na proposta." };
+
+  const labelPai = async (parentId: string | null) => {
+    if (!parentId) return "raiz da proposta";
+    const p = await get<Provision>("SELECT * FROM provisions WHERE id = ?", [parentId]);
+    const placement = await get<{ numero: string | null; titulo: string | null }>(
+      "SELECT numero, titulo FROM provision_placements WHERE provision_id = ? AND version_key = 'proposta'",
+      [parentId]
+    );
+    return p ? provisionLabel({ ...p, numero: placement?.numero ?? p.numero, titulo: placement?.titulo ?? p.titulo }) : parentId;
+  };
+  const paiAntigo = await labelPai(mapa.get(provisionId)!.parent_id);
+  const paiNovo = await labelPai(newParentId);
+  const posicao = novaOrdem.indexOf(provisionId) + 1;
+  const ts = now();
+
+  await transaction(async () => {
+    if (!sameParent) {
+      await run(
+        "UPDATE provision_placements SET parent_id = ?, updated_at = ?, updated_by = ? WHERE version_key = 'proposta' AND provision_id = ?",
+        [newParentId, ts, user.id, provisionId]
+      );
+    }
+    for (const [id, ordem_pai] of novaOrdemPai) {
+      if (ordemAtualPorId.get(id) === ordem_pai && !(id === provisionId && !sameParent)) continue;
+      await run(
+        "UPDATE provision_placements SET ordem_pai = ?, updated_at = ?, updated_by = ? WHERE version_key = 'proposta' AND provision_id = ?",
+        [ordem_pai, ts, user.id, id]
+      );
+    }
+    await audit(
+      user.id,
+      user.name,
+      "Moveu dispositivo na proposta",
+      "provision_placement",
+      provisionId,
+      `${provisionLabel(prov)}: ${paiAntigo} → ${paiNovo}, posição ${posicao}`
+    );
+  });
+  await logMeetingEvent("reordenacao_proposta", `${provisionLabel(prov)} movido na proposta: ${paiAntigo} → ${paiNovo}`, user.id);
+
+  revalidatePath("/");
+  revalidatePath(`/dispositivo/${provisionId}`);
+  revalidatePath("/renumeracao");
+  revalidatePath("/revisao");
+  revalidatePath("/consolidado");
+  await publishRealtime({ entity: "provision_placement", id: provisionId, action: "movido" });
+  return { ok: true, message: `${provisionLabel(prov)} movido na estrutura da proposta.` };
 }
 
 export async function deleteProvision(provisionId: string): Promise<ActionState> {

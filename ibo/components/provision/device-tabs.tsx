@@ -43,6 +43,8 @@ interface Props {
   id: string;
   prov: {
     type: string;
+    numero: string | null;
+    titulo: string | null;
     origem: string;
     alteracao_tipo: string;
     status: string;
@@ -103,6 +105,8 @@ export function DeviceTabs(props: Props) {
             <NewProvisionForm parentId={id} parentType={prov.type} canEdit={canManage} />
             <ProvisionAdminActions
               provisionId={id}
+              numero={prov.numero}
+              titulo={prov.titulo}
               origem={prov.origem}
               childCount={props.directChildren}
               canEdit={canManage}

@@ -58,6 +58,20 @@ CREATE TABLE IF NOT EXISTS provisions (
 );
 CREATE INDEX IF NOT EXISTS idx_provisions_parent ON provisions(parent_id);
 CREATE INDEX IF NOT EXISTS idx_provisions_ordem ON provisions(ordem);
+CREATE TABLE IF NOT EXISTS provision_placements (
+  id BIGSERIAL PRIMARY KEY,
+  provision_id TEXT NOT NULL REFERENCES provisions(id) ON DELETE CASCADE,
+  version_key TEXT NOT NULL CHECK (version_key IN ('vigente','proposta','consolidada')),
+  parent_id TEXT REFERENCES provisions(id) ON DELETE SET NULL,
+  numero TEXT,
+  titulo TEXT,
+  ordem_pai INTEGER NOT NULL DEFAULT 0,
+  updated_at TEXT NOT NULL DEFAULT (to_char(now(), 'YYYY-MM-DD HH24:MI:SS')),
+  updated_by INTEGER REFERENCES users(id),
+  UNIQUE (version_key, provision_id)
+);
+CREATE INDEX IF NOT EXISTS idx_provision_placements_version_parent
+  ON provision_placements(version_key, parent_id, ordem_pai);
 CREATE TABLE IF NOT EXISTS provision_versions (
   id BIGSERIAL PRIMARY KEY,
   provision_id TEXT NOT NULL REFERENCES provisions(id) ON DELETE CASCADE,
@@ -204,7 +218,7 @@ CREATE TABLE IF NOT EXISTS personal_notes (
 `;
 
 const TABLES = [
-  "users", "provisions", "provision_versions", "suggestions", "comments",
+  "users", "provisions", "provision_placements", "provision_versions", "suggestions", "comments",
   "pending_issues", "references_tb", "provision_relations", "votes",
   "meetings", "meeting_members", "meeting_events", "meeting_decisions",
   "minutes", "minutes_reviews", "minutes_retifications", "audit_logs",

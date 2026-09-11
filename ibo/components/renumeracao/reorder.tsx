@@ -8,13 +8,14 @@ import { Button } from "@/components/ui/button";
 import { FieldHelper } from "@/components/field-helper";
 import { NovoBadge } from "@/components/status-badge";
 import { provisionLabel } from "@/lib/provision-label";
-import { moveProvision } from "@/app/actions/provision";
+import { moveProposalProvision, moveProvision } from "@/app/actions/provision";
 import { HIERARQUIA } from "@/lib/reorder-core";
 import type { TreeNode } from "@/lib/data";
 import type { ProvisionType } from "@/lib/types";
 
 interface Props {
   nodes: TreeNode[];
+  mode?: "vigente" | "proposta";
 }
 
 interface Container {
@@ -34,7 +35,7 @@ interface Movivel {
  * (parent_id/ordem_pai), com auditoria e evento de reunião. Textos nunca são
  * alterados; a numeração é reaplicada em "Aplicar numeração".
  */
-export function Reorder({ nodes }: Props) {
+export function Reorder({ nodes, mode = "vigente" }: Props) {
   const router = useRouter();
 
   const { moviveis, containers, parentLabel, irmãosDe } = useMemo(() => {
@@ -110,7 +111,9 @@ export function Reorder({ nodes }: Props) {
   async function confirmar() {
     if (!openId) return;
     setPending(true);
-    const res = await moveProvision(openId, destinoId, posicao === "" ? null : posicao);
+    const res = mode === "proposta"
+      ? await moveProposalProvision(openId, destinoId, posicao === "" ? null : posicao)
+      : await moveProvision(openId, destinoId, posicao === "" ? null : posicao);
     setPending(false);
     if (res.error) {
       toast.error(res.error);
@@ -129,15 +132,19 @@ export function Reorder({ nodes }: Props) {
             <FolderTree className="h-4 w-4" />
           </div>
           <div>
-            <h3 className="text-sm font-semibold">Reordenação física (PRD §17 — 2ª etapa)</h3>
+            <h3 className="text-sm font-semibold">
+              {mode === "proposta" ? "Estrutura da proposta" : "Estrutura vigente/de trabalho"}
+            </h3>
             <p className="text-xs text-muted-foreground">
-              Mova artigos entre capítulos/seções ou reordene parágrafos/incisos dentro de um artigo. A mudança grava
-              a posição na árvore com auditoria; depois use o simulador acima e <strong>Aplicar numeração</strong> para renumerar.
+              {mode === "proposta"
+                ? "Mova dispositivos na proposta sem alterar a localização histórica do Estatuto vigente. A mudança é registrada com auditoria."
+                : "Mova artigos entre capítulos/seções ou reordene parágrafos/incisos dentro da estrutura atual. A mudança grava a posição na árvore com auditoria."}
             </p>
           </div>
         </div>
         <FieldHelper>
           Textos nunca são alterados nesta operação. Capítulos permanecem na raiz do documento.
+          {mode === "proposta" && " A numeração da proposta pode ser aplicada pelo simulador acima."}
         </FieldHelper>
       </div>
 

@@ -121,6 +121,8 @@ export function NewProvisionForm({
 
 export function ProvisionAdminActions({
   provisionId,
+  numero,
+  titulo,
   origem,
   childCount,
   canEdit,
@@ -129,6 +131,8 @@ export function ProvisionAdminActions({
   parentType,
 }: {
   provisionId: string;
+  numero?: string | null;
+  titulo?: string | null;
   origem: string;
   childCount: number;
   canEdit: boolean;
@@ -139,7 +143,7 @@ export function ProvisionAdminActions({
   const [editing, setEditing] = useState(false);
   const [pending, setPending] = useState(false);
   const [confirmState, setConfirmState] = useState<ConfirmDialogState | null>(null);
-  const [form, setForm] = useState({ numero: "", titulo: "", posicaoSugerida: "", type: "" });
+  const [form, setForm] = useState({ numero: numero ?? "", titulo: titulo ?? "", posicaoSugerida: "", type: "" });
   const router = useRouter();
 
   const tiposValidos = useMemo(() => {
@@ -237,7 +241,7 @@ export function ProvisionAdminActions({
         </div>
       )}
       <div className="flex flex-wrap gap-2">
-        <Button size="sm" variant="outline" onClick={() => { setForm({ numero: "", titulo: "", posicaoSugerida: "", type: "" }); setEditing(!editing); }}>
+        <Button size="sm" variant="outline" onClick={() => { setForm({ numero: numero ?? "", titulo: titulo ?? "", posicaoSugerida: "", type: "" }); setEditing(!editing); }}>
           {editing ? "Fechar edição" : "Editar dispositivo"}
         </Button>
         {origem !== "original" && (
