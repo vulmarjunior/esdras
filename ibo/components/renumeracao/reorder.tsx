@@ -6,7 +6,7 @@ import { toast } from "sonner";
 import { FolderTree, MoveRight, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { FieldHelper } from "@/components/field-helper";
-import { NovoBadge } from "@/components/status-badge";
+import { ApprovedBadge, NovoBadge } from "@/components/status-badge";
 import { provisionLabel } from "@/lib/provision-label";
 import { moveProposalProvision, moveProvision } from "@/app/actions/provision";
 import { HIERARQUIA } from "@/lib/reorder-core";
@@ -162,6 +162,7 @@ export function Reorder({ nodes, mode = "vigente" }: Props) {
                 <span className="flex items-center gap-1.5 text-sm font-medium">
                   {provisionLabel(node)}
                   {node.origem === "novo" && <NovoBadge />}
+                  {node.status === "aprovado" && <ApprovedBadge />}
                 </span>
                 <span className="text-xs text-muted-foreground">{parentLabel(parentId)}</span>
                 <div className="w-16 text-right">

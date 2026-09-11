@@ -1,6 +1,6 @@
 import { cn } from "@/lib/utils";
 import { STATUS_LABELS } from "@/lib/labels";
-import { StickyNote } from "lucide-react";
+import { CheckCircle2, StickyNote } from "lucide-react";
 
 export const STATUS_COLORS: Record<string, string> = {
   nao_iniciado: "border-border bg-muted text-muted-foreground",
@@ -84,6 +84,22 @@ export function NotedBadge({ className }: { className?: string }) {
     >
       <StickyNote className="h-3 w-3" />
       nota
+    </span>
+  );
+}
+
+/** Marca compacta de dispositivo aprovado pela comissão. */
+export function ApprovedBadge({ className }: { className?: string }) {
+  return (
+    <span
+      title="Dispositivo aprovado pela comissão; redação consolidada congelada"
+      className={cn(
+        "inline-flex h-4 shrink-0 items-center gap-0.5 rounded-full border border-emerald-300 bg-emerald-50 px-1.5 text-[10px] font-bold uppercase tracking-wide text-emerald-700 dark:border-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-300",
+        className
+      )}
+    >
+      <CheckCircle2 className="h-3 w-3" aria-hidden="true" />
+      aprovado
     </span>
   );
 }

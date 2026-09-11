@@ -3,7 +3,7 @@ import Link from "next/link";
 import { getSessionUser } from "@/lib/auth";
 import { getTree, provisionLabel } from "@/lib/data";
 import type { TreeNode } from "@/lib/data";
-import { NovoBadge } from "@/components/status-badge";
+import { ApprovedBadge, NovoBadge } from "@/components/status-badge";
 import { RichTextContent } from "@/components/rich-text-content";
 
 export const dynamic = "force-dynamic";
@@ -74,9 +74,7 @@ function ChapterView({ node, depth = 0 }: { node: TreeNode; depth?: number }) {
           {node.origem === "novo" && <NovoBadge />}
         </h3>
         {approved && (
-          <span className="inline-flex items-center gap-1 rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-[11px] font-medium text-emerald-700 dark:border-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-300">
-            <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" /> aprovado
-          </span>
+          <ApprovedBadge className="h-5 px-2 text-[11px]" />
         )}
       </div>
       {approved && text && (
