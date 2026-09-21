@@ -207,6 +207,34 @@ CREATE TABLE IF NOT EXISTS personal_notes (
   UNIQUE (provision_id, user_id)
 );
 
+-- Biblioteca de literatura de consulta (livros doutrinários). O conteúdo é
+-- importado pelo Admin (MD/TXT/EPUB) e dividido em seções; `busca` guarda o
+-- texto normalizado (sem acentos) para a busca e a recuperação por IA.
+CREATE TABLE IF NOT EXISTS library_books (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  titulo TEXT NOT NULL,
+  autor TEXT,
+  ano INTEGER,
+  fonte TEXT,
+  resumo TEXT NOT NULL DEFAULT '',
+  ordem INTEGER NOT NULL DEFAULT 0,
+  created_by INTEGER REFERENCES users(id),
+  created_at TEXT NOT NULL DEFAULT (datetime('now')),
+  updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
+CREATE TABLE IF NOT EXISTS library_sections (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  book_id INTEGER NOT NULL REFERENCES library_books(id) ON DELETE CASCADE,
+  ordem_pai INTEGER NOT NULL DEFAULT 0,
+  titulo TEXT NOT NULL,
+  conteudo TEXT NOT NULL,
+  busca TEXT NOT NULL DEFAULT '',
+  created_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
+CREATE INDEX IF NOT EXISTS idx_library_sections_book ON library_sections(book_id, ordem_pai);
+
 CREATE TABLE IF NOT EXISTS audit_logs (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   user_id INTEGER REFERENCES users(id),

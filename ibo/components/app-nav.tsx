@@ -19,9 +19,11 @@ import {
   ShieldAlert,
   BookOpenText,
   BookMarked,
+  Library,
   ChevronDown,
   Layers,
   CircleHelp,
+  ArrowLeftRight,
 } from "lucide-react";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger, SheetClose } from "@/components/ui/sheet";
 import {
@@ -57,10 +59,11 @@ const NAV_TEMAS: NavTema[] = [
     icon: Layers,
     itens: [
       { href: "/revisao", label: "Estatuto em revisão", icon: BookOpenText },
+      { href: "/consolidado", label: "Em construção", icon: ScrollText },
+      { href: "/comparativo", label: "Comparativo", icon: ArrowLeftRight },
       { href: "/pendentes", label: "Pendências", icon: CircleAlert },
       { href: "/renumeracao", label: "Renumeração", icon: ListOrdered },
       { href: "/coerencia", label: "Coerência", icon: ShieldAlert },
-      { href: "/consolidado", label: "Consolidado", icon: ScrollText },
     ],
   },
   {
@@ -80,6 +83,7 @@ const NAV_TEMAS: NavTema[] = [
       { href: "/manual", label: "Manual de utilização", icon: CircleHelp },
       { href: "/guia-redacao", label: "Guia de redação", icon: BookOpenText },
       { href: "/documentos", label: "Documentos", icon: BookMarked },
+      { href: "/literatura", label: "Literatura de consulta", icon: Library },
     ],
   },
   {

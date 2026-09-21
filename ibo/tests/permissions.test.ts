@@ -11,6 +11,9 @@ describe("perfis (PRD §4 / AGENTS.md)", () => {
   it("coordenador não tem permissões exclusivas do admin", () => {
     expect(temPermissao("coordenador", "gerenciar_usuarios")).toBe(false);
     expect(temPermissao("coordenador", "corrigir_extracao")).toBe(false);
+    expect(temPermissao("coordenador", "gerenciar_biblioteca")).toBe(false);
+    expect(temPermissao("membro", "gerenciar_biblioteca")).toBe(false);
+    expect(temPermissao("admin", "gerenciar_biblioteca")).toBe(true);
   });
 
   it("coordenador gerencia redação, status, dispositivos, reuniões e renumeração", () => {

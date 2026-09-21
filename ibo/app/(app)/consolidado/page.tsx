@@ -1,95 +1,104 @@
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { getSessionUser } from "@/lib/auth";
-import { getTree, provisionLabel } from "@/lib/data";
-import type { TreeNode } from "@/lib/data";
-import { ApprovedBadge, NovoBadge } from "@/components/status-badge";
-import { RichTextContent } from "@/components/rich-text-content";
+import { getProposalTree, getNumerosArmazenados, provisionLabel, type TreeNode } from "@/lib/data";
+import { numeracaoDesatualizada, numerarArvore } from "@/lib/numeracao";
+import { EstatutoView, type ItemEstatuto } from "@/components/consolidado/estatuto-view";
+import { cn } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
 
-export default async function ConsolidatedPage() {
+function flattenItens(tree: TreeNode[], vigentes: Map<string, string>): ItemEstatuto[] {
+  const itens: ItemEstatuto[] = [];
+  const walk = (nodes: TreeNode[], depth: number, chapter: TreeNode | null) => {
+    for (const n of nodes) {
+      const cap = n.type === "capitulo" ? n : chapter;
+      itens.push({
+        id: n.id,
+        type: n.type,
+        numero: n.numero,
+        numeroVigente: vigentes.get(n.id) ?? null,
+        titulo: n.titulo,
+        status: n.status,
+        origem: n.origem,
+        alteracaoTipo: n.alteracao_tipo,
+        texto: n.redacao_consolidada || n.redacao_trabalho || n.proposta_inicial || n.texto_vigente || "",
+        depth,
+        chapterId: cap?.id ?? n.id,
+        chapterLabel: cap ? provisionLabel(cap) : "",
+        chapterTitulo: cap?.titulo ?? null,
+        chapterNumeroVigente: cap ? vigentes.get(cap.id) ?? null : null,
+      });
+      walk(n.children, depth + 1, cap);
+    }
+  };
+  walk(tree, 0, null);
+  return itens;
+}
+
+export default async function ConsolidatedPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ modo?: string }>;
+}) {
   const user = await getSessionUser();
   if (!user) redirect("/login");
 
-  const tree = await getTree();
-  const approvedCount = countApproved(tree);
+  const { modo: modoParam } = await searchParams;
+  const modo = modoParam === "aprovados" ? "aprovados" : "construcao";
+
+  // Ordem e numeração da proposta (o documento final da reforma).
+  const tree = await getProposalTree();
+  const vigentes = await getNumerosArmazenados("vigente");
+  const itens = flattenItens(tree, vigentes);
+  const divergentes = numeracaoDesatualizada(
+    new Map(itens.map((i) => [i.id, i.numero])),
+    numerarArvore(tree)
+  ).length;
 
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="text-2xl font-semibold tracking-tight">Estatuto consolidado</h2>
+        <h2 className="text-2xl font-semibold tracking-tight">Estatuto em construção</h2>
         <p className="text-sm text-muted-foreground">
-          Exibe exclusivamente os dispositivos aprovados, na ordem final. {approvedCount} dispositivo(s) aprovado(s).
+          O novo Estatuto sendo montado: ordem e numeração da proposta, textos atuais, dispositivos novos e revogados.
         </p>
-        <Link href="/revisao" className="mt-2 inline-block text-sm text-primary underline underline-offset-4">
+        <div className="mt-3 inline-flex items-center rounded-full border bg-background p-0.5">
+          <Link
+            href="/consolidado"
+            className={cn(
+              "rounded-full px-3 py-1 text-xs font-medium transition-colors",
+              modo === "construcao" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-muted"
+            )}
+          >
+            Em construção
+          </Link>
+          <Link
+            href="/consolidado?modo=aprovados"
+            className={cn(
+              "rounded-full px-3 py-1 text-xs font-medium transition-colors",
+              modo === "aprovados" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-muted"
+            )}
+          >
+            Somente aprovados
+          </Link>
+        </div>
+        <Link href="/revisao" className="ml-3 inline-block text-sm text-primary underline underline-offset-4">
           Comparar o Estatuto inteiro, incluindo os textos em revisão
         </Link>
-      </div>
-
-      {approvedCount === 0 ? (
-        <p className="text-sm text-muted-foreground">
-          Nenhum dispositivo aprovado ainda. Aprove dispositivos na tela de análise para compor o Estatuto consolidado.
-        </p>
-      ) : (
-        <div className="rounded-xl border bg-card">
-          {tree.map((chapter) => (
-            <ChapterView key={chapter.id} node={chapter} />
-          ))}
-        </div>
-      )}
-    </div>
-  );
-}
-
-function countApproved(nodes: TreeNode[]): number {
-  let c = 0;
-  for (const n of nodes) {
-    if (n.status === "aprovado") c++;
-    c += countApproved(n.children);
-  }
-  return c;
-}
-
-function ChapterView({ node, depth = 0 }: { node: TreeNode; depth?: number }) {
-  const approved = node.status === "aprovado";
-  const childrenApproved = node.children.filter((c) => c.status === "aprovado" || hasApproved(c));
-
-  if (!approved && childrenApproved.length === 0) return null;
-
-  const label = provisionLabel(node);
-  const text = approved
-    ? node.redacao_consolidada || node.redacao_trabalho || node.texto_vigente
-    : "";
-
-  return (
-    <section className={depth === 0 ? "border-b" : "border-t"}>
-      <div
-        className="flex flex-wrap items-center justify-between gap-2 border-l-2 border-primary/40 px-4 py-2"
-        style={{ paddingLeft: `${16 + depth * 20}px` }}
-      >
-        <h3 className="flex flex-wrap items-center gap-1.5 font-semibold leading-tight">
-          {label}
-          {node.titulo ? ` — ${node.titulo}` : ""}
-          {node.origem === "novo" && <NovoBadge />}
-        </h3>
-        {approved && (
-          <ApprovedBadge className="h-5 px-2 text-[11px]" />
+        {divergentes > 0 && (
+          <p className="mt-2 rounded-lg border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-200">
+            A numeração da proposta ainda diverge da ordem atual em {divergentes} dispositivo(s). Antes de usar este
+            documento, reordene e aplique a numeração em{" "}
+            <Link href="/renumeracao" className="underline">
+              Renumeração
+            </Link>
+            .
+          </p>
         )}
       </div>
-      {approved && text && (
-        <div style={{ paddingLeft: `${16 + depth * 20}px` }}>
-          <RichTextContent text={text} className="px-4 pb-3" />
-        </div>
-      )}
-      {node.children.map((c) => (
-        <ChapterView key={c.id} node={c} depth={depth + 1} />
-      ))}
-    </section>
-  );
-}
 
-function hasApproved(node: TreeNode): boolean {
-  if (node.status === "aprovado") return true;
-  return node.children.some(hasApproved);
+      <EstatutoView itens={itens} modo={modo} />
+    </div>
+  );
 }

@@ -1,8 +1,20 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { getSessionUser } from "@/lib/auth";
-import { getProposalTree, getProvision, getTree, getVigenteTree, provisionLabel, parentChain, getPersonalNoteIds } from "@/lib/data";
+import {
+  getProposalTree,
+  getProvision,
+  getTree,
+  getVigenteTree,
+  getProvisionPlacement,
+  provisionLabel,
+  parentChain,
+  getPersonalNoteIds,
+} from "@/lib/data";
 import type { TreeNode } from "@/lib/data";
+import { numerarArvore, aplicarNumeracao, numeracaoDesatualizada, numerosDaArvore, normalizarNumero } from "@/lib/numeracao";
+import { getVersaoTrabalho } from "@/lib/versao";
+import { getReferenciasDoDispositivo } from "@/lib/referencias";
 import { all, get } from "@/lib/db";
 import {
   PROVISION_TYPE_LABELS,
@@ -34,15 +46,40 @@ export default async function DevicePage({ params }: { params: Promise<{ id: str
   const canFixExtraction = user.role === "admin";
 
   const chain = await parentChain(id);
+  const versao = await getVersaoTrabalho();
   const tree = await getTree();
   const proposalTree = await getProposalTree();
-  const proposalNode = findNode(proposalTree, id);
-  const proposalChain = proposalNode ? nodeChain(proposalTree, id) : [];
+  // Números do documento original (armazenados) × derivados da ordem atual.
+  const numerosPropostaDerivados = numerarArvore(proposalTree);
+  const proposalTreeNumerada = aplicarNumeracao(proposalTree, numerosPropostaDerivados);
+  const numerosPropostaDocumento = numerosDaArvore(proposalTree);
+  const proposalNodeDocumento = findNode(proposalTree, id);
+  const proposalChainDocumento = proposalNodeDocumento ? nodeChain(proposalTree, id) : [];
+  const proposalNodeOrdem = findNode(proposalTreeNumerada, id);
+  const proposalChainOrdem = proposalNodeOrdem ? nodeChain(proposalTreeNumerada, id) : [];
   const vigenteTree = await getVigenteTree();
   const vigenteNode = findNode(vigenteTree, id);
   const vigenteChain = vigenteNode ? nodeChain(vigenteTree, id) : chain;
+  const placementProposta = await getProvisionPlacement(id, "proposta");
+  const numeracaoPropostaDesatualizada = numeracaoDesatualizada(
+    new Map([[id, placementProposta?.numero ?? null]]),
+    numerosPropostaDerivados
+  ).length > 0;
+  const navTree = versao === "proposta" ? proposalTree : tree;
+  const numerosVigentes = numerosDaArvore(vigenteTree);
+  const navNumeros = versao === "proposta" ? numerosPropostaDocumento : numerosVigentes;
+  const navContraparte = versao === "proposta" ? numerosVigentes : numerosPropostaDocumento;
+  const navSugeridos = versao === "proposta" ? numerosPropostaDerivados : new Map<string, string>();
   const devices = flattenDevices(tree);
   const notedIds = await getPersonalNoteIds(user.id);
+  const referenciasAfetadas = (await getReferenciasDoDispositivo(id)).map((r) => ({
+    campo: r.campo,
+    numeroAntigo: r.numeroAntigo,
+    numeroNovo: r.numeroNovo,
+    alvoLabel: r.alvoLabel,
+    trecho: r.trecho,
+    origem: r.origem,
+  }));
 
   const suggestions = await all<Suggestion>(`
     SELECT s.*, u.name AS author_name FROM suggestions s
@@ -108,16 +145,36 @@ export default async function DevicePage({ params }: { params: Promise<{ id: str
             Navegação estrutural
           </summary>
           <div className="max-h-[60vh] overflow-auto border-t p-2">
-            <StructuralNav nodes={tree} activeId={id} notedIds={notedIds} />
+            <StructuralNav
+              nodes={navTree}
+              activeId={id}
+              notedIds={notedIds}
+              versao={versao}
+              numeros={Object.fromEntries(navNumeros)}
+              contraparte={Object.fromEntries(navContraparte)}
+              sugeridos={Object.fromEntries(navSugeridos)}
+            />
           </div>
         </details>
         <div className="hidden lg:block">
           <Card>
             <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium">Navegação estrutural</CardTitle>
+              <CardTitle className="flex items-center justify-between gap-2 text-sm font-medium">
+                Navegação estrutural
+                <span className="text-[10px] font-normal uppercase tracking-wide text-muted-foreground">
+                  {versao === "proposta" ? "proposta" : "vigente"}
+                </span>
+              </CardTitle>
             </CardHeader>
             <CardContent className="max-h-[70vh] overflow-auto pr-1">
-              <StructuralNav nodes={tree} activeId={id} notedIds={notedIds} />
+              <StructuralNav
+                nodes={navTree}
+                activeId={id}
+                notedIds={notedIds}
+                versao={versao}
+                numeros={Object.fromEntries(navNumeros)}
+                contraparte={Object.fromEntries(navContraparte)}
+              />
             </CardContent>
           </Card>
         </div>
@@ -158,7 +215,7 @@ export default async function DevicePage({ params }: { params: Promise<{ id: str
           </div>
         </div>
 
-        {proposalNode && (
+        {proposalNodeDocumento && (
           <Card className="mt-4 border-amber-300/70 bg-amber-50/40 dark:border-amber-700/60 dark:bg-amber-950/20">
             <CardHeader className="pb-2">
               <CardTitle className="text-sm">Localização nas versões</CardTitle>
@@ -169,16 +226,43 @@ export default async function DevicePage({ params }: { params: Promise<{ id: str
                 <span>{vigenteNode ? vigenteChain.map((c) => provisionLabel(c)).concat(provisionLabel(vigenteNode)).join(" / ") : "Não existe no Estatuto vigente"}</span>
               </div>
               <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
-                <span className="w-28 shrink-0 text-xs font-medium uppercase tracking-wide text-amber-700 dark:text-amber-300">Proposta</span>
-                <span>{proposalChain.map((c) => provisionLabel(c)).concat(provisionLabel(proposalNode)).join(" / ")}</span>
+                <span className="w-28 shrink-0 text-xs font-medium uppercase tracking-wide text-amber-700 dark:text-amber-300">
+                  Proposta (documento)
+                </span>
+                <span>
+                  {proposalChainDocumento
+                    .map((c) => provisionLabel(c))
+                    .concat(proposalNodeDocumento ? [provisionLabel(proposalNodeDocumento)] : [])
+                    .join(" / ")}
+                </span>
                 {!vigenteNode ? (
                   <Badge className="bg-amber-600 text-white hover:bg-amber-600">novo na proposta</Badge>
-                ) : (proposalNode.parent_id !== vigenteNode.parent_id || proposalNode.numero !== vigenteNode.numero) ? (
+                ) : proposalNodeDocumento &&
+                  (proposalNodeDocumento.parent_id !== vigenteNode.parent_id ||
+                    normalizarNumero(proposalNodeDocumento.numero) !== normalizarNumero(vigenteNode.numero)) ? (
                   <Badge className="bg-amber-600 text-white hover:bg-amber-600">movido/renumerado</Badge>
                 ) : null}
               </div>
+              <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
+                <span className="w-28 shrink-0 text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                  Ordem atual
+                </span>
+                <span className="text-muted-foreground">
+                  {proposalChainOrdem
+                    .map((c) => provisionLabel(c))
+                    .concat(proposalNodeOrdem ? [provisionLabel(proposalNodeOrdem)] : [])
+                    .join(" / ")}
+                </span>
+                {numeracaoPropostaDesatualizada && (
+                  <Badge variant="outline" className="border-red-300 text-red-700 dark:border-red-800 dark:text-red-300">
+                    ordem divergente do documento — reordene em Renumeração
+                  </Badge>
+                )}
+              </div>
               <p className="text-xs text-muted-foreground">
-                A proposta possui localização e numeração próprias. O identificador interno deste dispositivo permanece o mesmo para preservar o histórico.
+                O número da proposta vem do documento original importado; a &quot;ordem atual&quot; mostra o número sugerido
+                pela posição no sistema (divergências indicam que a ordem ainda não reflete o documento). O identificador
+                interno deste dispositivo permanece o mesmo para preservar o histórico.
               </p>
             </CardContent>
           </Card>
@@ -218,6 +302,7 @@ export default async function DevicePage({ params }: { params: Promise<{ id: str
           myVote={myVote?.opinion ?? null}
           votedCount={votedCount}
           personalNote={personalNote}
+          referenciasAfetadas={referenciasAfetadas}
         />
       </div>
     </div>

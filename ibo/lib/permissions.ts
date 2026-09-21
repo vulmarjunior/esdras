@@ -18,7 +18,8 @@ export type Permissao =
   | "vincular_dispositivos"
   | "gerenciar_reunioes"
   | "renumerar"
-  | "revisar_ata";
+  | "revisar_ata"
+  | "gerenciar_biblioteca";
 
 export const PERMISSOES: Record<Permissao, Role[]> = {
   gerenciar_usuarios: ["admin"],
@@ -34,6 +35,7 @@ export const PERMISSOES: Record<Permissao, Role[]> = {
   gerenciar_reunioes: ["coordenador", "admin"],
   renumerar: ["coordenador", "admin"],
   revisar_ata: ["coordenador", "admin", "membro"],
+  gerenciar_biblioteca: ["admin"],
 };
 
 /** Roles autorizados para uma permissão (cópia defensiva). */

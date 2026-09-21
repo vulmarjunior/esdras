@@ -7,8 +7,9 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { FieldHelper } from "@/components/field-helper";
 import { RichTextContent } from "@/components/rich-text-content";
 import { REFERENCE_TYPE_LABELS } from "@/lib/labels";
-import { WorkingTextEditor } from "@/components/provision/working-text-editor";
+import { DraftComparison } from "@/components/provision/draft-comparison";
 import { PersonalNoteForm } from "@/components/provision/personal-note-form";
+import { ReferenceFixer, type ReferenciaAfetadaItem } from "@/components/provision/reference-fixer";
 import {
   StatusControl,
   SuggestionForm,
@@ -20,7 +21,6 @@ import {
   ReferenceForm,
   VoteButtons,
   JustificativaEditor,
-  HistoricalTextEditor,
   NewProvisionForm,
   ProvisionAdminActions,
   RelationForm,
@@ -73,6 +73,7 @@ interface Props {
   myVote: string | null;
   votedCount: number;
   personalNote: string;
+  referenciasAfetadas: ReferenciaAfetadaItem[];
 }
 
 function NumBadge({ n, className }: { n: string; className?: string }) {
@@ -153,52 +154,20 @@ export function DeviceTabs(props: Props) {
           </CardContent>
         </Card>
 
-        <Card className="border-slate-300/70 bg-slate-100/50 dark:border-slate-700/60 dark:bg-slate-900/30">
-          <CardHeader className="pb-2">
-            <CardTitle className="flex flex-wrap items-center gap-2 text-base">
-              <NumBadge n="1" className="bg-slate-400 text-white" />
-              Texto vigente
-              <Badge variant="outline" className="text-[10px] text-slate-500">documento histórico — não editável</Badge>
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-2">
-            <HistoricalTextEditor
-              provisionId={id}
-              campo="texto_vigente"
-              texto={prov.texto_vigente}
-              canEdit={canFixExtraction}
-              emptyLabel="Não existe no estatuto registrado."
-            />
-            <FieldHelper>É o texto atual do Estatuto registrado — apenas referência. Não precisa de ação.</FieldHelper>
-          </CardContent>
-        </Card>
-
-        <Card className="border-amber-300/70 bg-amber-50/40 dark:border-amber-700/60 dark:bg-amber-950/20">
-          <CardHeader className="pb-2">
-            <CardTitle className="flex flex-wrap items-center gap-2 text-base">
-              <NumBadge n="2" className="bg-amber-500 text-white" />
-              Proposta inicial
-              <Badge variant="outline" className="border-amber-200 bg-amber-100/60 text-[10px] text-amber-700 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-300">
-                preliminar — ponto de partida
-              </Badge>
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-2">
-            <HistoricalTextEditor
-              provisionId={id}
-              campo="proposta_inicial"
-              texto={prov.proposta_inicial}
-              canEdit={canFixExtraction}
-              emptyLabel="Sem alteração proposta (manter redação)."
-            />
-            <FieldHelper>Ponto de partida da reforma. Edite aqui o texto proposto — use negrito ou destaque para marcar o que muda.</FieldHelper>
-          </CardContent>
-        </Card>
+        <DraftComparison
+          id={id}
+          textoVigente={prov.texto_vigente}
+          propostaInicial={prov.proposta_inicial}
+          redacaoTrabalho={prov.redacao_trabalho}
+          versao={prov.version}
+          canEditWork={canEditWork}
+          canFixExtraction={canFixExtraction}
+        />
 
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="flex items-center gap-2 text-base">
-              <NumBadge n="3" className="bg-muted text-muted-foreground" />
+              <NumBadge n="2" className="bg-muted text-muted-foreground" />
               Justificativa
             </CardTitle>
           </CardHeader>
@@ -208,32 +177,16 @@ export function DeviceTabs(props: Props) {
           </CardContent>
         </Card>
 
-        <Card className="border-blue-300/70 bg-blue-50/40 dark:border-blue-700/60 dark:bg-blue-950/20">
-          <CardHeader className="pb-2">
-            <CardTitle className="flex flex-wrap items-center gap-2 text-base">
-              <NumBadge n="4" className="bg-primary text-primary-foreground" />
-              Redação de trabalho
-              <Badge variant="outline" className="border-blue-200 bg-blue-100/60 text-[10px] text-blue-700 dark:border-blue-800 dark:bg-blue-950/40 dark:text-blue-300">
-                versão atual da comissão
-              </Badge>
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-2">
-            <WorkingTextEditor
-              provisionId={id}
-              initialText={prov.redacao_trabalho}
-              version={prov.version}
-              canEdit={canEditWork}
-              compararTexto={prov.texto_vigente}
-            />
-            <FieldHelper>Redação que a comissão está trabalhando. Cada salvar cria nova versão no histórico.</FieldHelper>
-          </CardContent>
-        </Card>
+        <ReferenceFixer
+          provisionId={id}
+          itens={props.referenciasAfetadas}
+          canEdit={canEditWork || canFixExtraction}
+        />
 
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="flex items-center gap-2 text-base">
-              <NumBadge n="5" className="bg-muted text-muted-foreground" />
+              <NumBadge n="3" className="bg-muted text-muted-foreground" />
               Opinião consultiva
             </CardTitle>
           </CardHeader>
@@ -255,7 +208,7 @@ export function DeviceTabs(props: Props) {
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="flex items-center gap-2 text-base">
-              <NumBadge n="6" className="bg-muted text-muted-foreground" />
+              <NumBadge n="4" className="bg-muted text-muted-foreground" />
               Dispositivos relacionados
             </CardTitle>
           </CardHeader>
@@ -268,7 +221,7 @@ export function DeviceTabs(props: Props) {
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="flex items-center gap-2 text-base">
-              <NumBadge n="7" className="bg-muted text-muted-foreground" />
+              <NumBadge n="5" className="bg-muted text-muted-foreground" />
               Fundamentação
             </CardTitle>
           </CardHeader>

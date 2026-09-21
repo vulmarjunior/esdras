@@ -1,5 +1,5 @@
 import { get, all } from "./db";
-import type { DocumentVersion, Provision, ProvisionPlacement, ProvisionStatus } from "./types";
+import type { DocumentVersion, Provision, ProvisionPlacement, ProvisionStatus, VersaoTrabalho } from "./types";
 import { ordenarIrmaos } from "./tree-order";
 export { provisionLabel } from "./provision-label";
 
@@ -100,6 +100,23 @@ export async function getVigenteTree(): Promise<TreeNode[]> {
   return buildTree(rows);
 }
 
+/** Árvore da versão de trabalho escolhida (vigente histórica × proposta). */
+export async function getArvoreDaVersao(versao: VersaoTrabalho): Promise<TreeNode[]> {
+  return versao === "proposta" ? getProposalTree() : getTree();
+}
+
+/** Números armazenados por dispositivo: vigente (`provisions.numero`) × proposta (placements). */
+export async function getNumerosArmazenados(versao: VersaoTrabalho): Promise<Map<string, string>> {
+  if (versao === "vigente") {
+    const rows = await all<{ id: string; numero: string | null }>("SELECT id, numero FROM provisions");
+    return new Map(rows.filter((r) => r.numero).map((r) => [r.id, r.numero!]));
+  }
+  const rows = await all<{ provision_id: string; numero: string | null }>(
+    "SELECT provision_id, numero FROM provision_placements WHERE version_key = 'proposta'"
+  );
+  return new Map(rows.filter((r) => r.numero).map((r) => [r.provision_id, r.numero!]));
+}
+
 export async function getProvisionPlacement(
   provisionId: string,
   version: DocumentVersion = "proposta"
@@ -138,8 +155,44 @@ export async function getArticleCount(): Promise<number> {
   return (await get<{ c: number }>("SELECT COUNT(*) c FROM provisions WHERE type = 'artigo'"))?.c ?? 0;
 }
 
+/**
+ * Contagem por status no escopo da proposta: exclui dispositivos revogados
+ * (não farão parte do texto final) e inclui os novos.
+ */
+export async function getStatusCountsProposta() {
+  const rows = await all<{ status: ProvisionStatus; c: number }>(
+    "SELECT status, COUNT(*) c FROM provisions WHERE type = 'artigo' AND alteracao_tipo <> 'revogado' GROUP BY status"
+  );
+  const counts: Record<string, number> = {
+    nao_iniciado: 0,
+    em_analise: 0,
+    em_discussao: 0,
+    redacao_definida: 0,
+    aprovado: 0,
+    reaberto: 0,
+  };
+  for (const r of rows) counts[r.status] = r.c;
+  return counts;
+}
+
+export async function getArticleCountProposta(): Promise<number> {
+  return (
+    (await get<{ c: number }>(
+      "SELECT COUNT(*) c FROM provisions WHERE type = 'artigo' AND alteracao_tipo <> 'revogado'"
+    ))?.c ?? 0
+  );
+}
+
 export async function getActiveMeeting() {
   return get<{ id: number }>("SELECT id FROM meetings WHERE status = 'em_andamento' ORDER BY id DESC LIMIT 1");
+}
+
+/** IDs de dispositivos com pendência aberta (para filtros do painel). */
+export async function getIdsComPendenciasAbertas(): Promise<string[]> {
+  const rows = await all<{ provision_id: string }>(
+    "SELECT DISTINCT provision_id FROM pending_issues WHERE status = 'aberta' AND provision_id IS NOT NULL"
+  );
+  return rows.map((r) => r.provision_id);
 }
 
 /** IDs dos dispositivos em que o usuário tem anotação pessoal (com conteúdo). */

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { ordinalArtigo, parseNumeroArtigo, renumerar, toRoman } from "../lib/renumeracao-core";
+import { ordinalArtigo, ordenarPorNumeroDocumento, parseNumeroArtigo, renumerar, toRoman } from "../lib/renumeracao-core";
 
 describe("ordinalArtigo", () => {
   it("formata ordinais em português", () => {
@@ -28,6 +28,29 @@ describe("renumerar", () => {
     expect(map.get("a")).toBe("1º");
     expect(map.get("b")).toBe("2º");
     expect(map.get("c")).toBe("3º");
+  });
+});
+
+describe("ordenarPorNumeroDocumento", () => {
+  it("ordena irmãos pela numeração do documento, mantendo empates na ordem atual", () => {
+    const ordenado = ordenarPorNumeroDocumento([
+      { id: "a", numero: "26º", ordem: 0 },
+      { id: "b", numero: "2º", ordem: 1 },
+      { id: "c", numero: "15", ordem: 2 },
+      { id: "d", numero: "15", ordem: 3 },
+      { id: "e", numero: null, ordem: 4 },
+    ]);
+    expect(ordenado.map((x) => x.id)).toEqual(["b", "c", "d", "a", "e"]);
+  });
+
+  it("não cruza pais (recebe apenas os irmãos de um pai)", () => {
+    const grupo1 = ordenarPorNumeroDocumento([
+      { id: "x", numero: "5º", ordem: 1 },
+      { id: "y", numero: "1º", ordem: 0 },
+    ]);
+    const grupo2 = ordenarPorNumeroDocumento([{ id: "z", numero: "2º", ordem: 0 }]);
+    expect(grupo1.map((x) => x.id)).toEqual(["y", "x"]);
+    expect(grupo2.map((x) => x.id)).toEqual(["z"]);
   });
 });
 

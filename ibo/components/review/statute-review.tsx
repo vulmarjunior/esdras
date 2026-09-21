@@ -5,7 +5,10 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { StatusBadge } from "@/components/status-badge";
 import { Button } from "@/components/ui/button";
-import type { DiffPart, ReviewRow } from "@/lib/review-core";
+import { VersionToggle } from "@/components/version-toggle";
+import { ComparedText } from "@/components/review/compared-text";
+import type { ReviewRow } from "@/lib/review-core";
+import type { VersaoTrabalho } from "@/lib/types";
 
 const changeColors = {
   "Não alterado": "border-border bg-muted text-muted-foreground",
@@ -14,16 +17,7 @@ const changeColors = {
   Revogado: "border-red-300 bg-red-50 text-red-900 dark:bg-red-950 dark:text-red-200",
 };
 
-function ComparedText({ parts, side, highlight }: { parts: DiffPart[]; side: "before" | "after"; highlight: boolean }) {
-  return <p className="whitespace-pre-wrap break-words text-sm leading-7">{parts.map((part, i) => {
-    if (!highlight || !part.changed) return <span key={i}>{part.text}</span>;
-    return side === "before"
-      ? <del key={i} className="bg-red-100 text-red-900 decoration-red-600 dark:bg-red-950 dark:text-red-200">{part.text}</del>
-      : <ins key={i} className="bg-emerald-100 text-emerald-900 decoration-emerald-600 dark:bg-emerald-950 dark:text-emerald-200">{part.text}</ins>;
-  })}</p>;
-}
-
-export function StatuteReview({ rows }: { rows: ReviewRow[] }) {
+export function StatuteReview({ rows, versao }: { rows: ReviewRow[]; versao: VersaoTrabalho }) {
   const [query, setQuery] = useState("");
   const [filter, setFilter] = useState("Todos");
   const [chapter, setChapter] = useState("");
@@ -41,8 +35,16 @@ export function StatuteReview({ rows }: { rows: ReviewRow[] }) {
   return <div className="space-y-5">
     <header className="space-y-2">
       <p className="text-xs font-semibold uppercase tracking-wider text-primary">Reforma · leitura comparativa</p>
-      <h2 className="text-2xl font-semibold tracking-tight">Estatuto em revisão</h2>
-      <p className="text-sm text-muted-foreground">O Estatuto registrado e a redação atual, dispositivo por dispositivo, na ordem da reforma.</p>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <h2 className="text-2xl font-semibold tracking-tight">Estatuto em revisão</h2>
+        <VersionToggle versao={versao} />
+      </div>
+      <p className="text-sm text-muted-foreground">
+        O Estatuto registrado e a redação atual, dispositivo por dispositivo,{" "}
+        {versao === "proposta"
+          ? "na ordem e numeração de trabalho da proposta."
+          : "na ordem e numeração históricas do Estatuto registrado."}
+      </p>
       <p className="rounded-lg border border-amber-300 bg-amber-50 p-3 text-sm text-amber-950 dark:bg-amber-950 dark:text-amber-100">Versão em revisão — inclui textos ainda não aprovados. Para consultar apenas as aprovações, abra o <Link className="underline" href="/consolidado">Consolidado</Link>.</p>
     </header>
     <div className="space-y-3 rounded-xl border bg-card p-4">

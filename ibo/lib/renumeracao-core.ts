@@ -40,10 +40,26 @@ export interface ArtigoRenumeravel {
   chapter: string;
 }
 
-export interface ReferenciaDetectada {
-  provisionId: string;
-  provisionLabel: string;
-  campo: string;
-  excerpt: string;
-  numero: number;
+export interface IrmaoNumerado {
+  id: string;
+  numero: string | null;
+  ordem: number;
 }
+
+/**
+ * Ordena irmãos (artigos do mesmo pai) pela numeração do documento original.
+ * Números ausentes vão para o fim, mantendo a ordem atual; empates mantêm a
+ * ordem atual (estável). Não cruza pais.
+ */
+export function ordenarPorNumeroDocumento<T extends IrmaoNumerado>(irmaos: T[]): T[] {
+  return [...irmaos].sort((a, b) => {
+    const na = parseNumeroArtigo(a.numero);
+    const nb = parseNumeroArtigo(b.numero);
+    if (na === null && nb === null) return a.ordem - b.ordem;
+    if (na === null) return 1;
+    if (nb === null) return -1;
+    if (na !== nb) return na - nb;
+    return a.ordem - b.ordem;
+  });
+}
+

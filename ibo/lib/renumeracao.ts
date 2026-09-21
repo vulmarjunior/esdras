@@ -1,14 +1,12 @@
 import { getProposalTree, getTree, provisionLabel, type TreeNode } from "./data";
 import type { DocumentVersion } from "./types";
-import { all } from "./db";
-import { htmlToText } from "./rich-text";
+import { numerarArvore } from "./numeracao";
 export {
   toRoman,
   ordinalArtigo,
   parseNumeroArtigo,
   renumerar,
   type ArtigoRenumeravel,
-  type ReferenciaDetectada,
 } from "./renumeracao-core";
 
 /** Achatamento da árvore: artigos na ordem do documento (ordem_pai/ordem). */
@@ -44,54 +42,61 @@ export async function getArtigosOrdenados(version: DocumentVersion = "proposta")
     n.children.forEach(visit);
   };
   tree.forEach(visit);
-  return flattenArtigos(tree).map((n) => ({
-    id: n.id,
-    numeroAtual: n.numero,
-    label: provisionLabel(n),
-    chapter: chapterFor(n, allNodes),
-  }));
+  return flattenArtigos(tree)
+    .filter((n) => n.alteracao_tipo !== "revogado")
+    .map((n) => ({
+      id: n.id,
+      numeroAtual: n.numero,
+      label: provisionLabel(n),
+      chapter: chapterFor(n, allNodes),
+    }));
 }
 
-const REF_RE = /\b(?:arts?\.?|artigos?)\s+(\d+)\s*(?:º|°)?/gi;
+export interface NumeravelOrdenado {
+  id: string;
+  type: "artigo" | "capitulo";
+  /** Número gravado em `provision_placements` (documento original da proposta). */
+  numeroArmazenado: string | null;
+  /** Número derivado da ordem atual (numeração de trabalho). */
+  derivado: string;
+  /** Rótulo com a numeração de trabalho. */
+  label: string;
+  chapter: string;
+}
 
-/** Detecta menções a números de artigo nos textos dos dispositivos. */
-export async function detectarReferencias() {
-  const rows = await all<{ id: string; numero: string | null; texto_vigente: string; proposta_inicial: string; redacao_trabalho: string; redacao_consolidada: string; justificativa: string }>(`
-    SELECT id, numero, texto_vigente, proposta_inicial, redacao_trabalho, redacao_consolidada, justificativa
-    FROM provisions`);
-  const out: {
-    provisionId: string;
-    provisionLabel: string;
-    campo: string;
-    excerpt: string;
-    numero: number;
-  }[] = [];
-  const campos = [
-    { key: "texto_vigente", label: "Texto vigente" },
-    { key: "proposta_inicial", label: "Proposta inicial" },
-    { key: "redacao_trabalho", label: "Redação de trabalho" },
-    { key: "redacao_consolidada", label: "Redação consolidada" },
-    { key: "justificativa", label: "Justificativa" },
-  ] as const;
-  for (const r of rows) {
-    const label = provisionLabel(r as never);
-    for (const c of campos) {
-      const text = htmlToText(r[c.key]);
-      REF_RE.lastIndex = 0;
-      let m: RegExpExecArray | null;
-      while ((m = REF_RE.exec(text))) {
-        const numero = parseInt(m[1], 10);
-        const start = Math.max(0, m.index - 40);
-        const end = Math.min(text.length, m.index + m[0].length + 40);
-        out.push({
-          provisionId: r.id,
-          provisionLabel: label,
-          campo: c.label,
-          excerpt: text.slice(start, end).trim(),
-          numero,
-        });
+/**
+ * Artigos e capítulos na ordem atual, com a numeração armazenada (documento
+ * original) e a derivada da ordem (numeração de trabalho da proposta).
+ */
+export async function getNumeraveisOrdenados(version: DocumentVersion = "proposta"): Promise<NumeravelOrdenado[]> {
+  const tree = version === "proposta" ? await getProposalTree() : await getTree();
+  const allNodes = new Map<string, TreeNode>();
+  const visit = (n: TreeNode) => {
+    allNodes.set(n.id, n);
+    n.children.forEach(visit);
+  };
+  tree.forEach(visit);
+
+  const derivados = numerarArvore(tree);
+  const out: NumeravelOrdenado[] = [];
+  const walk = (nodes: TreeNode[]) => {
+    for (const n of nodes) {
+      if (n.type === "artigo" || n.type === "capitulo") {
+        const derivado = derivados.get(n.id);
+        if (derivado) {
+          out.push({
+            id: n.id,
+            type: n.type,
+            numeroArmazenado: n.numero,
+            derivado,
+            label: provisionLabel({ ...n, numero: derivado } as never),
+            chapter: chapterFor(n, allNodes),
+          });
+        }
       }
+      walk(n.children);
     }
-  }
+  };
+  walk(tree);
   return out;
 }

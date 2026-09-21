@@ -1,8 +1,8 @@
 # Dev Log — ESDRAS (ibo)
 
 > Documentação viva de descobertas técnicas. Atualizada automaticamente durante o desenvolvimento.
-> **Stack**: Next.js 16.3.4 (App Router, Turbopack, RSC) · React 19 · TypeScript · Tailwind 4 · Supabase Postgres (`pg`) · better-sqlite3 (só scripts) · Groq API · Vitest
-> **Última atualização**: 2026-09-02
+> **Stack**: Next.js 16.3.4 (App Router, Turbopack, RSC) · React 19 · TypeScript · Tailwind 4 · Supabase Postgres (`pg`) · better-sqlite3 (só scripts) · Groq API · Vitest · fflate (EPUB)
+> **Última atualização**: 2026-09-21
 
 ---
 
@@ -48,6 +48,41 @@
 - **Observações**: sanitização server-safe em `lib/rich-text.ts` (allowlist de tags textuais + `background-color`; normaliza `&nbsp;`/espaços/`<br>` nas bordas). HTML armazenado é string TEXT comum.
 
 ### Funcionalidades PRD
+
+#### Rascunho comparativo, Estatuto em construção e Comparativo final
+- **Status**: ✅ Implementado
+- **Data**: 2026-09-21
+- **Contexto**: pedido do usuário — o painel/tela do dispositivo deviam funcionar como área de rascunho com comparativo (vigente × referência × proposta); uma tela separada para ver o novo Estatuto sendo montado (numeração alterada, textos, novos/revogados); e, ao final, um painel comparado.
+- **Solução**: `components/provision/draft-comparison.tsx` (3 colunas na aba Análise + toggle de diff por palavras, com `ComparedText` extraído para `components/review/compared-text.tsx`); `/consolidado` com modos **Em construção** (padrão; `components/consolidado/estatuto-view.tsx`) e **Somente aprovados**; `/comparativo` (novo, menu Reforma) com `lib/comparativo-core.ts` (puro: `textoAtual` + `buildComparativo` com diff, vigente→proposta, justificativa) e `components/comparativo/quadro-comparativo.tsx`; painel com filtro de pendências e atalho do próximo não iniciado.
+- **Observações**: sem migração de banco; `/revisao` mantido com papel próprio (leitura integral); testes Vitest 141.
+
+#### Modo Proposta, numeração derivada e referências assistidas
+- **Status**: ✅ Implementado
+- **Data**: 2026-09-21
+- **Contexto**: o painel mostrava a numeração vigente enquanto a proposta renumera tudo (ex.: art-5 → art. 26º; art-6 → 5º), confundindo o estado do trabalho e forçando renumeração manual nos textos.
+- **Solução**: cookie `esdras_versao` (padrão **proposta**) exibido por um toggle no painel/revisão; `lib/numeracao.ts` deriva artigos 1..N e capítulos em romanos da ordem (revogados não numeram). Na Proposta, o rótulo principal é o **número do documento original** (placements), com chip `era X` (vigente) e aviso `ordem: Y` quando a ordem divergir. `/renumeracao` ganhou **Ordenar pela numeração do documento** (por capítulo), tabela de capítulos e "Aplicar numeração" (artigos+capítulos) que cria **pendências automáticas** para aprovados renumerados; `moveProposalProvision` idem ao mover aprovados. Referências: `lib/referencias-core.ts` (detecção/substituição) + `lib/referencias.ts` (mapa vigente→proposta) + action com versão/auditoria + painel no dispositivo + lista global em `/renumeracao`. `/consolidado` e `/api/export` usam a ordem/numeração da proposta.
+- **Observações**: 136 testes; `texto_vigente` (histórico) e redações copiadas do documento ficam fora do remapeamento de referências.
+
+#### Ambiente de teste local (Docker + cópia do Supabase)
+- **Status**: ✅ Implementado
+- **Data**: 2026-09-21
+- **Contexto**: testar ações de escrita sem tocar no Supabase de produção.
+- **Solução**: `scripts/dev-db.mjs` (container `esdras-pg`, Postgres 17, porta 5433, volume), `scripts/schema-postgres.sql` (DDL completo) e `scripts/copiar-banco.mjs` (copia schema+dados, `--reset`, recusa destino não-local). `.env.development.local` aponta o dev para o banco local e tem **precedência sobre o `.env.local`** (Next), com `NEXT_PUBLIC_SUPABASE_*` vazios para desligar o realtime. `lib/db.ts` desliga SSL em localhost.
+- **Observações**: 1.133 registros copiados; smoke E2E das escritas (atualizar referência) validado no banco de teste.
+
+#### Biblioteca de literatura de consulta (`/literatura`) — Postgres + import MD/TXT/EPUB
+- **Status**: ✅ Implementado
+- **Data**: 2026-09-21
+- **Contexto**: replicar o ambiente de `/documentos` para livros doutrinários, sem ficar preso a arquivos estáticos (acrescentar livros sem editar código).
+- **Solução**: tabelas `library_books`/`library_sections` (coluna `busca` normalizada); `/admin/literatura` importa **.md/.txt/.epub** ou texto colado — o parse roda **no navegador** e a prévia é revisável (renomear/fundir/excluir seções) antes de salvar; `/literatura` lista os livros e `/literatura/[bookId]` tem sumário + busca (server-side, `?q=`/`?secao=`) e conteúdo renderizado no servidor (leve no mobile). IA: `lib/literatura/recuperacao.ts` + `lib/busca.ts` (pontuação compartilhada com as confissões); `action: consulta_doutrinaria` ganhou `fonte: livros|documentos|tudo`. Permissão `gerenciar_biblioteca` (admin); `serverActions.bodySizeLimit` = 6mb (seções em JSON).
+- **Observações**: 6 livros carregados (5 PDFs convertidos + 1 EPUB) via `scripts/import-literatura.mjs`; 120 testes Vitest.
+
+#### Conversão PDF/EPUB → MD limpo (`scripts/pdf-epub-para-md.py`)
+- **Status**: ✅ Confirmado
+- **Data**: 2026-09-21
+- **Contexto**: os PDFs dos livros eram conversões de editoração (texto real, sem OCR), mas com artefatos: títulos quebrados em linhas, `##` em quase toda linha, notas/rodapés, `(cid:2)(cid:3)` de fontes sem ToUnicode.
+- **Solução**: texto vem do **`pdftotext -layout`** (melhor qualidade; resolve cid) e a estrutura vem do **`pdfplumber`** (tamanho/fonte por palavra) — as linhas dos dois são alinhadas por similaridade de tokens (Jaccard ≥ 0.6). Títulos por tamanho/fonte (peso por caractere, não máximo — evita letra capitular virar título), remoção de cabeçalhos/rodapés repetidos e números de página, junção de parágrafos/hifenização, fusão de títulos quebrados (limite 60 chars), descarte de notas de rodapé por tamanho. EPUB: OPF/spine → XHTML → `h1–h6` como seções.
+- **Observações**: 6 arquivos → `../Literatura de consulta/md-limpos/`; `#`/`##` reais por seção alimentam o parser da importação.
 
 #### Tela do dispositivo em abas
 - **Status**: ✅ Implementado
@@ -142,6 +177,30 @@
 
 ## 🔄 Correções de Registro
 
+#### Groq 413 (TPM 8000) nas consultas com contexto grande
+- **Antes**: a consulta doutrinária montava até 6 trechos × 4000 chars por fonte (e 6×4000 + 6×4000 no modo "tudo"), estourando o limite de tokens por minuto do plano gratuito (`Request too large ... Limit 8000, Requested 9924`); a rota falhava sem tentar reduzir e o assistente de ajuda enviava o manual inteiro (~20 mil chars).
+- **Depois**: `lib/ai-budget.ts` (estimativa ~3,5 chars/token, `limitarTexto` preservando início e fim) + orçamento na rota (`GROQ_MAX_INPUT_TOKENS` 4600, `GROQ_MAX_OUTPUT_TOKENS` 2048) + retry com contexto reduzido (100% → 60% → 35%) e fallback de modelo; `reasoning_effort: "low"` nos `gpt-oss`; trechos reduzidos (5×2500; 3×2200 em "tudo") e `formarContextoAjuda(pergunta)` seleciona as seções relevantes do manual. Erros de limite devolvem mensagem orientando a refinar a pergunta.
+- **Data da correção**: 2026-09-21
+- **Motivo**: erro reportado pelo usuário (413 na consulta) + teste E2E das 5 ações de IA.
+
+#### A ordem da proposta no banco não refletia o documento importado
+- **Antes**: `provision_placements` guardava os **números** do documento da proposta (ex.: art-5 = 26º, com a nota "Movido para art. 26, capítulo próprio"), mas a **ordem/parentesco** permanecia a do Estatuto vigente — derivar numeração da ordem reproduzia a numeração vigente.
+- **Depois**: a numeração exibida na Proposta passou a ser a **do documento** (placements), com a derivada como sugestão/aviso; foi criada a ação "Ordenar pela numeração do documento" para materializar a ordem por capítulo. Movimentos entre capítulos (ex.: art-5 → capítulo próprio) seguem manuais.
+- **Data da correção**: 2026-09-21
+- **Motivo**: relato do usuário + conferência no banco (art-5/art-6, capítulos I/II/IV/V/IX/XI/XIII).
+
+#### `getArticleCount` com aspas quebradas (500 no modo Vigente)
+- **Antes**: `"SELECT ... WHERE type = 'artigo"))?.c` — string SQL sem a aspa de fechamento (corrupção introduzida ao editar `lib/data.ts`), erro de sintaxe no Postgres. Passou despercebido porque o painel usava a variante da proposta.
+- **Depois**: aspa restaurada (`'artigo'`).
+- **Data da correção**: 2026-09-21
+- **Motivo**: 500 ao abrir o painel no modo Vigente.
+
+#### Parser de MD/TXT da biblioteca fundia títulos consecutivos com conteúdo
+- **Antes**: ao encontrar um título enquanto o título anterior ainda estava "pendente", o parser fundia os dois (`"Capítulo 1 Capítulo 2"`) mesmo havendo conteúdo entre eles — capítulos viravam um só.
+- **Depois**: a fusão só acontece quando **não há conteúdo acumulado** (`conteudo.length === 0 && paragrafo.length === 0`); caso contrário, a seção anterior é fechada e o novo título começa outra. Também passou a descartar pré-texto sem título (ficha catalográfica) antes do primeiro título real.
+- **Data da correção**: 2026-09-21
+- **Motivo**: detectado nos testes (`literatura-parse.test.ts`) e na conferência da importação dos livros.
+
 #### Art. 27 (dissolução) e a raiz do Estatuto
 - **Antes**: interpretou-se que a dissolução não existia no original e os artigos 28–33 estavam deslocados.
 - **Depois**: o PDF registrado confirma **Art. 27 = dissolução no original**, como artigo **solto na raiz** (sem capítulo próprio, entre o Cap. VI e o Cap. VII); Disposições Gerais é arts. 28–33. O capítulo "Da Dissolução" era criação da *proposta*.
@@ -185,6 +244,16 @@
 - **Aplica-se a**: `lib/db.ts`.
 - **Fonte**: migração de backend.
 
+#### Node 24 roda `.ts` direto em scripts `.mjs` (type stripping)
+- **Regra**: scripts de carga (`.mjs`) podem `import { x } from "../lib/modulo.ts"` — o Node 24 apaga os tipos em runtime (sem `tsx`). O módulo importado deve ser **puro e sem aliases** (`@/`), pois o Node não resolve o `paths` do tsconfig; imports relativos sem extensão só funcionam se forem `import type` (apagados).
+- **Aplica-se a**: `scripts/import-literatura.mjs` (importa `lib/literatura/parse.ts` e `lib/busca.ts`).
+- **Fonte**: carga inicial da biblioteca (o aviso `MODULE_TYPELESS_PACKAGE_JSON` é inofensivo).
+
+#### `.env.development.local` tem precedência sobre `.env.local` no dev
+- **Regra**: para apontar o `npm run dev` a um banco de teste sem mexer na produção, use `.env.development.local` (ordem do Next: `process.env` → `.env.$(NODE_ENV).local` → `.env.local` → …). O arquivo é ignorado pelo git (`.env*`).
+- **Aplica-se a**: ambiente local de teste (Docker/Postgres 5433).
+- **Fonte**: docs do Next 16.3.4 (`environment-variables.md`) + log do dev ("Environments: .env.development.local, .env.local").
+
 #### Schema evolutivo sem re-seed
 - **Regra**: novas tabelas/colunas devem entrar em `lib/schema.sql` (aplicado em cada conexão via `getDb()`) e, quando alteram estrutura existente, em script de migração — nunca depender de re-seed, que apaga dados do usuário.
 - **Aplica-se a**: qualquer mudança de schema.
@@ -214,6 +283,16 @@
 - **Alternativas rejeitadas**: aplicar reordenação global de artigos entre capítulos automaticamente (ambíguo e arriscado).
 - **Data**: 2026-09-01
 
+#### Biblioteca de literatura no banco (não em arquivos estáticos)
+- **Escolha**: livros em `library_books`/`library_sections` (Postgres) com importação pelo Admin (MD/TXT/EPUB) — em produção (Vercel) não há filesystem persistente nem rebuild para novos livros; a prévia revisável no navegador cobre a qualidade de OCR/conversão.
+- **Alternativas rejeitadas**: manter JSONs estáticos como `/documentos` (exigiria editar código/rebuild); ler `Literatura de consulta/` em runtime (não existe na Vercel).
+- **Data**: 2026-09-21
+
+#### EPUB no import (fflate) e PDF convertido localmente
+- **Escolha**: EPUB é XHTML estruturado → parser próprio (`lib/literatura/epub.ts`) com `fflate` (JS puro, funciona em server action); PDF exige fontes/tamanhos → conversão local por script Python (pdfplumber + pdftotext), fora do runtime da Vercel.
+- **Alternativas rejeitadas**: PDF no servidor (pdfjs/unpdf: sem info de fonte na extração simples, peso/memória em serverless).
+- **Data**: 2026-09-21
+
 #### better-sqlite3 em devDependencies
 - **Escolha**: app 100% `pg`; SQLite fica só nos scripts (seed/migração) em devDependencies.
 - **Alternativas rejeitadas**: manter em dependencies (build nativo falharia na Vercel).
@@ -231,3 +310,9 @@
 - **Vercel**: manter `better-sqlite3` fora de `dependencies` (nativo); env vars: `DATABASE_URL`, `SESSION_SECRET`, `GROQ_API_KEY`.
 - **React RSC em teste de string**: textos interpolados podem vir separados por `<!-- -->` no HTML — não usar substring simples como marcador.
 - **`next dev` e `.env.local`**: mudanças de env só valem após reiniciar o dev.
+- **Next 16.3.4**: `serverActions.bodySizeLimit` fica em `experimental.serverActions` (não no topo do `next.config.ts` — o typecheck acusa `serverActions` desconhecido).
+- **PowerShell 5.1 + here-string para Python/Node**: o script vai pela codepage do console — **acentos em caminhos/regex são corrompidos** (`O que é...pdf` vira `O que ?...`). Preferir `glob`/`readdirSync` com prefixo sem acento ou arquivos temporários.
+- **pdftotext x pdfplumber**: PDFs com fontes sem ToUnicode saem como `(cid:NN)` no pdfplumber e corretos no `pdftotext -layout`; use os dois (texto de um, metadados de fonte do outro).
+- **Postgres local sem TLS**: o `pg` com `ssl: { rejectUnauthorized: false }` falha contra o Postgres do Docker (sem SSL) — `lib/db.ts` desliga SSL para localhost/127.0.0.1.
+- **Ações de server action fora do browser**: dá para testar via `POST` na página com header `Next-Action: <id>` (ids em `.next/dev/server/app/.../server-reference-manifest.json`) e corpo JSON com os argumentos; útil para E2E de escrita no banco de teste.
+- **Groq/TPM**: o plano gratuito limita ~8000 tokens por minuto por modelo; prompts com contexto grande (consultas com muitos trechos, manual inteiro) estouram com 413/429. Mantenha o orçamento em `lib/ai-budget.ts` e, em modelos de raciocínio (`gpt-oss`), `reasoning_effort: "low"` — senão o "pensamento" oculto consome o `max_tokens` e a resposta volta vazia.

@@ -1,12 +1,26 @@
 import { redirect } from "next/navigation";
 import { getSessionUser } from "@/lib/auth";
-import { getTree, getStatusCounts, getArticleCount, getPersonalNoteIds } from "@/lib/data";
+import {
+  getArvoreDaVersao,
+  getNumerosArmazenados,
+  getStatusCounts,
+  getStatusCountsProposta,
+  getArticleCount,
+  getArticleCountProposta,
+  getPersonalNoteIds,
+  getIdsComPendenciasAbertas,
+  type TreeNode,
+} from "@/lib/data";
 import { all } from "@/lib/db";
+import { numerarArvore, rotuloDe } from "@/lib/numeracao";
+import Link from "next/link";
+import { getVersaoTrabalho } from "@/lib/versao";
 import { Card, CardContent } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { StatusDot } from "@/components/status-badge";
 import { NewProvisionForm } from "@/components/provision/provision-forms";
 import { DashboardTree } from "@/components/dashboard/dashboard-tree";
+import { VersionToggle } from "@/components/version-toggle";
 import { FirstSteps } from "@/components/onboarding/first-steps";
 import { CheckCircle2, Circle, Loader2, PenLine, RotateCcw, AlertCircle, Layers } from "lucide-react";
 
@@ -23,17 +37,41 @@ const STATUS_META: Record<string, { label: string; icon: typeof Circle }> = {
 
 export const dynamic = "force-dynamic";
 
+function proximoNaoIniciado(nodes: TreeNode[]): TreeNode | null {
+  for (const n of nodes) {
+    if (n.alteracao_tipo === "revogado") continue;
+    if (n.type === "artigo" && n.status === "nao_iniciado") return n;
+    const sub = proximoNaoIniciado(n.children);
+    if (sub) return sub;
+  }
+  return null;
+}
+
 export default async function DashboardPage() {
   const user = await getSessionUser();
   if (!user) redirect("/login");
 
-  const tree = await getTree();
+  const versao = await getVersaoTrabalho();
+  const tree = await getArvoreDaVersao(versao);
   const notedIds = await getPersonalNoteIds(user.id);
-  const counts = await getStatusCounts();
-  const totalArtigos = await getArticleCount();
+  const pendenciasIds = await getIdsComPendenciasAbertas();
+
+  // Na proposta, o número principal é o do documento original (placements);
+  // a numeração derivada da ordem entra como sugestão quando divergir.
+  const numerosProposta = await getNumerosArmazenados("proposta");
+  const numerosVigentes = await getNumerosArmazenados("vigente");
+  const derivados = numerarArvore(tree);
+  const numeros = versao === "proposta" ? numerosProposta : numerosVigentes;
+  const contraparte = versao === "proposta" ? numerosVigentes : numerosProposta;
+  const sugeridos = versao === "proposta" ? derivados : new Map<string, string>();
+
+  const counts = versao === "proposta" ? await getStatusCountsProposta() : await getStatusCounts();
+  const totalArtigos = versao === "proposta" ? await getArticleCountProposta() : await getArticleCount();
   const analyzed = totalArtigos - counts.nao_iniciado;
   const pct = totalArtigos ? Math.round((counts.aprovado / totalArtigos) * 100) : 0;
   const pendingCount = (await all<{ c: number }>("SELECT COUNT(*) c FROM pending_issues WHERE status = 'aberta'"))[0]?.c ?? 0;
+  const capitulos = tree.filter((n) => n.type === "capitulo" && n.alteracao_tipo !== "revogado").length;
+  const proximo = proximoNaoIniciado(tree);
 
   return (
     <div className="space-y-6">
@@ -48,9 +86,17 @@ export default async function DashboardPage() {
               Reforma do Estatuto Social da Igreja Batista Olaria
             </h2>
             <p className="mt-2 max-w-xl text-sm text-muted-foreground">
-              {totalArtigos} artigos organizados em {tree.length} capítulos. Analise dispositivo por
+              {totalArtigos} artigos organizados em {capitulos} capítulos. Analise dispositivo por
               dispositivo, apresente sugestões de redação e acompanhe a consolidação do novo Estatuto.
             </p>
+            <div className="mt-3 flex flex-wrap items-center gap-2">
+              <VersionToggle versao={versao} />
+              <span className="text-xs text-muted-foreground">
+                {versao === "proposta"
+                  ? "Ordem e numeração de trabalho da reforma (revogados não ocupam número)."
+                  : "Estatuto registrado, na numeração histórica."}
+              </span>
+            </div>
           </div>
           <div className="w-full max-w-xs">
             <div className="mb-1.5 flex items-baseline justify-between">
@@ -58,7 +104,9 @@ export default async function DashboardPage() {
               <span className="font-heading text-3xl font-semibold text-primary">{pct}%</span>
             </div>
             <Progress value={pct} className="h-2.5" />
-            <p className="mt-1.5 text-xs text-muted-foreground">concluído</p>
+            <p className="mt-1.5 text-xs text-muted-foreground">
+              concluído{versao === "proposta" ? " (escopo da proposta)" : ""}
+            </p>
           </div>
         </div>
       </section>
@@ -104,7 +152,24 @@ export default async function DashboardPage() {
         </div>
       )}
 
-      <DashboardTree chapters={tree} notedIds={notedIds} />
+      {proximo && (
+        <Link
+          href={`/dispositivo/${proximo.id}`}
+          className="inline-flex items-center gap-1.5 rounded-full border border-primary/40 bg-primary/5 px-3 py-1.5 text-sm font-medium text-primary transition-colors hover:bg-primary/10"
+        >
+          Continuar de onde parou: {rotuloDe(proximo, numeros)} →
+        </Link>
+      )}
+
+      <DashboardTree
+        chapters={tree}
+        notedIds={notedIds}
+        pendenciasIds={pendenciasIds}
+        versao={versao}
+        numeros={Object.fromEntries(numeros)}
+        contraparte={Object.fromEntries(contraparte)}
+        sugeridos={Object.fromEntries(sugeridos)}
+      />
     </div>
   );
 }

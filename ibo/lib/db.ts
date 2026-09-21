@@ -2,9 +2,20 @@ import { Pool, type PoolClient } from "pg";
 
 const DB_URL = process.env.DATABASE_URL || "";
 
+/** SSL apenas fora de localhost (o Postgres de teste local não tem TLS). */
+function sslFor(url: string): false | { rejectUnauthorized: boolean } {
+  try {
+    const host = new URL(url).hostname;
+    if (host === "localhost" || host === "127.0.0.1" || host === "::1") return false;
+  } catch {
+    // URL ausente/inválida: mantém o comportamento anterior (Supabase).
+  }
+  return { rejectUnauthorized: false };
+}
+
 export const pool = new Pool({
   connectionString: DB_URL,
-  ssl: { rejectUnauthorized: false },
+  ssl: sslFor(DB_URL),
 });
 
 let txClient: PoolClient | null = null;

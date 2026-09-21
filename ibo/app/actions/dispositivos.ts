@@ -357,6 +357,19 @@ export async function moveProposalProvision(
       provisionId,
       `${provisionLabel(prov)}: ${paiAntigo} → ${paiNovo}, posição ${posicao}`
     );
+    if (prov.status === "aprovado") {
+      const descricao = `Revisar referências após reordenação na proposta: ${provisionLabel(prov)} movido de ${paiAntigo} para ${paiNovo}`;
+      const existente = await get<{ id: number }>(
+        "SELECT id FROM pending_issues WHERE provision_id = ? AND categoria = 'referencia_cruzada' AND descricao = ? AND status = 'aberta'",
+        [provisionId, descricao]
+      );
+      if (!existente) {
+        await run(
+          "INSERT INTO pending_issues (provision_id, author_id, categoria, descricao, status) VALUES (?, ?, 'referencia_cruzada', ?, 'aberta')",
+          [provisionId, user.id, descricao]
+        );
+      }
+    }
   });
   await logMeetingEvent("reordenacao_proposta", `${provisionLabel(prov)} movido na proposta: ${paiAntigo} → ${paiNovo}`, user.id);
 

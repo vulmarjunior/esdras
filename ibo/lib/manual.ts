@@ -6,6 +6,8 @@
  * telas reais do sistema.
  */
 
+import { pontuarSecoes, tokenizar } from "./busca";
+
 export interface SecaoManual {
   id: string;
   titulo: string;
@@ -57,18 +59,18 @@ Os usuários são cadastrados pelo **administrador**; não há cadastro público
 O trabalho segue o fluxo aprovado no projeto. Cada passo aponta para a tela correspondente.
 
 1. **Entrar no sistema** — use o e-mail e a senha fornecidos pelo administrador. No primeiro acesso, a troca de senha é obrigatória.
-2. **Selecionar um artigo** — no **Painel da Reforma**, navegue pelos capítulos e clique no dispositivo desejado.
-3. **Ler o texto vigente** — aba **Análise**, bloco 1. É o texto atual do Estatuto registrado (não editável).
-4. **Ler a proposta inicial** — bloco 2 da aba **Análise**. É o ponto de partida da reforma.
-5. **Apresentar sugestões de redação** — aba **Colaboração** → "Sugestões de redação".
-6. **Discutir** — comentários, opinião consultiva (concordo/discordo/tenho ressalva) e sugestões de redação em discussão.
-7. **Registrar fundamentos** — aba **Análise**, bloco **Fundamentação**: referências bíblicas, doutrinárias, jurídicas e pastorais.
-8. **Alterar a redação de trabalho** — aba **Análise**, bloco 4 (só coordenador/relator). Cada salvamento cria uma versão.
-9. **Aprovar** — altere o status para **Aprovado** (congela a redação consolidada).
-10. **Registrar a decisão em reunião** — o módulo **Reuniões** guarda presença, eventos e deliberações.
-11. **Gerar a ata** — na reunião, use "Gerar minuta da ata" e siga o fluxo rascunho → revisão → aprovada.
-12. **Consultar o histórico** — aba **Histórico** do dispositivo.
-13. **Visualizar o Estatuto consolidado** — menu **Reforma → Consolidado**.
+2. **Selecionar um artigo** — no **Painel da Reforma**, navegue pelos capítulos e clique no dispositivo desejado (ou use "Continuar de onde parou").
+3. **Trabalhar no rascunho** — na aba **Análise**, o **Rascunho comparativo** mostra lado a lado o **texto vigente**, a **referência (proposta inicial)** e a **proposta (redação de trabalho)**, com o botão "Destacar diferenças".
+4. **Apresentar sugestões de redação** — aba **Colaboração** → "Sugestões de redação".
+5. **Discutir** — comentários, opinião consultiva (concordo/discordo/tenho ressalva) e sugestões de redação em discussão.
+6. **Registrar fundamentos** — aba **Análise**, bloco **Fundamentação**: referências bíblicas, doutrinárias, jurídicas e pastorais.
+7. **Alterar a redação de trabalho** — coluna "Proposta (redação de trabalho)" (só coordenador/relator). Cada salvamento cria uma versão.
+8. **Aprovar** — altere o status para **Aprovado** (congela a redação consolidada).
+9. **Registrar a decisão em reunião** — o módulo **Reuniões** guarda presença, eventos e deliberações.
+10. **Gerar a ata** — na reunião, use "Gerar minuta da ata" e siga o fluxo rascunho → revisão → aprovada.
+11. **Consultar o histórico** — aba **Histórico** do dispositivo.
+12. **Acompanhar o novo Estatuto** — menu **Reforma → Em construção** (numeração, textos, novos e revogados).
+13. **Comparar ao final** — menu **Reforma → Comparativo** (vigente × nova redação, com justificativas).
 14. **Exportar relatórios** — menu **Reuniões → Relatórios**.
 `,
   },
@@ -78,10 +80,13 @@ O trabalho segue o fluxo aprovado no projeto. Cada passo aponta para a tela corr
     markdown: `
 A página inicial mostra o andamento da reforma:
 
-- **Progresso geral** — artigos analisados, porcentagem concluída e contadores por status (não iniciado, em análise, em discussão, redação definida, aprovado, reaberto) e pendências.
-- **Estrutura do Estatuto** — capítulos com seus dispositivos. Clique em qualquer dispositivo para abrir a tela de análise.
+- **Versão exibida (Proposta | Vigente)** — alterna entre a ordem/numeração de trabalho da reforma (padrão) e o Estatuto registrado. A escolha fica salva no seu navegador e vale também para a Revisão e a navegação do dispositivo.
+- **Na Proposta** — o número exibido é o **do documento original da proposta** (ex.: art. 5º aparece como **Art. 26º**, com o selo **era 5º**). Quando a ordem no sistema sugerir outro número, aparece um aviso vermelho **ordem: X** — resolva em Renumeração (Ordenar pela numeração do documento e Aplicar numeração).
+- **Progresso geral** — artigos analisados, porcentagem concluída e contadores por status e pendências. No modo Proposta, a contagem exclui dispositivos **revogados** e inclui os **novos**.
+- **Estrutura do Estatuto** — capítulos com seus dispositivos. Clique em qualquer dispositivo para abrir a tela de análise. Revogados aparecem riscados.
 - **Badges** — cada dispositivo exibe o status (ponto + etiqueta). Dispositivos novos mostram o selo **NOVO**; dispositivos em que **você** tem anotação pessoal mostram o selo **nota**.
-- **Filtro "Somente com minhas anotações"** — mostra apenas os dispositivos em que você fez ponderações pessoais.
+- **Filtros** — "Somente com minhas anotações" e "Somente com pendências".
+- **Continuar de onde parou** — atalho para o primeiro artigo ainda não iniciado na versão exibida.
 - **Incluir capítulo** (coordenador/relator) — adiciona novos capítulos à proposta.
 `,
   },
@@ -91,15 +96,17 @@ A página inicial mostra o andamento da reforma:
     markdown: `
 Ao abrir um dispositivo, o trabalho fica organizado em quatro abas:
 
-### Análise
-1. **Texto vigente** — texto do Estatuto registrado (referência, não editável).
-2. **Proposta inicial** — ponto de partida da reforma; use **negrito** ou destaque para marcar o que muda.
-3. **Justificativa** — explicação do porquê da alteração; alimenta o Relatório da reforma.
-4. **Redação de trabalho** — a versão atual da comissão; só coordenador/relator edita. Cada salvamento cria uma nova versão (há controle de conflito de versão).
-5. **Opinião consultiva** — concordo / discordo / tenho ressalva. Tem caráter consultivo, não é votação formal.
-6. **Dispositivos relacionados** — dispositivos vinculados a este (referências cruzadas), úteis para evitar contradições e detectar renumeração.
-7. **Fundamentação** — referências bíblicas, doutrinárias, jurídicas e administrativas/pastorais que sustentam a proposta.
-8. **Redação consolidada (aprovada)** — aparece quando o dispositivo foi aprovado; fica bloqueada.
+### Análise — Rascunho comparativo
+1. **Texto vigente** — texto do Estatuto registrado (referência; editável apenas pelo administrador para corrigir extração).
+2. **Referência (proposta inicial)** — ponto de partida da reforma.
+3. **Proposta (redação de trabalho)** — a versão atual da comissão; só coordenador/relator edita. Cada salvamento cria uma nova versão (há controle de conflito de versão).
+4. **Destacar diferenças** — comparação por palavras entre o vigente e a redação atual (retirado/acrescentado).
+5. **Justificativa** — explicação do porquê da alteração; alimenta o Relatório da reforma.
+6. **Opinião consultiva** — concordo / discordo / tenho ressalva. Tem caráter consultivo, não é votação formal.
+7. **Dispositivos relacionados** — dispositivos vinculados a este (referências cruzadas), úteis para evitar contradições e detectar renumeração.
+8. **Fundamentação** — referências bíblicas, doutrinárias, jurídicas e administrativas/pastorais que sustentam a proposta.
+9. **Redação consolidada (aprovada)** — aparece quando o dispositivo foi aprovado; fica bloqueada.
+10. **Referências internas a atualizar** — quando a renumeração afeta menções "Art. N" no texto, o painel permite atualizar (uma a uma ou todas), com registro.
 
 O **status** fica no topo: Não iniciado → Em análise → Em discussão → Redação definida → Aprovado (e Aprovado → Reaberto).
 
@@ -179,14 +186,15 @@ Categorias: jurídica, bíblica, doutrinária, eclesiológica, administrativa, r
     id: "renumeracao",
     titulo: "Renumeração e referências cruzadas",
     markdown: `
-### Renumeração
-Quando a ordem muda (por inclusão, exclusão ou reorganização de artigos), use o simulador do menu **Reforma → Renumeração**:
+### Renumeração (Reforma → Renumeração)
+A numeração de trabalho da proposta é **derivada da ordem atual** (artigos em sequência; capítulos em romanos; revogados não ocupam número). A tela mostra duas colunas: **documento original** (numeração importada da proposta) e **proposta (ordem atual)**.
 
-1. O sistema mostra a **nova numeração** como simulação.
-2. Aplique a renumeração com confirmação humana — nada muda automaticamente.
-3. O sistema alerta sobre **referências internas** potencialmente afetadas.
+1. **Ordenar pela numeração do documento** — reordena os artigos de cada capítulo conforme a numeração da proposta importada (empates mantêm a ordem atual). Não cruza capítulos nem altera textos.
+2. **Mover** — reordenação manual (entre capítulos/seções ou entre irmãos), na estrutura da proposta.
+3. **Aplicar numeração** — grava a numeração de trabalho (artigos e capítulos) na proposta, com auditoria. Artigos já **aprovados** que mudarem de número geram **pendência automática** para revisar as referências.
 
-A numeração final só é definida na **consolidação**; dispositivos novos nascem com rótulo **NOVO** e posição sugerida.
+### Referências internas a atualizar
+Abaixo do simulador, a lista global mostra as menções a artigos nos textos que ficaram desatualizadas (ex.: *Art. 5º → Art. 26º*), com link para o dispositivo. No dispositivo, a aba **Análise** mostra o painel **Referências internas a atualizar** com botão **Atualizar** (uma a uma ou todas) — sempre com confirmação humana e registro (nova versão na redação de trabalho; auditoria nos demais campos).
 
 ### Referências cruzadas
 Na aba **Análise**, bloco **Dispositivos relacionados**, vincule dispositivos relacionados. Isso ajuda a evitar contradições, encontrar dependências e detectar impactos de renumeração.
@@ -229,7 +237,7 @@ A IA do sistema é **exclusivamente assistiva**. Ela:
   },
   {
     id: "guia-documentos",
-    titulo: "Guia de redação e Documentos doutrinários",
+    titulo: "Guia de redação, Documentos e Literatura",
     markdown: `
 ### Guia de redação (Consulta → Guia de redação)
 Referências de **técnica legislativa** (Lei Complementar nº 95/1998) e de **redação oficial** (Manual de Redação da Presidência da República):
@@ -249,6 +257,36 @@ Textos integrais dos documentos confessionais e de princípios utilizados pela c
 - **Pacto das Igrejas Batistas**.
 
 Leia por seções (acordeão), busque no texto e faça **consultas à IA** (ela responde citando confissão e seção).
+
+### Literatura de consulta (Consulta → Literatura de consulta)
+Livros doutrinários que orientam as decisões da comissão (ex.: disciplina na igreja, membresia, igreja saudável, teologia pactual). Cada livro é dividido em seções:
+
+- abra um livro para ver o **sumário**, leia a seção e **busque** no texto;
+- no formulário de consulta, escolha a fonte: **Livros**, **Documentos de fé** ou **Tudo** — a IA responde citando obra e seção.
+
+**Administrador — adicionar livros:** Administração → **Biblioteca de literatura**. Aceita arquivos **.md**, **.txt** e **.epub** (ou texto colado). A análise roda no navegador e você revisa as seções (renomear, fundir, excluir) antes de salvar. Também é possível editar metadados, reimportar seções e excluir livros.
+`,
+  },
+  {
+    id: "estatuto-construcao",
+    titulo: "Estatuto em construção e Comparativo",
+    markdown: `
+### Em construção (Reforma → Em construção)
+Mostra o **novo Estatuto sendo montado**, na ordem e numeração da proposta:
+
+- **Em construção** (padrão) — todos os dispositivos: aprovados, em andamento e não iniciados; textos na prioridade consolidada → trabalho → proposta inicial → vigente; selos de status, **NOVO** e **revogado** (riscado).
+- **Somente aprovados** — apenas o que já foi aprovado (texto final em formação).
+- Numeração com chip **era X** quando o número mudou em relação ao vigente; contadores de artigos, aprovados, em andamento, novos e revogados.
+- Filtros por capítulo, status, busca, "ocultar revogados" e "somente com texto".
+- Se a numeração ainda divergir da ordem, aparece um aviso com link para a Renumeração.
+
+### Comparativo (Reforma → Comparativo)
+**Quadro comparativo final**, artigo por artigo, na ordem da proposta:
+
+- **Art. vigente → Art. proposta**, textos lado a lado com **diff por palavras** (retirado/acrescentado);
+- tipo de alteração, status e **justificativa**;
+- filtros: capítulo, busca, somente alterados, somente aprovados, com justificativa, ocultar revogados;
+- **Baixar .txt** gera o mesmo quadro em arquivo.
 `,
   },
   {
@@ -323,7 +361,9 @@ Peça ao **administrador** para redefinir. Ao redefinir, a troca de senha volta 
 Não. A IA é **assistiva**: sugere e responde, sempre rotulada. Toda alteração depende de ação humana explícita.
 
 ### Onde vejo o resultado final?
-Em **Reforma → Consolidado** (apenas aprovados) e em **Reuniões → Relatórios** (exportações).
+- **Em construção** (Reforma → Em construção): o novo Estatuto sendo montado, com tudo em andamento.
+- **Comparativo** (Reforma → Comparativo): vigente × nova redação, com justificativas.
+- **Relatórios** (Reuniões → Relatórios): exportações em .txt. Se a numeração ainda divergir da ordem, a tela avisa para reordenar/aplicar em Renumeração antes de usar o documento.
 
 ### Como vejo o Estatuto inteiro enquanto a reforma está em andamento?
 Abra **Reforma → Estatuto em revisão**. As versões anterior e atual ficam emparelhadas, na ordem atual, incluindo dispositivos não aprovados. No celular, cada par aparece um abaixo do outro.
@@ -344,4 +384,18 @@ export function buscarSecoes(termo?: string): SecaoManual[] {
 /** Monta o bloco de contexto do manual para o assistente de ajuda (action `ajuda`). */
 export function formarContextoManual(): string {
   return MANUAL.map((s) => `## ${s.titulo}\n${s.markdown.trim()}`).join("\n\n");
+}
+
+/**
+ * Contexto de ajuda reduzido às seções mais relevantes para a pergunta
+ * (economiza tokens no plano gratuito da Groq). Sem correspondência, devolve o
+ * manual completo — o orçamento da IA corta o excesso preservando início e fim.
+ */
+export function formarContextoAjuda(pergunta: string, limite = 6): string {
+  const termos = tokenizar(pergunta);
+  if (termos.length === 0) return formarContextoManual();
+  const itens = MANUAL.map((s) => ({ titulo: s.titulo, conteudo: s.markdown }));
+  const top = pontuarSecoes(itens, termos).slice(0, limite);
+  if (top.length === 0) return formarContextoManual();
+  return top.map(({ item }) => `## ${item.titulo}\n${item.conteudo.trim()}`).join("\n\n");
 }

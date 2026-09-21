@@ -44,6 +44,10 @@ next-env.d.ts
 # banco de dados local
 /data/
 
+# artefatos locais de sessão/tooling (não versionar)
+/tmp/
+/backups/
+
 # logs de debug
 dev.log
 dev-server.log

@@ -2,8 +2,9 @@ import { NextRequest, NextResponse } from "next/server";
 import { requireRole } from "@/lib/auth";
 import { all, get } from "@/lib/db";
 import { formarGuia } from "@/lib/legal-refs";
-import { montarContextoConsulta } from "@/lib/confissoes/recuperacao";
-import { formarContextoManual } from "@/lib/manual";
+import { montarContextoBiblioteca } from "@/lib/literatura/recuperacao";
+import { formarContextoAjuda } from "@/lib/manual";
+import { limitarTexto, orcamentoChars } from "@/lib/ai-budget";
 
 const GROQ_URL = "https://api.groq.com/openai/v1/chat/completions";
 const MODEL_CHAIN = [
@@ -12,6 +13,15 @@ const MODEL_CHAIN = [
   "qwen/qwen3.6-27b",
   "openai/gpt-oss-20b",
 ].filter((m, i, arr) => m && arr.indexOf(m) === i);
+
+/** Orçamento de entrada por requisição (TPM do plano gratuito: 8000). */
+const MAX_INPUT_TOKENS = Math.max(1200, Number(process.env.GROQ_MAX_INPUT_TOKENS || 4600));
+const MAX_OUTPUT_TOKENS = Math.max(512, Number(process.env.GROQ_MAX_OUTPUT_TOKENS || 2048));
+/** Fatores de redução tentados quando a Groq recusa por tamanho/TPM. */
+const FATORES_REDUCAO = [1, 0.6, 0.35];
+
+const ERRO_LIMITE =
+  "A consulta ficou grande demais para o limite da Groq (tokens por minuto). Tente uma pergunta mais específica, escolha menos fontes ou aguarde um minuto e repita.";
 
 const GUIA_CONTEXTO = formarGuia();
 const GUIA_BLOCO = `\n\nReferências normativas (obrigatórias) — Lei Complementar nº 95/1998 e Manual de Redação da Presidência da República:\n${GUIA_CONTEXTO}`;
@@ -49,44 +59,83 @@ const TOOLS: Record<string, { system: string; prompt: (t: string) => string }> =
   },
 };
 
+function ehErroDeLimite(status: number, body: string): boolean {
+  return (
+    status === 413 ||
+    status === 429 ||
+    /too large|rate limit|tokens per minute|\bTPM\b|reduce your message/i.test(body)
+  );
+}
+
+async function chamarModelo(
+  key: string,
+  model: string,
+  system: string,
+  userPrompt: string,
+  maxInputTokens: number
+): Promise<Response> {
+  const budget = orcamentoChars(maxInputTokens);
+  const conteudo = limitarTexto(userPrompt, Math.max(1200, budget - system.length));
+  const payload: Record<string, unknown> = {
+    model,
+    temperature: 0.3,
+    max_tokens: MAX_OUTPUT_TOKENS,
+    messages: [
+      { role: "system", content: system },
+      { role: "user", content: conteudo },
+    ],
+  };
+  // Modelos de raciocínio: reduz o "pensamento" oculto para sobrar espaço à resposta.
+  if (/gpt-oss/i.test(model)) payload.reasoning_effort = "low";
+  return fetch(GROQ_URL, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${key}`,
+    },
+    body: JSON.stringify(payload),
+  });
+}
+
+/**
+ * Chama a Groq com orçamento de tokens e retry: reduz o contexto (fatores
+ * 100% → 60% → 35%) quando o limite de TPM é atingido e, se ainda falhar,
+ * tenta o próximo modelo da cadeia.
+ */
 async function callGroq(system: string, userPrompt: string): Promise<string> {
   const key = process.env.GROQ_API_KEY;
   if (!key) {
     throw new Error("GROQ_API_KEY não configurada.");
   }
   let lastError = "";
+  let limiteAtingido = false;
+
   for (const model of MODEL_CHAIN) {
-    let res: Response;
-    try {
-      res = await fetch(GROQ_URL, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${key}`,
-        },
-        body: JSON.stringify({
-          model,
-          temperature: 0.3,
-          messages: [
-            { role: "system", content: system },
-            { role: "user", content: userPrompt },
-          ],
-        }),
-      });
-    } catch (e) {
-      throw new Error(`Falha de rede ao chamar a Groq: ${e instanceof Error ? e.message : "erro desconhecido"}`);
-    }
-    if (res.ok) {
-      const data = await res.json();
-      return data.choices?.[0]?.message?.content?.trim() || "";
-    }
-    const body = await res.text();
-    lastError = `Erro da API Groq (${res.status}) com ${model}: ${body.slice(0, 300)}`;
-    const isModelMissing = res.status === 404 || /does not exist|model not found|not supported/i.test(body);
-    if (!isModelMissing) {
+    const fatores = limiteAtingido ? [FATORES_REDUCAO[FATORES_REDUCAO.length - 1]] : FATORES_REDUCAO;
+    for (let i = 0; i < fatores.length; i++) {
+      let res: Response;
+      try {
+        res = await chamarModelo(key, model, system, userPrompt, Math.floor(MAX_INPUT_TOKENS * fatores[i]));
+      } catch (e) {
+        throw new Error(`Falha de rede ao chamar a Groq: ${e instanceof Error ? e.message : "erro desconhecido"}`);
+      }
+      if (res.ok) {
+        const data = await res.json();
+        return data.choices?.[0]?.message?.content?.trim() || "";
+      }
+      const body = await res.text();
+      lastError = `Erro da API Groq (${res.status}) com ${model}: ${body.slice(0, 300)}`;
+      const isModelMissing = res.status === 404 || /does not exist|model not found|not supported/i.test(body);
+      if (isModelMissing) break;
+      if (ehErroDeLimite(res.status, body)) {
+        limiteAtingido = true;
+        if (i < fatores.length - 1) continue; // tenta de novo com contexto menor
+        break; // próximo modelo
+      }
       throw new Error(lastError);
     }
   }
+  if (limiteAtingido) throw new Error(ERRO_LIMITE);
   throw new Error(lastError || "Nenhum modelo Groq disponível.");
 }
 
@@ -163,9 +212,14 @@ export async function POST(req: NextRequest) {
       if (!pergunta) {
         return NextResponse.json({ error: "Digite sua pergunta." }, { status: 400 });
       }
-      const contexto = montarContextoConsulta(pergunta);
+      const fonteBruta = String(body.fonte || "documentos");
+      const fonte =
+        fonteBruta === "livros" || fonteBruta === "tudo" || fonteBruta === "documentos"
+          ? fonteBruta
+          : "documentos";
+      const contexto = await montarContextoBiblioteca(pergunta, fonte);
       const system =
-        "Você é um assessor doutrinário de uma comissão de reforma estatutária de uma igreja batista. Responda à pergunta APENAS com base nos documentos de fé fornecidos (confissões e declarações batistas), citando o nome da confissão e a seção correspondente. Se a pergunta não tiver cobertura nos documentos fornecidos, declare isso explicitamente e não invente conteúdo nem cite textos fora dos documentos. Seja objetivo, fiel ao texto e em português do Brasil.";
+        "Você é um assessor doutrinário de uma comissão de reforma estatutária de uma igreja batista. Responda à pergunta APENAS com base nos textos fornecidos (documentos de fé batistas e/ou livros de literatura de consulta), citando o nome da obra e a seção correspondente. Quando a fonte for um livro, cite o título do livro e a seção. Se a pergunta não tiver cobertura nos textos fornecidos, declare isso explicitamente e não invente conteúdo nem cite obras fora das fornecidas. Seja objetivo, fiel ao texto e em português do Brasil.";
       const result = await callGroq(system, `${contexto}\n\nPergunta: ${pergunta}`);
       return NextResponse.json({ result });
     }
@@ -175,7 +229,7 @@ export async function POST(req: NextRequest) {
       if (!pergunta) {
         return NextResponse.json({ error: "Digite sua dúvida." }, { status: 400 });
       }
-      const contexto = formarContextoManual();
+      const contexto = formarContextoAjuda(pergunta);
       const system =
         "Você é o assistente de ajuda do ESDRAS, sistema de apoio à Comissão de Reforma do Estatuto Social da IBO. Responda às dúvidas de uso APENAS com base no manual fornecido, indicando a seção correspondente quando útil. Se a dúvida não estiver coberta no manual, diga isso e aponte onde o usuário pode procurar (ex.: Manual de utilização, Guia de redação, Documentos). Não invente funcionalidades que não existem no manual. Seja objetivo e prático.";
       const result = await callGroq(system, `Manual de utilização do ESDRAS:\n\n${contexto}\n\nPergunta: ${pergunta}`);

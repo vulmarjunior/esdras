@@ -11,6 +11,9 @@ export interface User {
 }
 
 export type ProvisionType = "capitulo" | "secao" | "artigo" | "paragrafo" | "inciso" | "alinea";
+
+/** Versão de trabalho exibida no painel/navegação (proposta é o padrão). */
+export type VersaoTrabalho = "vigente" | "proposta";
 export type ProvisionStatus = "nao_iniciado" | "em_analise" | "em_discussao" | "redacao_definida" | "aprovado" | "reaberto";
 export type DocumentVersion = "vigente" | "proposta" | "consolidada";
 

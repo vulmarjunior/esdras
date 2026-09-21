@@ -3,16 +3,25 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
-import { ChevronRight } from "lucide-react";
-import { provisionLabel } from "@/lib/provision-label";
+import { ChevronRight, TriangleAlert } from "lucide-react";
+import { normalizarNumero, rotuloDe } from "@/lib/numeracao";
 import { ApprovedBadge, NovoBadge, NotedBadge } from "@/components/status-badge";
 import type { TreeNode } from "@/lib/data";
+import type { VersaoTrabalho } from "@/lib/types";
 
 interface Props {
   nodes: TreeNode[];
   activeId: string;
   /** IDs de dispositivos com anotação pessoal do usuário (privada). */
   notedIds?: string[];
+  /** Versão exibida (proposta = numeração derivada da ordem). */
+  versao?: VersaoTrabalho;
+  /** Números da versão exibida, por id. */
+  numeros?: Record<string, string>;
+  /** Números da outra versão (chip "era X" / "→ X"). */
+  contraparte?: Record<string, string>;
+  /** Números derivados da ordem atual (aviso quando divergem do documento). */
+  sugeridos?: Record<string, string>;
 }
 
 /**
@@ -20,7 +29,15 @@ interface Props {
  * Por padrão: capítulos e artigos visíveis; parágrafos/incisos recolhidos.
  * O caminho até o dispositivo ativo fica expandido.
  */
-export function StructuralNav({ nodes, activeId, notedIds = [] }: Props) {
+export function StructuralNav({
+  nodes,
+  activeId,
+  notedIds = [],
+  versao = "vigente",
+  numeros = {},
+  contraparte = {},
+  sugeridos = {},
+}: Props) {
   const notas = useMemo(() => new Set(notedIds), [notedIds]);
   const ancestors = useMemo(() => {
     const set = new Set<string>();
@@ -77,6 +94,10 @@ export function StructuralNav({ nodes, activeId, notedIds = [] }: Props) {
           depth={0}
           notas={notas}
           activeRef={activeRef}
+          versao={versao}
+          numeros={numeros}
+          contraparte={contraparte}
+          sugeridos={sugeridos}
         />
       ))}
     </ul>
@@ -91,6 +112,10 @@ function TreeItem({
   depth,
   notas,
   activeRef,
+  versao,
+  numeros,
+  contraparte,
+  sugeridos,
 }: {
   node: TreeNode;
   activeId: string;
@@ -99,10 +124,25 @@ function TreeItem({
   depth: number;
   notas: ReadonlySet<string>;
   activeRef: { current: HTMLAnchorElement | null };
+  versao: VersaoTrabalho;
+  numeros: Record<string, string>;
+  contraparte: Record<string, string>;
+  sugeridos: Record<string, string>;
 }) {
   const hasChildren = node.children.length > 0;
   const isCollapsed = collapsed.has(node.id);
   const isActive = node.id === activeId;
+  const revogado = node.alteracao_tipo === "revogado";
+  const numeroExibido = numeros[node.id];
+  const numeroContraparte = contraparte[node.id];
+  const numeroSugerido = sugeridos[node.id];
+  const mostrarChip =
+    numeroExibido && numeroContraparte && normalizarNumero(numeroExibido) !== normalizarNumero(numeroContraparte);
+  const divergente =
+    versao === "proposta" &&
+    numeroExibido &&
+    numeroSugerido &&
+    normalizarNumero(numeroExibido) !== normalizarNumero(numeroSugerido);
   return (
     <li>
       <div className="flex items-center gap-0.5">
@@ -128,8 +168,23 @@ function TreeItem({
           )}
         >
           <span className="flex min-w-0 items-center gap-1">
-            <span className="truncate">{provisionLabel(node)}</span>
+            <span className={cn("truncate", revogado && "text-muted-foreground line-through")}>{rotuloDe(node, numeros)}</span>
+            {mostrarChip && (
+              <span
+                className="shrink-0 rounded-full border border-amber-300/70 bg-amber-50 px-1 py-px text-[9px] font-medium text-amber-700 dark:border-amber-700 dark:bg-amber-950/40 dark:text-amber-300"
+                title={versao === "proposta" ? "Numeração no Estatuto vigente" : "Numeração na proposta"}
+              >
+                {versao === "proposta" ? `era ${numeroContraparte}` : `→ ${numeroContraparte}`}
+              </span>
+            )}
+            {divergente && (
+              <TriangleAlert
+                className="h-3 w-3 shrink-0 text-red-500"
+                aria-label={`A ordem atual sugeriria ${numeroSugerido}`}
+              />
+            )}
             {node.origem === "novo" && <NovoBadge />}
+            {revogado && <span className="shrink-0 rounded-full border px-1 py-px text-[9px] text-muted-foreground">rev.</span>}
             {notas.has(node.id) && <NotedBadge />}
             {node.status === "aprovado" && <ApprovedBadge />}
           </span>
@@ -148,6 +203,10 @@ function TreeItem({
               depth={depth + 1}
               notas={notas}
               activeRef={activeRef}
+              versao={versao}
+              numeros={numeros}
+              contraparte={contraparte}
+              sugeridos={sugeridos}
             />
           ))}
         </ul>
