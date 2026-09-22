@@ -24,6 +24,7 @@ import {
   Layers,
   CircleHelp,
   ArrowLeftRight,
+  PanelsTopLeft,
 } from "lucide-react";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger, SheetClose } from "@/components/ui/sheet";
 import {
@@ -58,6 +59,7 @@ const NAV_TEMAS: NavTema[] = [
     label: "Reforma",
     icon: Layers,
     itens: [
+      { href: "/mesa-trabalho", label: "Mesa de Trabalho", icon: PanelsTopLeft },
       { href: "/revisao", label: "Estatuto em revisão", icon: BookOpenText },
       { href: "/consolidado", label: "Em construção", icon: ScrollText },
       { href: "/comparativo", label: "Comparativo", icon: ArrowLeftRight },

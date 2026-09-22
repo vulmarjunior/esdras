@@ -59,7 +59,7 @@ Os usuários são cadastrados pelo **administrador**; não há cadastro público
 O trabalho segue o fluxo aprovado no projeto. Cada passo aponta para a tela correspondente.
 
 1. **Entrar no sistema** — use o e-mail e a senha fornecidos pelo administrador. No primeiro acesso, a troca de senha é obrigatória.
-2. **Selecionar um artigo** — no **Painel da Reforma**, navegue pelos capítulos e clique no dispositivo desejado (ou use "Continuar de onde parou").
+2. **Abrir a Mesa de Trabalho** — em **Reforma → Mesa de Trabalho**, escolha um capítulo e selecione o dispositivo dentro da leitura contínua.
 3. **Trabalhar no rascunho** — na aba **Análise**, o **Rascunho comparativo** mostra lado a lado o **texto vigente**, a **referência (proposta inicial)** e a **proposta (redação de trabalho)**, com o botão "Destacar diferenças".
 4. **Apresentar sugestões de redação** — aba **Colaboração** → "Sugestões de redação".
 5. **Discutir** — comentários, opinião consultiva (concordo/discordo/tenho ressalva) e sugestões de redação em discussão.
@@ -88,6 +88,21 @@ A página inicial mostra o andamento da reforma:
 - **Filtros** — "Somente com minhas anotações" e "Somente com pendências".
 - **Continuar de onde parou** — atalho para o primeiro artigo ainda não iniciado na versão exibida.
 - **Incluir capítulo** (coordenador/relator) — adiciona novos capítulos à proposta.
+`,
+  },
+  {
+    id: "mesa-trabalho",
+    titulo: "A Mesa de Trabalho",
+    markdown: `
+A **Mesa de Trabalho** é o ambiente principal de elaboração da proposta por capítulo. Ela reúne três áreas na mesma tela:
+
+- **Navegação por capítulos**, à esquerda, com o progresso das aprovações.
+- **Documento em construção**, no centro, com todos os dispositivos do capítulo em leitura contínua.
+- **Painel contextual**, à direita, atualizado quando você seleciona um dispositivo.
+
+No painel contextual é possível comparar o texto vigente com a redação atual da comissão, consultar a proposta preliminar e a justificativa, acompanhar sugestões, comentários e situação deliberativa, acrescentar dispositivos subordinados e abrir as funções completas de redação, reorganização, discussão e deliberação.
+
+Selecionar ou editar um dispositivo na Mesa não o aprova automaticamente. A redação de trabalho, o status e a deliberação continuam sendo registros independentes.
 `,
   },
   {

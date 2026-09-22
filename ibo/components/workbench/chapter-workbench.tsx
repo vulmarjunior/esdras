@@ -1,0 +1,425 @@
+"use client";
+
+import { useEffect, useMemo, useRef, useState } from "react";
+import Link from "next/link";
+import {
+  AlertTriangle,
+  ArrowLeftRight,
+  BookOpenText,
+  ChevronRight,
+  FilePenLine,
+  GripVertical,
+  ListTree,
+  MessageSquareText,
+  PanelRightClose,
+  PanelRightOpen,
+  Plus,
+  Search,
+  StickyNote,
+  Users,
+} from "lucide-react";
+import { cn } from "@/lib/utils";
+import { normalizarNumero } from "@/lib/numeracao";
+import { PROVISION_TYPE_LABELS } from "@/lib/labels";
+import { RichTextContent } from "@/components/rich-text-content";
+import { NovoBadge, StatusBadge, StatusDot } from "@/components/status-badge";
+import { NewProvisionForm, StatusControl } from "@/components/provision/provision-forms";
+import { Button, buttonVariants } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+
+export interface WorkbenchNode {
+  id: string;
+  parentId: string | null;
+  type: string;
+  numero: string | null;
+  numeroVigente: string | null;
+  numeroSugerido: string | null;
+  titulo: string | null;
+  origem: string;
+  alteracaoTipo: string;
+  status: string;
+  textoVigente: string;
+  propostaInicial: string;
+  redacaoTrabalho: string;
+  redacaoConsolidada: string;
+  justificativa: string;
+  version: number;
+  updatedAt: string;
+  hasNote: boolean;
+  hasPending: boolean;
+  suggestionCount: number;
+  commentCount: number;
+  childCount: number;
+  children: WorkbenchNode[];
+}
+
+interface FlatNode extends WorkbenchNode {
+  depth: number;
+}
+
+function label(node: Pick<WorkbenchNode, "type" | "numero" | "id">): string {
+  const numeroArtigo = node.numero && /^\d+$/.test(node.numero)
+    ? Number(node.numero) < 10 ? `${node.numero}º` : node.numero
+    : node.numero;
+  if (node.type === "capitulo") return node.numero ? `Capítulo ${node.numero}` : "Novo capítulo";
+  if (node.type === "secao") return node.numero ? `Seção ${node.numero}` : "Nova seção";
+  if (node.type === "artigo") return numeroArtigo ? `Art. ${numeroArtigo}` : "Novo artigo";
+  if (node.type === "paragrafo") {
+    if (!node.numero) return "Novo parágrafo";
+    if (node.numero.toLocaleLowerCase("pt-BR") === "único") return "Parágrafo único";
+    return `§ ${node.numero}`;
+  }
+  if (node.type === "alinea") return node.numero ? node.numero.replace(/\)?$/, ")") : "Nova alínea";
+  return node.numero || PROVISION_TYPE_LABELS[node.type] || node.id;
+}
+
+function flatten(nodes: WorkbenchNode[], depth = 0): FlatNode[] {
+  return nodes.flatMap((node) => [
+    { ...node, depth },
+    ...flatten(node.children, depth + 1),
+  ]);
+}
+
+function currentText(node: WorkbenchNode): string {
+  if (node.status === "aprovado" && node.redacaoConsolidada.trim()) return node.redacaoConsolidada;
+  return node.redacaoTrabalho || node.propostaInicial || node.textoVigente || "";
+}
+
+function allowedChildren(type: string): string[] {
+  const hierarchy: Record<string, string[]> = {
+    capitulo: ["secao", "artigo"],
+    secao: ["artigo"],
+    artigo: ["paragrafo", "inciso", "alinea"],
+    paragrafo: ["inciso", "alinea"],
+    inciso: ["alinea"],
+    alinea: [],
+  };
+  return hierarchy[type] ?? [];
+}
+
+function articleStats(chapter: WorkbenchNode) {
+  const articles = flatten(chapter.children).filter((node) => node.type === "artigo" && node.alteracaoTipo !== "revogado");
+  const approved = articles.filter((node) => node.status === "aprovado").length;
+  return { total: articles.length, approved };
+}
+
+export function ChapterWorkbench({
+  chapters,
+  canEdit,
+  activeMeetingId,
+}: {
+  chapters: WorkbenchNode[];
+  canEdit: boolean;
+  activeMeetingId: number | null;
+}) {
+  const [chapterId, setChapterId] = useState(chapters[0]?.id ?? "");
+  const chapter = chapters.find((item) => item.id === chapterId) ?? chapters[0];
+  const items = useMemo(() => chapter ? flatten(chapter.children) : [], [chapter]);
+  const [selectedId, setSelectedId] = useState(chapter?.children[0]?.id ?? chapter?.id ?? "");
+  const [query, setQuery] = useState("");
+  const [panelOpen, setPanelOpen] = useState(true);
+  const effectiveSelectedId = selectedId === chapter?.id || items.some((item) => item.id === selectedId)
+    ? selectedId
+    : chapter?.children[0]?.id ?? chapter?.id ?? "";
+  const selected = effectiveSelectedId === chapter?.id
+    ? chapter
+    : items.find((item) => item.id === effectiveSelectedId) ?? chapter;
+  const selectedRef = useRef<HTMLButtonElement | null>(null);
+
+  useEffect(() => {
+    selectedRef.current?.scrollIntoView({ block: "nearest", behavior: "smooth" });
+  }, [effectiveSelectedId]);
+
+  const filteredChapters = chapters.filter((item) =>
+    `${label(item)} ${item.titulo ?? ""}`.toLocaleLowerCase("pt-BR").includes(query.toLocaleLowerCase("pt-BR")),
+  );
+  const stats = chapter ? articleStats(chapter) : { total: 0, approved: 0 };
+
+  if (!chapter) {
+    return <p className="rounded-xl border bg-card p-6 text-sm text-muted-foreground">Nenhum capítulo disponível na proposta.</p>;
+  }
+
+  return (
+    <div className="space-y-4">
+      <header className="flex flex-wrap items-end justify-between gap-3">
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-wider text-primary">Reforma · ambiente principal</p>
+          <h2 className="mt-1 text-2xl font-semibold tracking-tight">Mesa de Trabalho</h2>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Leia o capítulo inteiro, selecione um dispositivo e use o painel contextual sem perder o lugar no documento.
+          </p>
+        </div>
+        <div className="flex flex-wrap items-center gap-2">
+          <Link href="/consolidado" className={buttonVariants({ variant: "outline", size: "sm" })}>
+            <BookOpenText /> Prévia integral
+          </Link>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setPanelOpen((value) => !value)}
+            aria-label={panelOpen ? "Recolher painel contextual" : "Abrir painel contextual"}
+          >
+            {panelOpen ? <PanelRightClose /> : <PanelRightOpen />}
+            {panelOpen ? "Recolher painel" : "Abrir painel"}
+          </Button>
+        </div>
+      </header>
+
+      <div className={cn(
+        "grid min-h-[680px] overflow-hidden rounded-2xl border bg-card shadow-sm",
+        panelOpen ? "lg:grid-cols-[220px_minmax(0,1fr)_310px]" : "lg:grid-cols-[220px_minmax(0,1fr)]",
+      )}>
+        <aside className="border-b bg-muted/25 lg:border-r lg:border-b-0">
+          <div className="border-b p-3">
+            <label className="relative block">
+              <Search className="absolute top-1/2 left-2.5 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                value={query}
+                onChange={(event) => setQuery(event.target.value)}
+                placeholder="Localizar capítulo"
+                className="h-9 pl-8 text-sm"
+              />
+            </label>
+          </div>
+          <ScrollArea className="h-48 lg:h-[630px]">
+            <nav className="space-y-1 p-2" aria-label="Capítulos da proposta">
+              {filteredChapters.map((item) => {
+                const active = item.id === chapter.id;
+                const itemStats = articleStats(item);
+                return (
+                  <button
+                    key={item.id}
+                    type="button"
+                    onClick={() => {
+                      setChapterId(item.id);
+                      setSelectedId(item.children[0]?.id ?? item.id);
+                    }}
+                    className={cn(
+                      "w-full rounded-lg px-2.5 py-2 text-left transition-colors",
+                      active ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-muted hover:text-foreground",
+                    )}
+                  >
+                    <span className="flex items-center gap-1.5 text-sm font-medium">
+                      <ChevronRight className={cn("h-3.5 w-3.5", active && "rotate-90")} />
+                      <span className="truncate">{label(item)}</span>
+                    </span>
+                    <span className={cn("mt-0.5 block truncate pl-5 text-xs", active ? "text-primary-foreground/75" : "text-muted-foreground")}>
+                      {item.titulo || "Sem título"}
+                    </span>
+                    <span className={cn("mt-1 block pl-5 text-[11px]", active ? "text-primary-foreground/70" : "text-muted-foreground/75")}>
+                      {itemStats.approved}/{itemStats.total} artigos aprovados
+                    </span>
+                  </button>
+                );
+              })}
+            </nav>
+          </ScrollArea>
+        </aside>
+
+        <main className="min-w-0 bg-background/40">
+          <div className="sticky top-0 z-10 border-b bg-card/95 px-4 py-3 backdrop-blur sm:px-5">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <div className="min-w-0">
+                <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Documento em construção</p>
+                <h3 className="truncate font-heading text-lg font-semibold">
+                  {label(chapter)}{chapter.titulo ? ` — ${chapter.titulo}` : ""}
+                </h3>
+              </div>
+              <span className="rounded-full border bg-background px-2.5 py-1 text-xs text-muted-foreground">
+                {stats.approved} de {stats.total} artigos aprovados
+              </span>
+            </div>
+          </div>
+
+          <ScrollArea className="h-[630px]">
+            <article className="mx-auto max-w-3xl px-4 py-6 sm:px-7">
+              <button
+                type="button"
+                onClick={() => setSelectedId(chapter.id)}
+                className={cn(
+                  "mb-5 w-full rounded-xl border px-4 py-4 text-center transition-colors",
+                  effectiveSelectedId === chapter.id ? "border-primary bg-primary/5" : "border-transparent hover:border-border hover:bg-card",
+                )}
+              >
+                <span className="block font-heading text-sm font-semibold uppercase tracking-wide">{label(chapter)}</span>
+                {chapter.titulo && <span className="mt-1 block font-heading text-lg font-semibold uppercase">{chapter.titulo}</span>}
+              </button>
+
+              <div className="space-y-1">
+                {items.map((item) => {
+                  const active = item.id === effectiveSelectedId;
+                  const revoked = item.alteracaoTipo === "revogado";
+                  const moved = item.numero && item.numeroVigente && normalizarNumero(item.numero) !== normalizarNumero(item.numeroVigente);
+                  return (
+                    <button
+                      key={item.id}
+                      ref={active ? selectedRef : undefined}
+                      type="button"
+                      onClick={() => setSelectedId(item.id)}
+                      className={cn(
+                        "group w-full rounded-xl border border-transparent px-3 py-2 text-left transition-all hover:border-border hover:bg-card",
+                        active && "border-primary/50 bg-card shadow-sm ring-2 ring-primary/10",
+                        revoked && "opacity-65",
+                      )}
+                      style={{ paddingLeft: `${12 + Math.min(item.depth, 4) * 18}px` }}
+                    >
+                      <span className="mb-1 flex flex-wrap items-center gap-2">
+                        <span className={cn("font-heading text-sm font-semibold", revoked && "line-through")}>{label(item)}</span>
+                        {item.titulo && <span className="text-sm text-muted-foreground">— {item.titulo}</span>}
+                        {item.origem === "novo" && <NovoBadge />}
+                        {moved && (
+                          <span className="rounded-full border border-amber-300 bg-amber-50 px-1.5 py-0.5 text-[10px] font-medium text-amber-800 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-200">
+                            era {item.numeroVigente}
+                          </span>
+                        )}
+                        {revoked && <span className="rounded-full border px-1.5 py-0.5 text-[10px] text-muted-foreground">revogado</span>}
+                        <span className="ml-auto flex items-center gap-1.5">
+                          {item.hasPending && <AlertTriangle className="h-3.5 w-3.5 text-amber-500" aria-label="Possui pendência aberta" />}
+                          {item.hasNote && <StickyNote className="h-3.5 w-3.5 text-violet-500" aria-label="Possui anotação pessoal" />}
+                          <StatusDot status={item.status} />
+                        </span>
+                      </span>
+                      {revoked ? (
+                        <span className="block text-sm italic text-muted-foreground">Retirado da proposta de texto futuro.</span>
+                      ) : currentText(item).trim() ? (
+                        <RichTextContent text={currentText(item)} className="text-[15px] leading-7 text-foreground/85" />
+                      ) : (
+                        <span className="block text-sm italic text-muted-foreground">Redação ainda não cadastrada.</span>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+            </article>
+          </ScrollArea>
+        </main>
+
+        {panelOpen && selected && (
+          <aside className="border-t bg-card lg:border-t-0 lg:border-l">
+            <div className="border-b p-4">
+              <div className="flex items-start justify-between gap-2">
+                <div className="min-w-0">
+                  <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Dispositivo selecionado</p>
+                  <h3 className="mt-0.5 truncate font-heading text-base font-semibold">{label(selected)}</h3>
+                  {selected.titulo && <p className="truncate text-xs text-muted-foreground">{selected.titulo}</p>}
+                </div>
+                <StatusBadge status={selected.status} />
+              </div>
+              <div className="mt-3 flex flex-wrap gap-1.5 text-[11px] text-muted-foreground">
+                <span className="rounded-full border px-2 py-0.5">{PROVISION_TYPE_LABELS[selected.type]}</span>
+                {selected.origem === "novo" && <NovoBadge className="h-5" />}
+                {selected.hasPending && <span className="rounded-full border border-amber-300 px-2 py-0.5 text-amber-700">pendência aberta</span>}
+              </div>
+            </div>
+
+            <ScrollArea className="h-[550px]">
+              <div className="space-y-4 p-4">
+                <div className="grid grid-cols-2 gap-2">
+                  <Link href={`/dispositivo/${selected.id}`} className={buttonVariants({ size: "sm", className: "justify-start" })}>
+                    <FilePenLine /> Abrir e redigir
+                  </Link>
+                  <Link href="/renumeracao" className={buttonVariants({ variant: "outline", size: "sm", className: "justify-start" })}>
+                    <GripVertical /> Reorganizar
+                  </Link>
+                  <Link href={`/dispositivo/${selected.id}`} className={buttonVariants({ variant: "outline", size: "sm", className: "justify-start" })}>
+                    <MessageSquareText /> Colaboração
+                  </Link>
+                  <Link
+                    href={activeMeetingId ? `/reunioes/${activeMeetingId}` : "/reunioes"}
+                    className={buttonVariants({ variant: "outline", size: "sm", className: "justify-start" })}
+                  >
+                    <Users /> Deliberar
+                  </Link>
+                </div>
+
+                {canEdit && allowedChildren(selected.type).length > 0 && (
+                  <div className="rounded-lg border bg-muted/25 p-3">
+                    <p className="mb-2 flex items-center gap-1.5 text-xs font-medium"><Plus className="h-3.5 w-3.5" /> Acrescentar neste ponto</p>
+                    <NewProvisionForm
+                      parentId={selected.id}
+                      parentType={selected.type}
+                      canEdit={canEdit}
+                      types={allowedChildren(selected.type)}
+                      label="Adicionar dispositivo subordinado"
+                    />
+                  </div>
+                )}
+
+                <Tabs defaultValue="comparacao">
+                  <TabsList className="grid w-full grid-cols-3">
+                    <TabsTrigger value="comparacao">Comparação</TabsTrigger>
+                    <TabsTrigger value="subsidios">Subsídios</TabsTrigger>
+                    <TabsTrigger value="situacao">Situação</TabsTrigger>
+                  </TabsList>
+                  <TabsContent value="comparacao" className="space-y-3 pt-2">
+                    <TextBlock title="Estatuto vigente" text={selected.textoVigente} />
+                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                      <ArrowLeftRight className="h-3.5 w-3.5" />
+                      <span>{selected.numeroVigente ? `Origem: ${selected.numeroVigente}` : "Sem correspondente no vigente"}</span>
+                    </div>
+                    <TextBlock title="Redação atual da comissão" text={currentText(selected)} accent />
+                  </TabsContent>
+                  <TabsContent value="subsidios" className="space-y-3 pt-2">
+                    <TextBlock title="Proposta preliminar" text={selected.propostaInicial} />
+                    <TextBlock title="Justificativa registrada" text={selected.justificativa} />
+                    <div className="grid grid-cols-2 gap-2 text-center text-xs">
+                      <div className="rounded-lg border p-2">
+                        <span className="block text-lg font-semibold">{selected.suggestionCount}</span>
+                        sugestões
+                      </div>
+                      <div className="rounded-lg border p-2">
+                        <span className="block text-lg font-semibold">{selected.commentCount}</span>
+                        comentários
+                      </div>
+                    </div>
+                  </TabsContent>
+                  <TabsContent value="situacao" className="space-y-4 pt-2">
+                    <StatusControl provisionId={selected.id} status={selected.status} canEdit={canEdit} />
+                    <dl className="space-y-2 text-xs">
+                      <InfoRow label="Versão" value={`v${selected.version}`} />
+                      <InfoRow label="Alteração" value={selected.alteracaoTipo.replaceAll("_", " ")} />
+                      <InfoRow label="Numeração atual" value={selected.numero || "provisória"} />
+                      <InfoRow label="Numeração vigente" value={selected.numeroVigente || "sem correspondente"} />
+                      {selected.numeroSugerido && selected.numero && normalizarNumero(selected.numeroSugerido) !== normalizarNumero(selected.numero) && (
+                        <InfoRow label="Ordem sugeriria" value={selected.numeroSugerido} warning />
+                      )}
+                    </dl>
+                  </TabsContent>
+                </Tabs>
+              </div>
+            </ScrollArea>
+          </aside>
+        )}
+      </div>
+
+      <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl border bg-muted/20 px-4 py-3 text-xs text-muted-foreground">
+        <span className="flex items-center gap-1.5"><ListTree className="h-3.5 w-3.5" /> A numeração é consequência da posição; a identidade interna do dispositivo permanece estável.</span>
+        <Link href="/comparativo" className="font-medium text-primary hover:underline">Abrir quadro comparativo</Link>
+      </div>
+    </div>
+  );
+}
+
+function TextBlock({ title, text, accent = false }: { title: string; text: string; accent?: boolean }) {
+  return (
+    <section className={cn("rounded-lg border p-3", accent && "border-primary/30 bg-primary/5")}>
+      <h4 className="mb-1.5 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">{title}</h4>
+      {text.trim() ? (
+        <RichTextContent text={text} className="text-sm leading-6" />
+      ) : (
+        <p className="text-xs italic text-muted-foreground">Sem texto registrado.</p>
+      )}
+    </section>
+  );
+}
+
+function InfoRow({ label: title, value, warning = false }: { label: string; value: string; warning?: boolean }) {
+  return (
+    <div className="flex items-start justify-between gap-3 border-b pb-2 last:border-b-0">
+      <dt className="text-muted-foreground">{title}</dt>
+      <dd className={cn("text-right font-medium", warning && "text-amber-700 dark:text-amber-300")}>{value}</dd>
+    </div>
+  );
+}
