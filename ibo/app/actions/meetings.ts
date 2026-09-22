@@ -77,50 +77,17 @@ export async function setPresence(meetingId: number, userId: number, presente: b
 
 export async function addManualEvent(meetingId: number, descricao: string): Promise<ActionState> {
   const user = await requireRole(...rolesCom("gerenciar_reunioes"));
-  if (!descricao.trim()) return { error: "Descreva o evento." };
+  if (!descricao.trim()) return { error: "Descreva o registro da reunião." };
   await run("INSERT INTO meeting_events (meeting_id, user_id, hora, tipo, descricao) VALUES (?, ?, ?, 'registro', ?)", [
     meetingId,
     user.id,
     new Date().toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" }),
     descricao,
   ]);
-  await audit(user.id, user.name, "Registrou evento em reunião", "meeting", String(meetingId), descricao);
+  await audit(user.id, user.name, "Acrescentou registro à reunião", "meeting", String(meetingId), descricao);
   revalidatePath(`/reunioes/${meetingId}`);
-  await publishRealtime({ entity: "meeting", id: String(meetingId), action: "evento" });
+  await publishRealtime({ entity: "meeting", id: String(meetingId), action: "registro" });
   return { ok: true };
-}
-
-export async function addDecision(
-  meetingId: number,
-  provisionId: string | null,
-  tipo: string,
-  texto: string
-): Promise<ActionState> {
-  const user = await requireRole(...rolesCom("gerenciar_reunioes"));
-  if (!texto.trim()) return { error: "Descreva a deliberação." };
-  const meeting = await get<{ numero: number; data: string }>("SELECT numero, data FROM meetings WHERE id = ?", [meetingId]);
-  if (!meeting) return { error: "Reunião não encontrada." };
-  const code = `DEC-${meeting.data.slice(0, 10)}-${String(meeting.numero).padStart(3, "0")}`;
-  const n = (await get<{ c: number }>("SELECT COUNT(*) c FROM meeting_decisions WHERE meeting_id = ?", [meetingId]))?.c ?? 0;
-  const fullCode = `${code}-${String(n + 1).padStart(3, "0")}`;
-  await run("INSERT INTO meeting_decisions (code, meeting_id, provision_id, tipo, texto, user_id) VALUES (?, ?, ?, ?, ?, ?)", [
-    fullCode,
-    meetingId,
-    provisionId,
-    tipo,
-    texto,
-    user.id,
-  ]);
-  await run("INSERT INTO meeting_events (meeting_id, user_id, hora, tipo, descricao) VALUES (?, ?, ?, 'deliberacao', ?)", [
-    meetingId,
-    user.id,
-    new Date().toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" }),
-    `${fullCode} — ${texto.slice(0, 140)}`,
-  ]);
-  await audit(user.id, user.name, "Registrou deliberação " + fullCode, "meeting", String(meetingId));
-  revalidatePath(`/reunioes/${meetingId}`);
-  await publishRealtime({ entity: "meeting", id: String(meetingId), action: "deliberacao" });
-  return { ok: true, message: fullCode };
 }
 
 export async function updateMeeting(
@@ -157,7 +124,7 @@ export async function deleteMeeting(meetingId: number): Promise<ActionState> {
     [meetingId]
   ))?.c ?? 0;
   if (ataAprovada > 0) {
-    return { error: "Não é possível excluir uma reunião com ata aprovada." };
+    return { error: "Não é possível excluir uma reunião com ata finalizada." };
   }
   await transaction(async () => {
     await run("DELETE FROM meeting_decisions WHERE meeting_id = ?", [meetingId]);
@@ -192,14 +159,9 @@ export async function generateMinutes(meetingId: number): Promise<ActionState> {
   );
   const total = (await get<{ c: number }>("SELECT COUNT(*) c FROM meeting_members WHERE meeting_id = ?", [meetingId]))?.c ?? 0;
   const eventos = await all<{ hora: string; descricao: string }>(
-    "SELECT hora, descricao FROM meeting_events WHERE meeting_id = ? ORDER BY id",
+    "SELECT hora, descricao FROM meeting_events WHERE meeting_id = ? AND tipo = 'registro' ORDER BY id",
     [meetingId]
   );
-  const decisoes = await all<{ code: string; texto: string; provision_id: string | null }>(
-    "SELECT code, texto, provision_id FROM meeting_decisions WHERE meeting_id = ? ORDER BY id",
-    [meetingId]
-  );
-
   const linhas: string[] = [];
   linhas.push(`ATA DA REUNIÃO Nº ${meeting.numero} DA COMISSÃO DE REFORMA DO ESTATUTO SOCIAL DA IGREJA BATISTA OLARIA`);
   linhas.push("");
@@ -218,12 +180,7 @@ export async function generateMinutes(meetingId: number): Promise<ActionState> {
     for (const e of eventos) linhas.push(`  ${e.hora} — ${e.descricao}`);
     linhas.push("");
   }
-  if (decisoes.length) {
-    linhas.push("Deliberações:");
-    for (const d of decisoes) linhas.push(`  ${d.code}${d.provision_id ? ` (${d.provision_id})` : ""} — ${d.texto}`);
-    linhas.push("");
-  }
-  linhas.push("Nada mais havendo a tratar, encerra-se a presente ata, que, aprovada, será assinada pelos presentes.");
+  linhas.push("Nada mais havendo a tratar, encerra-se o presente registro, cuja minuta será revisada e finalizada pela comissão.");
 
   await run(`INSERT INTO minutes (meeting_id, status, conteudo) VALUES (?, 'rascunho', ?)
        ON CONFLICT(meeting_id) DO UPDATE SET conteudo = excluded.conteudo, status = 'rascunho', updated_at = datetime('now')`,

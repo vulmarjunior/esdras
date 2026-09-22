@@ -88,18 +88,18 @@ export function NotedBadge({ className }: { className?: string }) {
   );
 }
 
-/** Marca compacta de dispositivo aprovado pela comissão. */
+/** Marca compacta de dispositivo com redação concluída para a proposta. */
 export function ApprovedBadge({ className }: { className?: string }) {
   return (
     <span
-      title="Dispositivo aprovado pela comissão; redação consolidada congelada"
+      title="Redação concluída e congelada para compor a proposta"
       className={cn(
         "inline-flex h-4 shrink-0 items-center gap-0.5 rounded-full border border-emerald-300 bg-emerald-50 px-1.5 text-[10px] font-bold uppercase tracking-wide text-emerald-700 dark:border-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-300",
         className
       )}
     >
       <CheckCircle2 className="h-3 w-3" aria-hidden="true" />
-      aprovado
+      concluída
     </span>
   );
 }

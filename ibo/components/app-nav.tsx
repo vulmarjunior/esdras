@@ -1,9 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { Fragment, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
+import type { Role } from "@/lib/types";
 import {
   LayoutDashboard,
   CalendarDays,
@@ -24,6 +25,7 @@ import {
   Layers,
   CircleHelp,
   ArrowLeftRight,
+  PanelsTopLeft,
 } from "lucide-react";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger, SheetClose } from "@/components/ui/sheet";
 import {
@@ -38,6 +40,8 @@ interface NavItem {
   label: string;
   icon: typeof LayoutDashboard;
   adminOnly?: boolean;
+  editorOnly?: boolean;
+  sectionLabel?: string;
 }
 
 interface NavTema {
@@ -58,12 +62,12 @@ const NAV_TEMAS: NavTema[] = [
     label: "Reforma",
     icon: Layers,
     itens: [
-      { href: "/revisao", label: "Estatuto em revisão", icon: BookOpenText },
-      { href: "/consolidado", label: "Em construção", icon: ScrollText },
-      { href: "/comparativo", label: "Comparativo", icon: ArrowLeftRight },
-      { href: "/pendentes", label: "Pendências", icon: CircleAlert },
-      { href: "/renumeracao", label: "Renumeração", icon: ListOrdered },
-      { href: "/coerencia", label: "Coerência", icon: ShieldAlert },
+      { href: "/mesa-trabalho", label: "Mesa de Trabalho", icon: PanelsTopLeft, editorOnly: true },
+      { href: "/comparativo", label: "Acompanhamento", icon: ArrowLeftRight },
+      { href: "/consolidado", label: "Proposta em construção", icon: ScrollText },
+      { href: "/pendentes", label: "Pendências", icon: CircleAlert, editorOnly: true, sectionLabel: "Ferramentas da reforma" },
+      { href: "/renumeracao", label: "Renumeração", icon: ListOrdered, editorOnly: true },
+      { href: "/coerencia", label: "Coerência", icon: ShieldAlert, editorOnly: true },
     ],
   },
   {
@@ -102,9 +106,16 @@ function isActive(pathname: string, href: string): boolean {
   return href === "/" ? pathname === "/" : pathname.startsWith(href);
 }
 
-export function AppNav({ isAdmin }: { isAdmin: boolean }) {
+function visibleItems(tema: NavTema, role: Role): NavItem[] {
+  const isAdmin = role === "admin";
+  const isEditor = isAdmin || role === "coordenador";
+  return tema.itens.filter((item) => (!item.adminOnly || isAdmin) && (!item.editorOnly || isEditor));
+}
+
+export function AppNav({ role }: { role: Role }) {
   const pathname = usePathname();
-  const temas = NAV_TEMAS.filter((t) => !t.adminOnly || isAdmin);
+  const isAdmin = role === "admin";
+  const temas = NAV_TEMAS.filter((tema) => !tema.adminOnly || isAdmin);
 
   return (
     <nav className="sticky top-0 z-40 hidden border-b bg-background/90 backdrop-blur md:block">
@@ -128,7 +139,8 @@ export function AppNav({ isAdmin }: { isAdmin: boolean }) {
         })()}
 
         {temas.map((tema) => {
-          const temaAtivo = tema.itens.some((n) => isActive(pathname, n.href));
+          const itens = visibleItems(tema, role);
+          const temaAtivo = itens.some((n) => isActive(pathname, n.href));
           const TemaIcon = tema.icon;
           return (
             <DropdownMenu key={tema.id}>
@@ -144,18 +156,24 @@ export function AppNav({ isAdmin }: { isAdmin: boolean }) {
                 {temaAtivo && <span className="absolute inset-x-3 -bottom-[7px] h-0.5 rounded-full bg-primary" />}
               </DropdownMenuTrigger>
               <DropdownMenuContent align="start" sideOffset={6} className="min-w-52">
-                {tema.itens.map((n) => {
+                {itens.map((n) => {
                   const active = isActive(pathname, n.href);
                   const Icon = n.icon;
                   return (
-                    <DropdownMenuItem
-                      key={n.href}
-                      render={<Link href={n.href} />}
-                      className={cn("gap-2.5 px-2.5 py-2", active && "bg-muted font-semibold text-foreground")}
-                    >
-                      <Icon className={cn("h-4 w-4 text-muted-foreground", active && "text-primary")} />
-                      {n.label}
-                    </DropdownMenuItem>
+                    <Fragment key={n.href}>
+                      {n.sectionLabel && (
+                        <div className="mt-1 border-t px-2.5 pb-1 pt-2 text-xs font-medium text-muted-foreground">
+                          {n.sectionLabel}
+                        </div>
+                      )}
+                      <DropdownMenuItem
+                        render={<Link href={n.href} />}
+                        className={cn("gap-2.5 px-2.5 py-2", active && "bg-muted font-semibold text-foreground")}
+                      >
+                        <Icon className={cn("h-4 w-4 text-muted-foreground", active && "text-primary")} />
+                        {n.label}
+                      </DropdownMenuItem>
+                    </Fragment>
                   );
                 })}
               </DropdownMenuContent>
@@ -167,13 +185,11 @@ export function AppNav({ isAdmin }: { isAdmin: boolean }) {
   );
 }
 
-export function MobileNav({ isAdmin }: { isAdmin: boolean }) {
+export function MobileNav({ role }: { role: Role }) {
   const [open, setOpen] = useState(false);
   const pathname = usePathname();
-  const items = [
-    NAV_PRINCIPAL,
-    ...NAV_TEMAS.filter((t) => !t.adminOnly || isAdmin).flatMap((t) => t.itens),
-  ].filter((n) => !n.adminOnly || isAdmin);
+  const isAdmin = role === "admin";
+  const temas = NAV_TEMAS.filter((tema) => !tema.adminOnly || isAdmin);
 
   return (
     <Sheet open={open} onOpenChange={setOpen}>
@@ -196,7 +212,7 @@ export function MobileNav({ isAdmin }: { isAdmin: boolean }) {
           </SheetClose>
         </SheetHeader>
         <div className="flex flex-col gap-1 overflow-y-auto p-3">
-          {items.map((n) => {
+          {[NAV_PRINCIPAL].map((n) => {
             const active = isActive(pathname, n.href);
             const Icon = n.icon;
             return (
@@ -214,10 +230,35 @@ export function MobileNav({ isAdmin }: { isAdmin: boolean }) {
               </Link>
             );
           })}
+          {temas.map((tema) => (
+            <div key={tema.id} className="mt-2 border-t pt-2 first:mt-0">
+              <p className="px-3 pb-1 pt-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                {tema.label}
+              </p>
+              {visibleItems(tema, role).map((n) => {
+                const active = isActive(pathname, n.href);
+                const Icon = n.icon;
+                return (
+                  <Link
+                    key={n.href}
+                    href={n.href}
+                    onClick={() => setOpen(false)}
+                    className={cn(
+                      "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground",
+                      active && "bg-muted text-foreground",
+                    )}
+                  >
+                    <Icon className={cn("h-4.5 w-4.5", active && "text-primary")} />
+                    {n.label}
+                  </Link>
+                );
+              })}
+            </div>
+          ))}
         </div>
         <div className="mt-auto border-t p-4">
           <p className="text-xs text-muted-foreground">
-            ESDRAS — Espaço de Sugestões, Deliberações, Revisões, Atas e Sistematização
+            ESDRAS — Espaço de Sugestões, Desenvolvimento, Revisões, Atas e Sistematização
           </p>
         </div>
       </SheetContent>

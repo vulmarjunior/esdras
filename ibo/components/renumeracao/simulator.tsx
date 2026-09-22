@@ -88,7 +88,7 @@ export function Simulator({ artigos, capitulos }: Props) {
           atual)</strong> é a numeração derivada da posição no sistema. Se a ordem ainda não refletir o documento, use
           &quot;Ordenar pela numeração do documento&quot; (reordena dentro de cada capítulo). A simulação não altera nada
           — &quot;Aplicar numeração&quot; grava a numeração de trabalho (artigos e capítulos) e cria pendências de revisão
-          para artigos já aprovados que mudarem de número.
+          para artigos com redação concluída que mudarem de número.
         </FieldHelper>
       </div>
 

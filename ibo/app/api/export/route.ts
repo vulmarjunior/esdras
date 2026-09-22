@@ -150,18 +150,17 @@ export async function GET(req: NextRequest) {
     const meetings = await all<{ id: number; numero: number; data: string }>("SELECT id, numero, data FROM meetings ORDER BY data");
     lines.push("REUNIÕES:");
     for (const m of meetings) {
-      const dec = await all<{ code: string }>("SELECT code FROM meeting_decisions WHERE meeting_id=?", [m.id]);
-      lines.push(`  Reunião ${m.numero} (${m.data}) — ${dec.length} deliberações`);
-    }
-    const decisions = await all<{ code: string; texto: string }>("SELECT code, texto FROM meeting_decisions ORDER BY id");
-    if (decisions.length) {
-      lines.push("", "DELIBERAÇÕES:");
-      for (const d of decisions) lines.push(`  ${d.code} — ${d.texto}`);
+      const records = await all<{ descricao: string }>(
+        "SELECT descricao FROM meeting_events WHERE meeting_id=? AND tipo='registro' ORDER BY hora, id",
+        [m.id]
+      );
+      lines.push(`  Reunião ${m.numero} (${m.data}) — ${records.length} registro(s)`);
+      for (const record of records) lines.push(`    - ${record.descricao}`);
     }
     const tree = await getProposalTree();
     const aprovados = artigosDaProposta(tree).filter((n) => n.status === "aprovado");
     if (aprovados.length) {
-      lines.push("", `ARTIGOS APROVADOS (${aprovados.length}): ${aprovados.map((a) => provisionLabel(a)).join(", ")}`);
+      lines.push("", `REDAÇÕES CONCLUÍDAS (${aprovados.length}): ${aprovados.map((a) => provisionLabel(a)).join(", ")}`);
     }
     const pendings = await all<{ categoria: string; descricao: string; status: string }>("SELECT categoria, descricao, status FROM pending_issues ORDER BY id");
     if (pendings.length) {
@@ -182,8 +181,8 @@ export async function GET(req: NextRequest) {
       lines.push(r.conteudo || "");
       lines.push("", "=".repeat(60));
     }
-    if (!lines.length) lines.push("Nenhuma ata aprovada.");
-    return download(lines.join("\n"), "atas-aprovadas.txt");
+    if (!lines.length) lines.push("Nenhuma ata finalizada.");
+    return download(lines.join("\n"), "atas-finalizadas.txt");
   }
 
   return NextResponse.json({ error: "Tipo desconhecido." }, { status: 400 });

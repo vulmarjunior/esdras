@@ -83,7 +83,7 @@ export function QuadroComparativo({ linhas }: { linhas: LinhaComparativo[] }) {
           </label>
           <label className="flex items-center gap-2">
             <input type="checkbox" checked={soAprovados} onChange={(e) => setSoAprovados(e.target.checked)} />
-            Somente aprovados
+            Somente redações concluídas
           </label>
           <label className="flex items-center gap-2">
             <input type="checkbox" checked={comJustificativa} onChange={(e) => setComJustificativa(e.target.checked)} />

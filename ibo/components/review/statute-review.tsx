@@ -29,7 +29,7 @@ export function StatuteReview({ rows, versao }: { rows: ReviewRow[]; versao: Ver
     if (chapter && row.chapterId !== chapter) return false;
     if (filter === "Somente alterados" && row.change === "Não alterado" && !row.moved && !row.renumbered) return false;
     if (filter === "Não alterados" && row.change !== "Não alterado") return false;
-    if (filter === "Não aprovados" && row.status === "aprovado") return false;
+    if (filter === "Redação não concluída" && row.status === "aprovado") return false;
     return !deferredQuery || [row.label, row.originalLabel, row.title, row.originalTitle, row.context, row.before, row.after].join(" ").toLocaleLowerCase("pt-BR").includes(deferredQuery);
   });
   return <div className="space-y-5">
@@ -45,13 +45,13 @@ export function StatuteReview({ rows, versao }: { rows: ReviewRow[]; versao: Ver
           ? "na ordem e numeração de trabalho da proposta."
           : "na ordem e numeração históricas do Estatuto registrado."}
       </p>
-      <p className="rounded-lg border border-amber-300 bg-amber-50 p-3 text-sm text-amber-950 dark:bg-amber-950 dark:text-amber-100">Versão em revisão — inclui textos ainda não aprovados. Para consultar apenas as aprovações, abra o <Link className="underline" href="/consolidado">Consolidado</Link>.</p>
+      <p className="rounded-lg border border-amber-300 bg-amber-50 p-3 text-sm text-amber-950 dark:bg-amber-950 dark:text-amber-100">Versão em revisão — inclui textos cuja redação ainda não foi concluída. Para consultar somente as redações concluídas, abra o <Link className="underline" href="/consolidado?modo=aprovados">Estatuto em construção</Link>.</p>
     </header>
     <div className="space-y-3 rounded-xl border bg-card p-4">
       <div className="grid gap-3 md:grid-cols-3">
         <label className="space-y-1 text-sm">Buscar texto ou artigo<input className="h-10 w-full rounded-md border bg-background px-3" type="search" value={query} onChange={e => setQuery(e.target.value)} placeholder="Ex.: Art. 8º ou assembleia" /></label>
         <label className="space-y-1 text-sm">Capítulo<select className="h-10 w-full rounded-md border bg-background px-3" value={chapter} onChange={e => setChapter(e.target.value)}><option value="">Todos os capítulos</option>{chapters.map(([id, label]) => <option key={id} value={id}>{label}</option>)}</select></label>
-        <label className="space-y-1 text-sm">Exibir<select className="h-10 w-full rounded-md border bg-background px-3" value={filter} onChange={e => setFilter(e.target.value)}>{["Todos", "Somente alterados", "Não alterados", "Não aprovados"].map(value => <option key={value}>{value}</option>)}</select></label>
+        <label className="space-y-1 text-sm">Exibir<select className="h-10 w-full rounded-md border bg-background px-3" value={filter} onChange={e => setFilter(e.target.value)}>{["Todos", "Somente alterados", "Não alterados", "Redação não concluída"].map(value => <option key={value}>{value}</option>)}</select></label>
       </div>
       <div className="flex flex-wrap items-center justify-between gap-3 text-sm">
         <label className="flex items-center gap-2"><input type="checkbox" checked={highlight} onChange={e => setHighlight(e.target.checked)} />Destacar trechos retirados e acrescentados</label>
@@ -76,7 +76,7 @@ export function StatuteReview({ rows, versao }: { rows: ReviewRow[]; versao: Ver
           <div className="min-w-0 space-y-3 border-t p-4 sm:p-5 md:border-t-0 md:border-l">
             <p className="text-xs font-semibold uppercase text-muted-foreground md:hidden">Versão atual</p>
             <div className="flex flex-wrap items-center gap-2"><span className={`rounded-full border px-2 py-0.5 text-xs font-medium ${changeColors[row.change]}`}>{row.change}</span><StatusBadge status={row.status} />{row.renumbered ? <span className="text-xs">Numeração alterada · antigo {row.originalLabel}</span> : null}{row.moved ? <span className="text-xs">Posição alterada</span> : null}</div>
-            {row.change === "Revogado" ? <p className="text-sm">Retirada indicada na reforma. O texto anterior permanece ao lado para comparação; confira a etapa de análise antes de considerar a decisão aprovada.</p> : row.after ? <ComparedText parts={row.afterParts} side="after" highlight={highlight} /> : <p className="text-sm italic text-muted-foreground">Redação ainda não cadastrada.</p>}
+            {row.change === "Revogado" ? <p className="text-sm">Retirada indicada na reforma. O texto anterior permanece ao lado para comparação; confira a etapa de análise antes de concluir a redação.</p> : row.after ? <ComparedText parts={row.afterParts} side="after" highlight={highlight} /> : <p className="text-sm italic text-muted-foreground">Redação ainda não cadastrada.</p>}
             <p className="text-xs text-muted-foreground">{row.source}</p>
           </div>
         </div>

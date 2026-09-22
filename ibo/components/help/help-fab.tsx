@@ -19,8 +19,8 @@ const FAQ = [
     a: "A redação de trabalho é editada apenas pelo coordenador/relator. Como membro, contribua com sugestões de redação, comentários e fundamentos.",
   },
   {
-    q: "O que é opinião consultiva?",
-    a: "É sua manifestação (concordo / discordo / tenho ressalva). Ajuda a comissão, mas não é a votação formal.",
+    q: "O que significa 'redação concluída'?",
+    a: "Significa que o texto está pronto para integrar a proposta final. A aprovação formal ocorrerá fora do sistema, com a assinatura da comissão no documento encaminhado à assembleia.",
   },
   {
     q: "A IA altera algo sozinha?",

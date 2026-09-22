@@ -157,7 +157,7 @@ function ChapterCard({
           </h3>
         </Link>
         <Badge variant="secondary" className="shrink-0">
-          {aprovados}/{total} aprovados
+          {aprovados}/{total} redações concluídas
         </Badge>
       </div>
       <ul className="divide-y divide-border">

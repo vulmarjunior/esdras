@@ -29,7 +29,7 @@ export function StatusControl({
     const res = await setStatus(provisionId, next);
     setPending(false);
     if (res.error) return toast.error(res.error);
-    toast.success(next === "aprovado" ? "Dispositivo aprovado e redação consolidada." : `Status: ${STATUS_LABELS[next]}`);
+    toast.success(next === "aprovado" ? "Redação concluída para a proposta." : `Status: ${STATUS_LABELS[next]}`);
     router.refresh();
   }
   return (
@@ -44,7 +44,7 @@ export function StatusControl({
             variant={active ? "default" : "outline"}
             disabled={pending}
             onClick={() => go(s)}
-            title={s === "aprovado" ? "Aprova o dispositivo e congela a redação consolidada" : undefined}
+            title={s === "aprovado" ? "Conclui editorialmente a redação deste dispositivo" : undefined}
             className={cn(
               active &&
                 (s === "aprovado"

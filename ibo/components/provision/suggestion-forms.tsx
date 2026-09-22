@@ -7,12 +7,12 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { SUGGESTION_COLORS } from "@/components/status-badge";
 import { SUGGESTION_STATUS_LABELS } from "@/lib/labels";
-import { createSuggestion, updateSuggestionStatus, vote, removeVote } from "@/app/actions/provision";
+import { createSuggestion, updateSuggestionStatus } from "@/app/actions/provision";
 import { SubmitBtn } from "@/components/provision/submit-btn";
 import type { Suggestion } from "@/lib/types";
 
-export function SuggestionForm({ provisionId }: { provisionId: string }) {
-  const [open, setOpen] = useState(false);
+export function SuggestionForm({ provisionId, defaultOpen = false }: { provisionId: string; defaultOpen?: boolean }) {
+  const [open, setOpen] = useState(defaultOpen);
   const [pending, setPending] = useState(false);
   const router = useRouter();
   const [form, setForm] = useState({ texto: "", justificativa: "", ondeEsta: "" });
@@ -60,42 +60,17 @@ export function SuggestionForm({ provisionId }: { provisionId: string }) {
 export function SuggestionItem({
   sug,
   canManage,
-  votes,
-  myVote,
 }: {
   sug: Suggestion;
   canManage: boolean;
-  votes?: Record<string, number>;
-  myVote?: string;
 }) {
   const router = useRouter();
   const [pending, setPending] = useState(false);
   const statuses = ["aberta", "em_discussao", "aceita", "aceita_parcialmente", "rejeitada", "retirada"];
-  const OPINIONS = [
-    { key: "concordo", label: "Concordo", active: "border-emerald-300 bg-emerald-50 text-emerald-700 dark:border-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300", dot: "bg-emerald-500" },
-    { key: "discordo", label: "Discordo", active: "border-red-300 bg-red-50 text-red-700 dark:border-red-700 dark:bg-red-950/40 dark:text-red-300", dot: "bg-red-500" },
-    { key: "ressalva", label: "Ressalva", active: "border-amber-300 bg-amber-50 text-amber-700 dark:border-amber-700 dark:bg-amber-950/40 dark:text-amber-300", dot: "bg-amber-500" },
-  ];
 
   async function go(status: string) {
     setPending(true);
     await updateSuggestionStatus(sug.id, status);
-    setPending(false);
-    router.refresh();
-  }
-
-  async function voteSug(opinion: string) {
-    setPending(true);
-    const res = await vote(null, opinion, sug.id);
-    setPending(false);
-    if (res.error) return toast.error(res.error);
-    toast.success("Voto registrado na sugestão de redação.");
-    router.refresh();
-  }
-
-  async function removeSugVote() {
-    setPending(true);
-    await removeVote(null, sug.id);
     setPending(false);
     router.refresh();
   }
@@ -141,29 +116,6 @@ export function SuggestionItem({
           ))}
         </div>
       )}
-      <div className="mt-3 flex flex-wrap items-center gap-1.5 border-t pt-2.5">
-        {OPINIONS.map((o) => {
-          const isMine = myVote === o.key;
-          return (
-            <button
-              key={o.key}
-              type="button"
-              disabled={pending}
-              onClick={() => (isMine ? removeSugVote() : voteSug(o.key))}
-              title={isMine ? "Clique para remover seu voto" : undefined}
-              className={cn(
-                "inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-medium transition-colors disabled:opacity-60",
-                isMine ? o.active : "border-border text-muted-foreground hover:bg-muted"
-              )}
-            >
-              <span className={cn("h-1.5 w-1.5 rounded-full", o.dot)} />
-              {o.label}
-              {votes?.[o.key] ? ` ${votes[o.key]}` : ""}
-            </button>
-          );
-        })}
-        <span className="text-[11px] text-muted-foreground">consulta aos membros — caráter consultivo</span>
-      </div>
     </div>
   );
 }

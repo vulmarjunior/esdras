@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { get, all, run, transaction, now } from "@/lib/db";
-import { getActiveMeeting, provisionLabel } from "@/lib/data";
+import { provisionLabel } from "@/lib/data";
 import type { Provision } from "@/lib/types";
 import { requireRole } from "@/lib/auth";
 import { sanitizeHtml } from "@/lib/rich-text";
@@ -16,19 +16,6 @@ async function audit(userId: number, user_name: string, action: string, entity: 
     "INSERT INTO audit_logs (user_id, user_name, action, entity, entity_id, detail) VALUES (?, ?, ?, ?, ?, ?)",
     [userId, user_name, action, entity, entity_id, detail || ""]
   );
-}
-
-async function logMeetingEvent(tipo: string, descricao: string, userId: number | null) {
-  const meeting = await getActiveMeeting();
-  if (!meeting) return;
-  const hora = new Date().toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
-  await run("INSERT INTO meeting_events (meeting_id, user_id, hora, tipo, descricao) VALUES (?, ?, ?, ?, ?)", [
-    meeting.id,
-    userId,
-    hora,
-    tipo,
-    descricao,
-  ]);
 }
 
 export async function createProvision(
@@ -260,14 +247,9 @@ export async function moveProvision(
       `${provisionLabel(prov)}: ${paiAntigo} → ${paiNovo}, posição ${posicao}`
     );
   });
-  await logMeetingEvent(
-    "reordenacao",
-    `${provisionLabel(prov)} movido: ${paiAntigo} → ${paiNovo}`,
-    user.id
-  );
-
   revalidatePath("/");
   revalidatePath(`/dispositivo/${provisionId}`);
+  revalidatePath("/mesa-trabalho");
   revalidatePath("/renumeracao");
   revalidatePath("/consolidado");
   await publishRealtime({ entity: "provision", id: provisionId, action: "movido" });
@@ -371,10 +353,9 @@ export async function moveProposalProvision(
       }
     }
   });
-  await logMeetingEvent("reordenacao_proposta", `${provisionLabel(prov)} movido na proposta: ${paiAntigo} → ${paiNovo}`, user.id);
-
   revalidatePath("/");
   revalidatePath(`/dispositivo/${provisionId}`);
+  revalidatePath("/mesa-trabalho");
   revalidatePath("/renumeracao");
   revalidatePath("/revisao");
   revalidatePath("/consolidado");

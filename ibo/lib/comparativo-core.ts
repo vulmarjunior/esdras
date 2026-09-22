@@ -33,6 +33,8 @@ export interface LinhaComparativo {
   origem: string;
   alteracaoTipo: string;
   justificativa: string;
+  propostaInicial: string;
+  currentText: string;
   before: string;
   after: string;
   beforeParts: DiffPart[];
@@ -75,6 +77,8 @@ export function buildComparativo(
           origem: n.origem,
           alteracaoTipo: n.alteracao_tipo,
           justificativa: normalizeText(justificativas.get(n.id) ?? ""),
+          propostaInicial: n.proposta_inicial || "",
+          currentText: textoAtual(n),
           before,
           after,
           beforeParts,

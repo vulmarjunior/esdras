@@ -23,7 +23,7 @@ const lora = Lora({
 export const metadata: Metadata = {
   title: "ESDRAS — Reforma do Estatuto da IBO",
   description:
-    "Espaço de Sugestões, Deliberações, Revisões, Atas e Sistematização da Comissão de Reforma do Estatuto Social da Igreja Batista Olaria.",
+    "Espaço de Sugestões, Desenvolvimento, Revisões, Atas e Sistematização da Comissão de Reforma do Estatuto Social da Igreja Batista Olaria.",
   applicationName: "ESDRAS",
   manifest: "/manifest.webmanifest",
   appleWebApp: {

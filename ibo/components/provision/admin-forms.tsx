@@ -10,7 +10,6 @@ import {
   updateProvision,
   deleteProvision,
   setAlteracaoTipo,
-  setStatus,
 } from "@/app/actions/provision";
 import { ConfirmDialog, type ConfirmDialogState } from "@/components/confirm-dialog";
 import { SubmitBtn } from "@/components/provision/submit-btn";
@@ -21,15 +20,18 @@ export function NewProvisionForm({
   canEdit,
   types,
   label = "Incluir dispositivo",
+  onCreated,
 }: {
   parentId: string | null;
   parentType: string;
   canEdit: boolean;
   types?: string[];
   label?: string;
+  onCreated?: (id: string) => void;
 }) {
   const [open, setOpen] = useState(false);
-  const [form, setForm] = useState({ tipo: "", numero: "", titulo: "", texto: "", justificativa: "" });
+  const onlyType = types?.length === 1 ? types[0] : "";
+  const [form, setForm] = useState({ tipo: onlyType, numero: "", titulo: "", texto: "", justificativa: "" });
   const [pending, setPending] = useState(false);
   const router = useRouter();
 
@@ -51,10 +53,14 @@ export function NewProvisionForm({
     setPending(false);
     if (res.error) return toast.error(res.error);
     toast.success(res.message || "Dispositivo criado.");
-    setForm({ tipo: "", numero: "", titulo: "", texto: "", justificativa: "" });
+    setForm({ tipo: onlyType, numero: "", titulo: "", texto: "", justificativa: "" });
     setOpen(false);
-    router.refresh();
-    if (res.id) {
+    if (res.id && onCreated) {
+      onCreated(res.id);
+    } else {
+      router.refresh();
+    }
+    if (res.id && !onCreated) {
       setTimeout(() => router.push(`/dispositivo/${res.id}`), 400);
     }
   }
@@ -70,16 +76,22 @@ export function NewProvisionForm({
   return (
     <div className="space-y-2 rounded-xl border border-primary/30 bg-primary/5 p-4">
       <p className="text-sm font-medium">Novo dispositivo</p>
-      <select
-        value={form.tipo}
-        onChange={(e) => setForm({ ...form, tipo: e.target.value })}
-        className="h-9 w-full rounded-md border bg-background px-2 text-sm"
-      >
-        <option value="">Escolha o tipo...</option>
-        {tipos.map((t) => (
-          <option key={t} value={t}>{PROVISION_TYPE_LABELS[t]}</option>
-        ))}
-      </select>
+      {tipos.length === 1 ? (
+        <p className="rounded-md border bg-background px-3 py-2 text-sm">
+          Tipo: <strong>{PROVISION_TYPE_LABELS[tipos[0]]}</strong>
+        </p>
+      ) : (
+        <select
+          value={form.tipo}
+          onChange={(e) => setForm({ ...form, tipo: e.target.value })}
+          className="h-9 w-full rounded-md border bg-background px-2 text-sm"
+        >
+          <option value="">Escolha o tipo...</option>
+          {tipos.map((t) => (
+            <option key={t} value={t}>{PROVISION_TYPE_LABELS[t]}</option>
+          ))}
+        </select>
+      )}
       <div className="grid gap-2 sm:grid-cols-2">
         <input
           value={form.numero}
@@ -274,48 +286,6 @@ export function ProvisionAdminActions({
         )}
       </div>
       <ConfirmDialog state={confirmState} pending={pending} onConfirm={remove} onClose={() => setConfirmState(null)} />
-    </div>
-  );
-}
-
-/** Atalho para aprovar um dispositivo diretamente na tela da reunião (§23). */
-export function ApproveDeviceForm({ devices, canEdit }: { devices: { id: string; label: string }[]; canEdit: boolean }) {
-  const [deviceId, setDeviceId] = useState("");
-  const [pending, setPending] = useState(false);
-  const router = useRouter();
-  if (!canEdit) return null;
-  async function approve() {
-    if (!deviceId) return;
-    setPending(true);
-    const res = await setStatus(deviceId, "aprovado");
-    setPending(false);
-    if (res.error) return toast.error(res.error);
-    toast.success(res.message || "Dispositivo aprovado.");
-    setDeviceId("");
-    router.refresh();
-  }
-  return (
-    <div className="flex flex-wrap items-center gap-2">
-      <select
-        value={deviceId}
-        onChange={(e) => setDeviceId(e.target.value)}
-        className="h-9 min-w-0 flex-1 rounded-md border bg-background px-2 text-sm"
-      >
-        <option value="">Aprovar dispositivo...</option>
-        {devices.map((d) => (
-          <option key={d.id} value={d.id}>
-            {d.label}
-          </option>
-        ))}
-      </select>
-      <Button
-        size="sm"
-        className="bg-emerald-600 text-white hover:bg-emerald-700"
-        disabled={pending || !deviceId}
-        onClick={approve}
-      >
-        Aprovar
-      </Button>
     </div>
   );
 }

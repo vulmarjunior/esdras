@@ -2,7 +2,6 @@
 
 import { revalidatePath } from "next/cache";
 import { get, run, transaction, now } from "@/lib/db";
-import { getActiveMeeting } from "@/lib/data";
 import { requireRole, type Role } from "@/lib/auth";
 import { rolesCom, type Permissao } from "@/lib/permissions";
 import { sanitizeHtml } from "@/lib/rich-text";
@@ -25,19 +24,6 @@ async function audit(userId: number, userName: string, action: string, entityId:
     "INSERT INTO audit_logs (user_id, user_name, action, entity, entity_id, detail) VALUES (?, ?, ?, ?, ?, ?)",
     [userId, userName, action, "provision", entityId, detail || ""]
   );
-}
-
-async function logMeetingEvent(tipo: string, descricao: string, userId: number | null) {
-  const meeting = await getActiveMeeting();
-  if (!meeting) return;
-  const hora = new Date().toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
-  await run("INSERT INTO meeting_events (meeting_id, user_id, hora, tipo, descricao) VALUES (?, ?, ?, ?, ?)", [
-    meeting.id,
-    userId,
-    hora,
-    tipo,
-    descricao,
-  ]);
 }
 
 function podeEditar(role: Role, campo: CampoReferencia): boolean {
@@ -94,7 +80,6 @@ export async function atualizarReferencia(
     await audit(user.id, user.name, "Atualizou referência interna", provisionId, detalhe);
   });
 
-  await logMeetingEvent("referencia_atualizada", `${provisionId}: ${detalhe}`, user.id);
   revalidatePath(`/dispositivo/${provisionId}`);
   revalidatePath("/renumeracao");
   await publishRealtime({ entity: "provision", id: provisionId, action: "referencia_atualizada" });

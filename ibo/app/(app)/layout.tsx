@@ -31,7 +31,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       <header className="border-b bg-card">
         <div className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-3 py-3 sm:px-4 sm:py-3.5">
           <div className="flex min-w-0 items-center gap-2.5 sm:gap-3">
-            <MobileNav isAdmin={user.role === "admin"} />
+            <MobileNav role={user.role} />
             <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-primary text-primary-foreground shadow-sm sm:h-10 sm:w-10">
               <BookOpen className="h-4.5 w-4.5 sm:h-5 sm:w-5" />
             </div>
@@ -40,7 +40,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
                 Reforma do Estatuto Social da IBO
               </h1>
               <p className="hidden truncate text-xs text-muted-foreground sm:block">
-                ESDRAS — Espaço de Sugestões, Deliberações, Revisões, Atas e Sistematização
+                ESDRAS — Espaço de Sugestões, Desenvolvimento, Revisões, Atas e Sistematização
               </p>
             </div>
           </div>
@@ -77,7 +77,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
           </div>
         </div>
       </header>
-      <AppNav isAdmin={user.role === "admin"} />
+      <AppNav role={user.role} />
       <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-6 sm:px-6">{children}</main>
       <footer className="border-t py-4">
         <p className="mx-auto max-w-6xl px-4 text-center text-xs text-muted-foreground">
