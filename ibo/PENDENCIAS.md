@@ -2,6 +2,8 @@
 
 Pauta de trabalho para o próximo agente/dev. Estado do projeto: **MVP completo e rodando em produção** (Next.js 16 + Supabase Postgres). Especificação: `../PRD_ESDRAS.md`.
 
+> Registro obrigatório para continuidade da reformulação: `docs/registro-reformulacao-mesa-2026-09-22.md`. Ele consolida decisões, arquitetura de rotas, terminologia, compatibilidades, publicação e cuidados com o banco compartilhado entre preview e produção.
+
 ## 1. Decisões do usuário (já tomadas — não implementar)
 
 - [x] **Supabase Auth/RLS/Realtime** — **DECIDIDO**: autenticação fica como está (JWT local). Sistema temporário, sem necessidade de complexificar. Realtime já implementado (Broadcast + Presence, sem Auth/RLS). Não migrar para Supabase Auth/RLS.

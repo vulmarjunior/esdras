@@ -6,6 +6,8 @@ Aplicação web para análise do Estatuto dispositivo por dispositivo (capítulo
 
 Especificação completa: [`PRD_ESDRAS.md`](../PRD_ESDRAS.md).
 
+Registro da reformulação da Mesa de Trabalho e do fluxo dos membros: [`docs/registro-reformulacao-mesa-2026-09-22.md`](docs/registro-reformulacao-mesa-2026-09-22.md).
+
 ## Stack
 
 - **Next.js 16** (App Router, TypeScript, Turbopack)
