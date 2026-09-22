@@ -107,7 +107,14 @@ Acima do documento, coordenadores e administradores encontram dois comandos estr
 
 Depois da criação, a Mesa permanece aberta e seleciona o novo capítulo ou a nova seção. Para incluir artigo, parágrafo, inciso ou alínea, selecione o dispositivo que será o pai e use **Adicionar dispositivo subordinado** no painel contextual.
 
-No painel contextual é possível comparar o texto vigente com a redação atual da comissão, consultar a proposta preliminar e a justificativa, acompanhar sugestões, comentários e situação deliberativa, acrescentar dispositivos subordinados e abrir as funções completas de redação, colaboração e deliberação. Ao abrir uma dessas funções, o botão **Voltar à Mesa de Trabalho** recupera o capítulo e o dispositivo selecionados.
+No painel contextual é possível comparar o texto vigente com a redação atual da comissão, consultar a proposta preliminar e a justificativa, acompanhar sugestões, comentários e situação deliberativa e acrescentar dispositivos subordinados.
+
+Os comandos **Redigir** e **Colaboração** abrem dentro da própria Mesa:
+
+- **Redigir** — editor da redação de trabalho, histórico por versão, ferramentas de apoio por IA e justificativa da alteração.
+- **Colaboração** — sugestões de redação, comentários, pendências e anotação pessoal privada.
+
+A tela completa do dispositivo permanece disponível como acesso opcional para histórico, votação consultiva e moderação avançada. Quando ela for aberta, o botão **Voltar à Mesa de Trabalho** recupera o capítulo e o dispositivo selecionados. A deliberação formal continua vinculada ao ambiente de reuniões.
 
 O botão **Reorganizar** move o dispositivo diretamente na estrutura da proposta. Primeiro escolha o destino e a posição; a Mesa mostra uma prévia de todos os artigos cuja numeração será alterada. Por exemplo, ao colocar o antigo art. 5 depois do art. 26, a prévia mostra o art. 5 passando a 26 e os antigos arts. 6 a 26 recuando uma posição. Os filhos acompanham o dispositivo, a identidade e o histórico são preservados e as referências internas ficam sinalizadas para revisão humana.
 

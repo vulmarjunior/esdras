@@ -2,14 +2,13 @@ import { redirect } from "next/navigation";
 import { getSessionUser } from "@/lib/auth";
 import {
   getActiveMeeting,
-  getIdsComPendenciasAbertas,
   getNumerosArmazenados,
-  getPersonalNoteIds,
   getProposalTree,
   type TreeNode,
 } from "@/lib/data";
 import { all } from "@/lib/db";
 import { numerarArvore } from "@/lib/numeracao";
+import type { Comment, PendingIssue, Suggestion } from "@/lib/types";
 import {
   ChapterWorkbench,
   type WorkbenchNode,
@@ -17,18 +16,30 @@ import {
 
 export const dynamic = "force-dynamic";
 
-type CountRow = { provision_id: string; c: number };
+function groupByProvision<T extends { provision_id: string | null }>(rows: T[]): Map<string, T[]> {
+  const grouped = new Map<string, T[]>();
+  for (const row of rows) {
+    if (!row.provision_id) continue;
+    const current = grouped.get(row.provision_id);
+    if (current) current.push(row);
+    else grouped.set(row.provision_id, [row]);
+  }
+  return grouped;
+}
 
 function mapNode(
   node: TreeNode,
   numerosProposta: Map<string, string>,
   numerosVigentes: Map<string, string>,
   numerosSugeridos: Map<string, string>,
-  notes: Set<string>,
-  pendings: Set<string>,
-  suggestions: Map<string, number>,
-  comments: Map<string, number>,
+  notes: Map<string, string>,
+  suggestions: Map<string, Suggestion[]>,
+  comments: Map<string, Comment[]>,
+  pendings: Map<string, PendingIssue[]>,
 ): WorkbenchNode {
+  const nodeSuggestions = suggestions.get(node.id) ?? [];
+  const nodeComments = comments.get(node.id) ?? [];
+  const nodePendings = pendings.get(node.id) ?? [];
   return {
     id: node.id,
     parentId: node.parent_id,
@@ -47,10 +58,14 @@ function mapNode(
     justificativa: node.justificativa,
     version: node.version,
     updatedAt: node.updated_at,
-    hasNote: notes.has(node.id),
-    hasPending: pendings.has(node.id),
-    suggestionCount: suggestions.get(node.id) ?? 0,
-    commentCount: comments.get(node.id) ?? 0,
+    hasNote: Boolean(notes.get(node.id)),
+    hasPending: nodePendings.some((pending) => pending.status === "aberta"),
+    personalNote: notes.get(node.id) ?? "",
+    suggestions: nodeSuggestions,
+    comments: nodeComments,
+    pendings: nodePendings,
+    suggestionCount: nodeSuggestions.length,
+    commentCount: nodeComments.length,
     childCount: node.child_count,
     children: node.children.map((child) =>
       mapNode(
@@ -59,9 +74,9 @@ function mapNode(
         numerosVigentes,
         numerosSugeridos,
         notes,
-        pendings,
         suggestions,
         comments,
+        pendings,
       ),
     ),
   };
@@ -79,27 +94,33 @@ export default async function WorkbenchPage({
     tree,
     numerosProposta,
     numerosVigentes,
-    notedIds,
-    pendingIds,
     suggestionRows,
     commentRows,
+    pendingRows,
+    noteRows,
     activeMeeting,
   ] = await Promise.all([
     getProposalTree(),
     getNumerosArmazenados("proposta"),
     getNumerosArmazenados("vigente"),
-    getPersonalNoteIds(user.id),
-    getIdsComPendenciasAbertas(),
-    all<CountRow>("SELECT provision_id, COUNT(*) c FROM suggestions GROUP BY provision_id"),
-    all<CountRow>("SELECT provision_id, COUNT(*) c FROM comments WHERE provision_id IS NOT NULL GROUP BY provision_id"),
+    all<Suggestion>(`SELECT s.*, u.name AS author_name FROM suggestions s
+      JOIN users u ON u.id = s.author_id ORDER BY s.id DESC`),
+    all<Comment>(`SELECT c.*, u.name AS author_name FROM comments c
+      JOIN users u ON u.id = c.author_id WHERE c.provision_id IS NOT NULL ORDER BY c.id`),
+    all<PendingIssue>(`SELECT p.*, u.name AS author_name FROM pending_issues p
+      JOIN users u ON u.id = p.author_id WHERE p.provision_id IS NOT NULL ORDER BY p.id DESC`),
+    all<{ provision_id: string; content: string }>(
+      "SELECT provision_id, content FROM personal_notes WHERE user_id = ?",
+      [user.id],
+    ),
     getActiveMeeting(),
   ]);
 
   const numerosSugeridos = numerarArvore(tree);
-  const notes = new Set(notedIds);
-  const pendings = new Set(pendingIds);
-  const suggestions = new Map(suggestionRows.map((row) => [row.provision_id, Number(row.c)]));
-  const comments = new Map(commentRows.map((row) => [row.provision_id, Number(row.c)]));
+  const notes = new Map(noteRows.map((row) => [row.provision_id, row.content]));
+  const suggestions = groupByProvision(suggestionRows);
+  const comments = groupByProvision(commentRows);
+  const pendings = groupByProvision(pendingRows);
   const documentTree = tree.map((node) =>
     mapNode(
       node,
@@ -107,9 +128,9 @@ export default async function WorkbenchPage({
       numerosVigentes,
       numerosSugeridos,
       notes,
-      pendings,
       suggestions,
       comments,
+      pendings,
     ),
   );
   const chapters = documentTree.filter(

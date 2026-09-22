@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
+import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import {
@@ -26,9 +27,15 @@ import { cn } from "@/lib/utils";
 import { normalizarNumero } from "@/lib/numeracao";
 import { PROVISION_TYPE_LABELS } from "@/lib/labels";
 import { simulateArticleMove } from "@/lib/workbench-move";
+import type { Comment, PendingIssue, Suggestion } from "@/lib/types";
 import { RichTextContent } from "@/components/rich-text-content";
 import { NovoBadge, StatusBadge, StatusDot } from "@/components/status-badge";
 import { NewProvisionForm, StatusControl } from "@/components/provision/provision-forms";
+import { JustificativaEditor } from "@/components/provision/justificativa-editor";
+import { PersonalNoteForm } from "@/components/provision/personal-note-form";
+import { SuggestionForm } from "@/components/provision/suggestion-forms";
+import { CommentForm, CommentList } from "@/components/provision/comment-forms";
+import { PendingForm, PendingItem } from "@/components/provision/pending-forms";
 import { Button, buttonVariants } from "@/components/ui/button";
 import {
   Dialog,
@@ -41,6 +48,11 @@ import {
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+
+const WorkingTextEditor = dynamic(
+  () => import("@/components/provision/working-text-editor").then((module) => module.WorkingTextEditor),
+  { loading: () => <p className="text-sm text-muted-foreground">Carregando editor…</p> },
+);
 
 export interface WorkbenchNode {
   id: string;
@@ -62,6 +74,10 @@ export interface WorkbenchNode {
   updatedAt: string;
   hasNote: boolean;
   hasPending: boolean;
+  personalNote: string;
+  suggestions: Suggestion[];
+  comments: Comment[];
+  pendings: PendingIssue[];
   suggestionCount: number;
   commentCount: number;
   childCount: number;
@@ -166,6 +182,8 @@ export function ChapterWorkbench({
   const [selectedId, setSelectedId] = useState(validInitialSelected ?? "");
   const [query, setQuery] = useState("");
   const [panelOpen, setPanelOpen] = useState(true);
+  const [editingOpen, setEditingOpen] = useState(false);
+  const [collaborationOpen, setCollaborationOpen] = useState(false);
   const [moveOpen, setMoveOpen] = useState(false);
   const [moveParentId, setMoveParentId] = useState<string | null>(null);
   const [moveAfterId, setMoveAfterId] = useState<string | null>(null);
@@ -458,9 +476,9 @@ export function ChapterWorkbench({
             <ScrollArea className="h-[550px]">
               <div className="space-y-4 p-4">
                 <div className="grid grid-cols-2 gap-2">
-                  <Link href={`/dispositivo/${selected.id}?aba=analise&${returnQuery}`} className={buttonVariants({ size: "sm", className: "justify-start" })}>
+                  <Button type="button" size="sm" className="justify-start" onClick={() => setEditingOpen(true)}>
                     <FilePenLine /> Redigir
-                  </Link>
+                  </Button>
                   <Button
                     type="button"
                     variant="outline"
@@ -471,9 +489,9 @@ export function ChapterWorkbench({
                   >
                     <GripVertical /> Reorganizar
                   </Button>
-                  <Link href={`/dispositivo/${selected.id}?aba=colaboracao&${returnQuery}`} className={buttonVariants({ variant: "outline", size: "sm", className: "justify-start" })}>
+                  <Button type="button" variant="outline" size="sm" className="justify-start" onClick={() => setCollaborationOpen(true)}>
                     <MessageSquareText /> Colaboração
-                  </Link>
+                  </Button>
                   <Link
                     href={activeMeetingId ? `/reunioes/${activeMeetingId}` : "/reunioes"}
                     className={buttonVariants({ variant: "outline", size: "sm", className: "justify-start" })}
@@ -631,6 +649,105 @@ export function ChapterWorkbench({
               Confirmar movimentação
             </Button>
           </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={editingOpen} onOpenChange={setEditingOpen}>
+        <DialogContent className="max-h-[92vh] overflow-y-auto sm:max-w-4xl">
+          <DialogHeader>
+            <DialogTitle>Redigir {selected ? label(selected) : "dispositivo"}</DialogTitle>
+            <DialogDescription>
+              Edite a redação de trabalho sem sair do capítulo. Cada salvamento cria uma nova versão no histórico.
+            </DialogDescription>
+          </DialogHeader>
+          {selected && (
+            <div className="space-y-5">
+              <section className="rounded-xl border p-4">
+                <h4 className="mb-3 text-sm font-semibold">Redação de trabalho</h4>
+                <WorkingTextEditor
+                  key={`${selected.id}:${selected.version}`}
+                  provisionId={selected.id}
+                  initialText={selected.redacaoTrabalho || selected.propostaInicial || selected.textoVigente}
+                  version={selected.version}
+                  canEdit={canEdit}
+                  compararTexto={selected.textoVigente}
+                />
+              </section>
+              <section className="rounded-xl border p-4">
+                <h4 className="mb-3 text-sm font-semibold">Justificativa da alteração</h4>
+                <JustificativaEditor
+                  key={`${selected.id}:${selected.justificativa}`}
+                  provisionId={selected.id}
+                  initial={selected.justificativa}
+                  canEdit={canEdit}
+                />
+              </section>
+              <div className="flex justify-end">
+                <Link href={`/dispositivo/${selected.id}?aba=historico&${returnQuery}`} className={buttonVariants({ variant: "outline", size: "sm" })}>
+                  Ver histórico e análise completa
+                </Link>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={collaborationOpen} onOpenChange={setCollaborationOpen}>
+        <DialogContent className="max-h-[92vh] overflow-y-auto sm:max-w-4xl">
+          <DialogHeader>
+            <DialogTitle>Colaboração em {selected ? label(selected) : "dispositivo"}</DialogTitle>
+            <DialogDescription>
+              Registre sugestões, comentários, pendências e anotações pessoais sem perder o contexto do capítulo.
+            </DialogDescription>
+          </DialogHeader>
+          {selected && (
+            <Tabs defaultValue="sugestoes" className="min-w-0">
+              <TabsList className="grid h-auto w-full grid-cols-2 sm:grid-cols-4">
+                <TabsTrigger value="sugestoes">Sugestões ({selected.suggestions.length})</TabsTrigger>
+                <TabsTrigger value="comentarios">Comentários ({selected.comments.length})</TabsTrigger>
+                <TabsTrigger value="pendencias">Pendências ({selected.pendings.length})</TabsTrigger>
+                <TabsTrigger value="anotacao">Minha anotação</TabsTrigger>
+              </TabsList>
+              <TabsContent value="sugestoes" className="space-y-3 pt-3">
+                <SuggestionForm provisionId={selected.id} />
+                {selected.suggestions.length === 0 ? (
+                  <p className="rounded-lg border p-4 text-sm text-muted-foreground">Nenhuma sugestão registrada.</p>
+                ) : (
+                  selected.suggestions.map((suggestion) => (
+                    <article key={suggestion.id} className="rounded-xl border bg-card p-4 text-sm">
+                      <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+                        <span className="text-xs text-muted-foreground">
+                          {suggestion.author_name} · {new Date(`${suggestion.created_at}Z`).toLocaleString("pt-BR")}
+                        </span>
+                        <span className="rounded-full border px-2 py-0.5 text-[11px]">{suggestion.status.replaceAll("_", " ")}</span>
+                      </div>
+                      {suggestion.onde_esta && <p className="mb-2 text-muted-foreground"><strong>Onde está:</strong> {suggestion.onde_esta}</p>}
+                      <p><strong>Sugestão:</strong> {suggestion.texto}</p>
+                      {suggestion.justificativa && <p className="mt-2 text-muted-foreground"><strong>Justificativa:</strong> {suggestion.justificativa}</p>}
+                    </article>
+                  ))
+                )}
+              </TabsContent>
+              <TabsContent value="comentarios" className="space-y-3 pt-3">
+                <CommentForm provisionId={selected.id} suggestionId={null} />
+                <CommentList comments={selected.comments} />
+              </TabsContent>
+              <TabsContent value="pendencias" className="space-y-3 pt-3">
+                <PendingForm provisionId={selected.id} />
+                {selected.pendings.length === 0 ? (
+                  <p className="rounded-lg border p-4 text-sm text-muted-foreground">Nenhuma pendência registrada.</p>
+                ) : selected.pendings.map((pending) => <PendingItem key={pending.id} p={pending} />)}
+              </TabsContent>
+              <TabsContent value="anotacao" className="pt-3">
+                <PersonalNoteForm key={`${selected.id}:${selected.personalNote}`} provisionId={selected.id} initial={selected.personalNote} />
+              </TabsContent>
+              <div className="mt-4 flex justify-end border-t pt-4">
+                <Link href={`/dispositivo/${selected.id}?aba=colaboracao&${returnQuery}`} className={buttonVariants({ variant: "outline", size: "sm" })}>
+                  Abrir moderação e votação completas
+                </Link>
+              </div>
+            </Tabs>
+          )}
         </DialogContent>
       </Dialog>
     </div>
