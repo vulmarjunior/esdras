@@ -29,7 +29,11 @@ export async function createProvision(
   const user = await requireRole(...rolesCom("gerenciar_dispositivos"));
   const tipos = ["capitulo", "secao", "artigo", "paragrafo", "inciso", "alinea"];
   if (!tipos.includes(tipo)) return { error: "Tipo de dispositivo inválido." };
-  if (!texto.trim()) return { error: "Informe o texto do novo dispositivo." };
+  const estrutural = tipo === "capitulo" || tipo === "secao";
+  if (estrutural && !titulo?.trim()) {
+    return { error: "Informe o título do novo capítulo ou seção." };
+  }
+  if (!estrutural && !texto.trim()) return { error: "Informe o texto do novo dispositivo." };
 
   const HIERARQUIA: Record<string, string[]> = {
     capitulo: ["secao", "artigo"],
@@ -432,6 +436,10 @@ export async function deleteProvision(provisionId: string): Promise<ActionState>
   revalidatePath("/");
   revalidatePath(`/dispositivo/${provisionId}`);
   revalidatePath("/consolidado");
+  revalidatePath("/mesa-trabalho");
+  revalidatePath("/comparativo");
+  revalidatePath("/revisao");
+  revalidatePath("/renumeracao");
   await publishRealtime({ entity: "provision", id: provisionId, action: "excluido" });
   return { ok: true, message: "Dispositivo excluído." };
 }

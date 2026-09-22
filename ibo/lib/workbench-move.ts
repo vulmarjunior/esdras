@@ -13,6 +13,26 @@ export interface ArticleMoveEffect {
   to: string;
 }
 
+export interface WorkbenchSelectableNode {
+  id: string;
+  parentId: string | null;
+}
+
+/**
+ * Escolhe o dispositivo a selecionar depois de excluir `removidoId` da lista
+ * achatada (ordem do documento): o item imediatamente anterior ou, na falta
+ * dele, o pai. Retorna null quando o item não está na lista.
+ */
+export function escolherSelecaoAposExclusao(
+  nodes: WorkbenchSelectableNode[],
+  removidoId: string,
+): string | null {
+  const index = nodes.findIndex((node) => node.id === removidoId);
+  if (index === -1) return null;
+  if (index > 0) return nodes[index - 1].id;
+  return nodes[index].parentId;
+}
+
 function articleNumbers(nodes: WorkbenchMoveNode[]): Map<string, string> {
   const result = new Map<string, string>();
   let article = 0;

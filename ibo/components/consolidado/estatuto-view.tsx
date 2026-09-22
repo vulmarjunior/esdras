@@ -90,11 +90,11 @@ export function EstatutoView({
   const filtrados = useMemo(() => {
     const t = busca.trim().toLowerCase();
     return itens.filter((i) => {
-      if (modo === "aprovados" && i.status !== "aprovado" && i.type !== "capitulo") return false;
+      if (modo === "aprovados" && i.status !== "aprovado" && i.type !== "capitulo" && i.type !== "secao") return false;
       if (capitulo && i.chapterId !== capitulo) return false;
-      if (status && i.type !== "capitulo" && i.status !== status) return false;
+      if (status && i.type !== "capitulo" && i.type !== "secao" && i.status !== status) return false;
       if (ocultarRevogados && i.alteracaoTipo === "revogado") return false;
-      if (soComTexto && i.type !== "capitulo" && !i.texto.trim()) return false;
+      if (soComTexto && i.type !== "capitulo" && i.type !== "secao" && !i.texto.trim()) return false;
       if (t && !`${rotulo(i)} ${i.titulo ?? ""} ${i.texto}`.toLowerCase().includes(t)) return false;
       return true;
     });
@@ -108,7 +108,7 @@ export function EstatutoView({
       mapa.set(i.chapterId, lista);
     }
     const entradas = [...mapa.entries()];
-    if (modo === "aprovados") return entradas.filter(([, lista]) => lista.some((i) => i.type !== "capitulo"));
+    if (modo === "aprovados") return entradas.filter(([, lista]) => lista.some((i) => i.type !== "capitulo" && i.type !== "secao"));
     return entradas;
   }, [filtrados, modo]);
 
@@ -275,7 +275,7 @@ function ItemRow({ item }: { item: ItemEstatuto }) {
             <span className="mt-0.5 block text-sm italic text-muted-foreground">
               Dispositivo retirado da proposta — o texto vigente permanece na tela do dispositivo.
             </span>
-          ) : semTexto ? (
+          ) : item.type === "secao" ? null : semTexto ? (
             <span className="mt-0.5 block text-sm italic text-muted-foreground">Redação ainda não cadastrada.</span>
           ) : (
             <span className="mt-0.5 block">

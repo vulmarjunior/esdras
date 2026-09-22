@@ -42,6 +42,7 @@ Pauta de trabalho para o próximo agente/dev. Estado do projeto: **MVP completo 
 
 - [x] **Simplificação de aprovação e reuniões** — removidas as interfaces e ações acessíveis de votação e deliberação formal. O status técnico legado `aprovado` aparece como **Redação concluída** e apenas congela a cópia editorial da proposta. Reuniões recebem presença, registros manuais e atas; dados antigos de deliberação permanecem somente como histórico legado. A aprovação formal ocorrerá pela assinatura da comissão no documento final enviado à assembleia.
 - [x] **Responsividade (PRD §42)** — auditado e ajustado: grids do simulador de renumeração e da reordenação ganharam `overflow-x-auto` (móvel/tablet); demais telas já usavam `flex-wrap`/`sm:`/`lg:`/Sheet no mobile; `input/textarea/select` ≥16px no mobile (globals.css) evita zoom do iOS. Aprovado em desktop/notebook/tablet/smartphone.
+- [x] **Mesa: estrutura por título e exclusão/revogação** — capítulos e seções passam a ser editados apenas pelo **título** (o texto de corpo pertence aos artigos); a criação de nó estrutural exige título e dispensa texto; seção é renderizada como cabeçalho no Consolidado e na exportação. A Mesa ganhou **Excluir** (itens novos, com confirmação e aviso de exclusão em cascata dos filhos) e **Revogar/Desfazer revogação** (originais), com seleção automática do item anterior; `deleteProvision` e `setAlteracaoTipo` passaram a revalidar Mesa, Acompanhamento, revisão e renumeração. Testes Vitest 153.
 
 ## 3.1 Conformidade com o PRD (auditoria de 04/09/2026)
 

@@ -107,16 +107,21 @@ Acima do documento, coordenadores e administradores encontram dois comandos estr
 
 Depois da criação, a Mesa permanece aberta e seleciona o novo capítulo ou a nova seção. Para incluir artigo, parágrafo, inciso ou alínea, selecione o dispositivo que será o pai e use **Adicionar dispositivo subordinado** no painel contextual.
 
+Capítulos e seções são identificados pelo **título** (o texto de corpo pertence aos artigos): selecione o nó e use **Editar título** no painel contextual — a mudança aparece imediatamente na Mesa, no Consolidado e na exportação.
+
 No painel contextual é possível comparar o texto vigente com a redação atual da comissão, consultar a proposta preliminar e a justificativa, acompanhar sugestões, comentários e pendências e acrescentar dispositivos subordinados.
 
-Os comandos **Redigir** e **Colaboração** abrem dentro da própria Mesa:
+Os comandos **Redigir**, **Editar título** e **Colaboração** abrem dentro da própria Mesa:
 
-- **Redigir** — editor da redação de trabalho, histórico por versão, ferramentas de apoio por IA, justificativa e o comando explícito **Concluir redação**. A conclusão copia a redação de trabalho para a redação consolidada e bloqueia novas edições até que o dispositivo seja reaberto.
+- **Redigir** (artigos, parágrafos, incisos e alíneas) — editor da redação de trabalho, histórico por versão, ferramentas de apoio por IA, justificativa e o comando explícito **Concluir redação**. A conclusão copia a redação de trabalho para a redação consolidada e bloqueia novas edições até que o dispositivo seja reaberto.
+- **Editar título** (capítulos e seções) — altera apenas o título estrutural da proposta, sem mudar número ou posição.
 - **Colaboração** — sugestões de redação, comentários, pendências e anotação pessoal privada.
 
 A tela clássica do dispositivo permanece disponível como consulta e contingência para histórico, referências e recursos ainda não integrados à Mesa. Quando ela for aberta, o botão **Voltar à Mesa de Trabalho** recupera o capítulo e o dispositivo selecionados.
 
 O botão **Reorganizar** move o dispositivo diretamente na estrutura da proposta. Primeiro escolha o destino e a posição; a Mesa mostra uma prévia de todos os artigos cuja numeração será alterada. Por exemplo, ao colocar o antigo art. 5 depois do art. 26, a prévia mostra o art. 5 passando a 26 e os antigos arts. 6 a 26 recuando uma posição. Os filhos acompanham o dispositivo, a identidade e o histórico são preservados e as referências internas ficam sinalizadas para revisão humana.
+
+Coordenadores e administradores podem **Excluir** dispositivos acrescentados por engano (origem nova; a confirmação avisa quando há filhos em cascata) e **Revogar** dispositivos originais do Estatuto (reversível por **Desfazer revogação**). Dispositivos originais não podem ser excluídos: a revogação os retira do texto final preservando o histórico. Depois de excluir, a Mesa seleciona automaticamente o item anterior.
 
 Selecionar ou editar um dispositivo na Mesa não conclui sua redação automaticamente. A aprovação formal da proposta acontece fora do sistema, pela assinatura da comissão no documento final.
 `,

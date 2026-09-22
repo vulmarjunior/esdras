@@ -148,6 +148,10 @@ export async function setAlteracaoTipo(provisionId: string, tipo: string): Promi
   });
   revalidatePath(`/dispositivo/${provisionId}`);
   revalidatePath("/");
+  revalidatePath("/mesa-trabalho");
+  revalidatePath("/consolidado");
+  revalidatePath("/comparativo");
+  revalidatePath("/revisao");
   await publishRealtime({ entity: "provision", id: provisionId, action: "classificacao" });
   return { ok: true, message: `Classificação: ${ALTERACAO_TYPE_LABELS[tipo] || tipo}.` };
 }

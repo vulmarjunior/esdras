@@ -8,6 +8,7 @@ import { toast } from "sonner";
 import {
   AlertTriangle,
   ArrowLeftRight,
+  Ban,
   BookOpenText,
   ChevronRight,
   FilePenLine,
@@ -19,15 +20,23 @@ import {
   PanelRightOpen,
   PencilLine,
   Plus,
+  RotateCcw,
   Search,
   StickyNote,
+  Trash2,
   Users,
 } from "lucide-react";
-import { moveProposalProvision, updateProvisionTitle } from "@/app/actions/provision";
+import {
+  deleteProvision,
+  moveProposalProvision,
+  setAlteracaoTipo,
+  updateProvisionTitle,
+} from "@/app/actions/provision";
 import { cn } from "@/lib/utils";
 import { normalizarNumero } from "@/lib/numeracao";
 import { PROVISION_TYPE_LABELS } from "@/lib/labels";
-import { simulateArticleMove } from "@/lib/workbench-move";
+import { escolherSelecaoAposExclusao, simulateArticleMove } from "@/lib/workbench-move";
+import { ConfirmDialog, type ConfirmDialogState } from "@/components/confirm-dialog";
 import type { Comment, PendingIssue, Suggestion } from "@/lib/types";
 import { RichTextContent } from "@/components/rich-text-content";
 import { NovoBadge, StatusBadge, StatusDot } from "@/components/status-badge";
@@ -150,6 +159,11 @@ function allowedChildren(type: string): string[] {
   return hierarchy[type] ?? [];
 }
 
+/** Capítulos e seções são nós estruturais: o conteúdo no documento é o título. */
+function isStructural(type: string): boolean {
+  return type === "capitulo" || type === "secao";
+}
+
 function articleStats(chapter: WorkbenchNode) {
   const articles = flatten(chapter.children).filter((node) => node.type === "artigo" && node.alteracaoTipo !== "revogado");
   const approved = articles.filter((node) => node.status === "aprovado").length;
@@ -193,6 +207,9 @@ export function ChapterWorkbench({
   const [moveParentId, setMoveParentId] = useState<string | null>(null);
   const [moveAfterId, setMoveAfterId] = useState<string | null>(null);
   const [movePending, setMovePending] = useState(false);
+  const [removeConfirm, setRemoveConfirm] = useState<ConfirmDialogState | null>(null);
+  const [removePending, setRemovePending] = useState(false);
+  const [revokePending, setRevokePending] = useState(false);
   const effectiveSelectedId = selectedId === chapter?.id || items.some((item) => item.id === selectedId)
     ? selectedId
     : chapter?.children[0]?.id ?? chapter?.id ?? "";
@@ -273,6 +290,60 @@ export function ChapterWorkbench({
       : chapters.find((item) => moveParentId && findNode(item.children, moveParentId))?.id;
     if (destinationChapter) setChapterId(destinationChapter);
     setMoveOpen(false);
+    router.refresh();
+  }
+
+  function fallbackAfterDelete(alvo: WorkbenchNode): { chapterId: string; selectedId: string } | null {
+    if (alvo.type === "capitulo") {
+      const index = chapters.findIndex((item) => item.id === alvo.id);
+      const proximo = chapters[index + 1] ?? chapters[index - 1] ?? null;
+      if (!proximo) return null;
+      return { chapterId: proximo.id, selectedId: proximo.children[0]?.id ?? proximo.id };
+    }
+    const anterior = escolherSelecaoAposExclusao(items, alvo.id);
+    return { chapterId: chapter?.id ?? "", selectedId: anterior ?? chapter?.id ?? "" };
+  }
+
+  function askRemove() {
+    if (!selected) return;
+    const base =
+      "Todas as sugestões, comentários, pendências, referências, versões e vínculos associados serão removidos permanentemente. Esta ação não pode ser desfeita.";
+    setRemoveConfirm({
+      title: `Excluir ${label(selected)}`,
+      description:
+        selected.childCount > 0
+          ? `Este dispositivo possui ${selected.childCount} dispositivo(s) filho(s), que também serão excluídos.\n\n${base}`
+          : base,
+      confirmLabel: "Excluir dispositivo",
+    });
+  }
+
+  async function confirmRemove() {
+    if (!selected) return;
+    const alvo = selected;
+    const destino = fallbackAfterDelete(alvo);
+    setRemovePending(true);
+    const result = await deleteProvision(alvo.id);
+    setRemovePending(false);
+    if (result.error) return toast.error(result.error);
+    toast.success(result.message || "Dispositivo excluído.");
+    setRemoveConfirm(null);
+    if (destino) {
+      setChapterId(destino.chapterId);
+      setSelectedId(destino.selectedId);
+    }
+    router.refresh();
+  }
+
+  async function toggleRevogado() {
+    if (!selected) return;
+    const alvo = selected;
+    const target = alvo.alteracaoTipo === "revogado" ? "nao_avaliado" : "revogado";
+    setRevokePending(true);
+    const result = await setAlteracaoTipo(alvo.id, target);
+    setRevokePending(false);
+    if (result.error) return toast.error(result.error);
+    toast.success(result.message || (target === "revogado" ? "Dispositivo revogado na proposta." : "Revogação desfeita."));
     router.refresh();
   }
 
@@ -464,7 +535,7 @@ export function ChapterWorkbench({
                       </span>
                       {revoked ? (
                         <span className="block text-sm italic text-muted-foreground">Retirado da proposta de texto futuro.</span>
-                      ) : currentText(item).trim() ? (
+                      ) : isStructural(item.type) ? null : currentText(item).trim() ? (
                         <RichTextContent text={currentText(item)} className="text-[15px] leading-7 text-foreground/85" />
                       ) : (
                         <span className="block text-sm italic text-muted-foreground">Redação ainda não cadastrada.</span>
@@ -498,9 +569,11 @@ export function ChapterWorkbench({
             <ScrollArea className="h-[550px]">
               <div className="space-y-4 p-4">
                 <div className="grid grid-cols-2 gap-2">
-                  <Button type="button" size="sm" className="justify-start" onClick={() => setEditingOpen(true)}>
-                    <FilePenLine /> Redigir
-                  </Button>
+                  {!isStructural(selected.type) && (
+                    <Button type="button" size="sm" className="justify-start" onClick={() => setEditingOpen(true)}>
+                      <FilePenLine /> Redigir
+                    </Button>
+                  )}
                   <Button
                     type="button"
                     variant="outline"
@@ -514,7 +587,7 @@ export function ChapterWorkbench({
                   <Button type="button" variant="outline" size="sm" className="justify-start" onClick={() => setCollaborationOpen(true)}>
                     <MessageSquareText /> Colaboração
                   </Button>
-                  {(selected.type === "capitulo" || selected.type === "secao") && (
+                  {isStructural(selected.type) && (
                     <Button type="button" variant="outline" size="sm" className="justify-start" onClick={openTitleDialog} disabled={!canEdit}>
                       <PencilLine /> Editar título
                     </Button>
@@ -525,6 +598,42 @@ export function ChapterWorkbench({
                   >
                     <Users /> Colaborar
                   </Link>
+                  {canEdit && selected.origem !== "original" && (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      className="justify-start border-red-200 text-red-700 hover:bg-red-50 hover:text-red-800 dark:border-red-800 dark:text-red-300 dark:hover:bg-red-950/40"
+                      onClick={askRemove}
+                      disabled={removePending}
+                    >
+                      {removePending ? <Loader2 className="animate-spin" /> : <Trash2 />} Excluir
+                    </Button>
+                  )}
+                  {canEdit && selected.origem === "original" && (
+                    <Button
+                      type="button"
+                      variant={selected.alteracaoTipo === "revogado" ? "default" : "outline"}
+                      size="sm"
+                      className={cn(
+                        "justify-start",
+                        selected.alteracaoTipo === "revogado"
+                          ? "border-red-600 bg-red-600 text-white hover:bg-red-700"
+                          : "border-red-200 text-red-700 hover:bg-red-50 hover:text-red-800 dark:border-red-800 dark:text-red-300 dark:hover:bg-red-950/40",
+                      )}
+                      onClick={toggleRevogado}
+                      disabled={revokePending}
+                    >
+                      {revokePending ? (
+                        <Loader2 className="animate-spin" />
+                      ) : selected.alteracaoTipo === "revogado" ? (
+                        <RotateCcw />
+                      ) : (
+                        <Ban />
+                      )}
+                      {selected.alteracaoTipo === "revogado" ? "Desfazer revogação" : "Revogar"}
+                    </Button>
+                  )}
                 </div>
 
                 {canEdit && allowedChildren(selected.type).length > 0 && (
@@ -553,7 +662,11 @@ export function ChapterWorkbench({
                       <ArrowLeftRight className="h-3.5 w-3.5" />
                       <span>{selected.numeroVigente ? `Origem: ${selected.numeroVigente}` : "Sem correspondente no vigente"}</span>
                     </div>
-                    <TextBlock title="Redação atual da comissão" text={currentText(selected)} accent />
+                    <TextBlock
+                      title={isStructural(selected.type) ? "Título atual da proposta" : "Redação atual da comissão"}
+                      text={isStructural(selected.type) ? selected.titulo ?? "" : currentText(selected)}
+                      accent
+                    />
                   </TabsContent>
                   <TabsContent value="subsidios" className="space-y-3 pt-2">
                     <TextBlock title="Proposta preliminar" text={selected.propostaInicial} />
@@ -687,7 +800,7 @@ export function ChapterWorkbench({
               Edite a redação de trabalho sem sair do capítulo. Cada salvamento cria uma nova versão no histórico.
             </DialogDescription>
           </DialogHeader>
-          {selected && (
+          {selected && !isStructural(selected.type) && (
             <div className="min-h-0 flex-1 overflow-y-auto p-3 sm:p-5 lg:grid lg:grid-cols-[minmax(0,1fr)_21rem] lg:items-start lg:gap-5 lg:p-6">
               <section className="min-w-0 rounded-xl border bg-background p-3 sm:p-5">
                 <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
@@ -818,6 +931,13 @@ export function ChapterWorkbench({
           )}
         </DialogContent>
       </Dialog>
+
+      <ConfirmDialog
+        state={removeConfirm}
+        pending={removePending}
+        onConfirm={confirmRemove}
+        onClose={() => setRemoveConfirm(null)}
+      />
     </div>
   );
 }

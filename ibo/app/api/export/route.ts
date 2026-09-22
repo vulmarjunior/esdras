@@ -71,6 +71,8 @@ export async function GET(req: NextRequest) {
         : "";
       if (n.type === "capitulo") {
         lines.push("", label.toUpperCase() + (n.titulo ? ` — ${n.titulo}` : ""), "-".repeat(40), "");
+      } else if (n.type === "secao") {
+        lines.push("", label.toUpperCase() + (n.titulo ? ` — ${n.titulo}` : ""), "");
       } else if (n.type === "artigo") {
         lines.push(`${label} — ${htmlToText(redacao)}`);
       } else if (n.type === "paragrafo") {

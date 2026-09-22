@@ -151,3 +151,11 @@ Antes de criar outro preview destinado a testes de escrita, providenciar banco s
 - reformular o Painel inicial por perfil.
 
 Esses itens são possibilidades, não pendências autorizadas. Solicitar decisão do usuário antes de implementá-los.
+
+## 10. Correções de usabilidade da Mesa (mesma data)
+
+Após o primeiro uso real da Mesa, o usuário relatou que o texto salvo no capítulo não aparecia e que não havia como excluir uma seção criada por engano. Decisões aprovadas:
+
+- **Capítulos e seções são nós estruturais**: o conteúdo exibido no documento é o **título** (`provision_placements.titulo` da proposta, editado por `updateProvisionTitle`). O editor de redação de corpo foi retirado desses nós na Mesa; a criação de capítulo/seção exige título e dispensa texto. A redação de corpo continua valendo para artigos, parágrafos, incisos e alíneas — e permanece acessível para nós estruturais apenas na tela clássica, como histórico/contingência. Textos de capítulo já gravados não foram apagados.
+- **Excluir/Revogar na Mesa**: itens de origem nova podem ser **excluídos** (confirmação com aviso de filhos em cascata); itens originais podem ser **revogados/desfeitos**. Após excluir, a Mesa seleciona o item anterior (`escolherSelecaoAposExclusao` em `lib/workbench-move.ts`). `deleteProvision` e `setAlteracaoTipo` passaram a revalidar `/mesa-trabalho`, `/consolidado`, `/comparativo` e `/revisao`.
+- Seção é renderizada como cabeçalho no Consolidado e na exportação, como capítulo.

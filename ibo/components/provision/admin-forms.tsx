@@ -44,6 +44,8 @@ export function NewProvisionForm({
     alinea: [],
   };
   const tipos = types || (parentId ? allowed[parentType] || [] : ["capitulo", "secao", "artigo"]);
+  const tipoEfetivo = form.tipo || onlyType;
+  const estrutural = tipoEfetivo === "capitulo" || tipoEfetivo === "secao";
 
   if (!canEdit) return null;
 
@@ -102,17 +104,23 @@ export function NewProvisionForm({
         <input
           value={form.titulo}
           onChange={(e) => setForm({ ...form, titulo: e.target.value })}
-          placeholder="Título (capítulos/seções)"
+          placeholder={estrutural ? "Título (obrigatório)" : "Título (capítulos/seções)"}
           className="h-9 w-full rounded-md border bg-background px-3 text-sm"
         />
       </div>
-      <textarea
-        rows={3}
-        value={form.texto}
-        onChange={(e) => setForm({ ...form, texto: e.target.value })}
-        placeholder="Texto do novo dispositivo (redação inicial da comissão)..."
-        className="w-full rounded-md border bg-background px-3 py-2 text-sm"
-      />
+      {estrutural ? (
+        <p className="rounded-md border bg-muted/40 px-3 py-2 text-xs text-muted-foreground">
+          Capítulos e seções são identificados pelo título; o texto de corpo pertence aos artigos e dispositivos subordinados.
+        </p>
+      ) : (
+        <textarea
+          rows={3}
+          value={form.texto}
+          onChange={(e) => setForm({ ...form, texto: e.target.value })}
+          placeholder="Texto do novo dispositivo (redação inicial da comissão)..."
+          className="w-full rounded-md border bg-background px-3 py-2 text-sm"
+        />
+      )}
       <textarea
         rows={2}
         value={form.justificativa}
