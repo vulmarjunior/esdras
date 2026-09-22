@@ -17,12 +17,13 @@ import {
   MessageSquareText,
   PanelRightClose,
   PanelRightOpen,
+  PencilLine,
   Plus,
   Search,
   StickyNote,
   Users,
 } from "lucide-react";
-import { moveProposalProvision } from "@/app/actions/provision";
+import { moveProposalProvision, updateProvisionTitle } from "@/app/actions/provision";
 import { cn } from "@/lib/utils";
 import { normalizarNumero } from "@/lib/numeracao";
 import { PROVISION_TYPE_LABELS } from "@/lib/labels";
@@ -185,6 +186,9 @@ export function ChapterWorkbench({
   const [panelOpen, setPanelOpen] = useState(true);
   const [editingOpen, setEditingOpen] = useState(false);
   const [collaborationOpen, setCollaborationOpen] = useState(false);
+  const [titleOpen, setTitleOpen] = useState(false);
+  const [titleValue, setTitleValue] = useState("");
+  const [titlePending, setTitlePending] = useState(false);
   const [moveOpen, setMoveOpen] = useState(false);
   const [moveParentId, setMoveParentId] = useState<string | null>(null);
   const [moveAfterId, setMoveAfterId] = useState<string | null>(null);
@@ -227,6 +231,23 @@ export function ChapterWorkbench({
       capitulo: targetChapterId,
       dispositivo: id,
     }).toString()}`);
+  }
+
+  function openTitleDialog() {
+    if (!selected) return;
+    setTitleValue(selected.titulo ?? "");
+    setTitleOpen(true);
+  }
+
+  async function saveTitle() {
+    if (!selected) return;
+    setTitlePending(true);
+    const result = await updateProvisionTitle(selected.id, titleValue);
+    setTitlePending(false);
+    if (result.error) return toast.error(result.error);
+    toast.success(result.message || "Título atualizado.");
+    setTitleOpen(false);
+    router.refresh();
   }
 
   function openMoveDialog() {
@@ -493,6 +514,11 @@ export function ChapterWorkbench({
                   <Button type="button" variant="outline" size="sm" className="justify-start" onClick={() => setCollaborationOpen(true)}>
                     <MessageSquareText /> Colaboração
                   </Button>
+                  {(selected.type === "capitulo" || selected.type === "secao") && (
+                    <Button type="button" variant="outline" size="sm" className="justify-start" onClick={openTitleDialog} disabled={!canEdit}>
+                      <PencilLine /> Editar título
+                    </Button>
+                  )}
                   <Link
                     href={activeMeetingId ? `/reunioes/${activeMeetingId}` : "/reunioes"}
                     className={buttonVariants({ variant: "outline", size: "sm", className: "justify-start" })}
@@ -704,6 +730,33 @@ export function ChapterWorkbench({
               </aside>
             </div>
           )}
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={titleOpen} onOpenChange={setTitleOpen}>
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Editar título de {selected ? label(selected) : "dispositivo"}</DialogTitle>
+            <DialogDescription>
+              Altere o título exibido na proposta. A numeração não será modificada.
+            </DialogDescription>
+          </DialogHeader>
+          <label className="space-y-2 text-sm font-medium">
+            Título
+            <Input
+              value={titleValue}
+              onChange={(event) => setTitleValue(event.target.value)}
+              placeholder="Ex.: Da Igreja e suas finalidades"
+              autoFocus
+            />
+          </label>
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={() => setTitleOpen(false)} disabled={titlePending}>Cancelar</Button>
+            <Button type="button" onClick={saveTitle} disabled={titlePending}>
+              {titlePending && <Loader2 className="animate-spin" />}
+              Salvar título
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
 

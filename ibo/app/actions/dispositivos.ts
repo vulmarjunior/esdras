@@ -161,6 +161,42 @@ export async function updateProvision(
   return { ok: true, message: "Dispositivo atualizado." };
 }
 
+/** Atualiza apenas o título estrutural da versão proposta, sem tocar em número ou posição. */
+export async function updateProvisionTitle(provisionId: string, titulo: string): Promise<ActionState> {
+  const user = await requireRole(...rolesCom("gerenciar_dispositivos"));
+  const prov = await get<Provision>("SELECT * FROM provisions WHERE id = ?", [provisionId]);
+  if (!prov) return { error: "Dispositivo não encontrado." };
+  if (prov.type !== "capitulo" && prov.type !== "secao") {
+    return { error: "A edição de título está disponível apenas para capítulos e seções." };
+  }
+
+  const novoTitulo = titulo.trim() || null;
+  const ts = now();
+  await transaction(async () => {
+    await run(
+      `UPDATE provision_placements
+          SET titulo = ?, updated_at = ?, updated_by = ?
+        WHERE version_key = 'proposta' AND provision_id = ?`,
+      [novoTitulo, ts, user.id, provisionId],
+    );
+    await audit(
+      user.id,
+      user.name,
+      "Editou título estrutural",
+      "provision",
+      provisionId,
+      `${provisionLabel(prov)}: ${prov.titulo || "sem título"} → ${novoTitulo || "sem título"}`,
+    );
+  });
+  revalidatePath("/");
+  revalidatePath(`/dispositivo/${provisionId}`);
+  revalidatePath("/mesa-trabalho");
+  revalidatePath("/consolidado");
+  revalidatePath("/comparativo");
+  await publishRealtime({ entity: "provision_placement", id: provisionId, action: "titulo_editado" });
+  return { ok: true, message: "Título atualizado." };
+}
+
 /**
  * PRD §17 (2ª etapa) — reordenação física: move um dispositivo para outro pai
  * (`newParentId`, null = raiz do documento) e para uma posição entre irmãos
