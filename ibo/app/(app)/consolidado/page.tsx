@@ -59,7 +59,7 @@ export default async function ConsolidatedPage({
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="text-2xl font-semibold tracking-tight">Estatuto em construção</h2>
+        <h2 className="text-2xl font-semibold tracking-tight">Proposta em construção</h2>
         <p className="text-sm text-muted-foreground">
           O novo Estatuto sendo montado: ordem e numeração da proposta, textos atuais, dispositivos novos e revogados.
         </p>
@@ -71,7 +71,7 @@ export default async function ConsolidatedPage({
               modo === "construcao" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-muted"
             )}
           >
-            Em construção
+            Proposta completa
           </Link>
           <Link
             href="/consolidado?modo=aprovados"
@@ -83,8 +83,8 @@ export default async function ConsolidatedPage({
             Redações concluídas
           </Link>
         </div>
-        <Link href="/revisao" className="ml-3 inline-block text-sm text-primary underline underline-offset-4">
-          Comparar o Estatuto inteiro, incluindo os textos em revisão
+        <Link href="/comparativo" className="ml-3 inline-block text-sm text-primary underline underline-offset-4">
+          Acompanhar e comparar dispositivo por dispositivo
         </Link>
         {divergentes > 0 && (
           <p className="mt-2 rounded-lg border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-200">

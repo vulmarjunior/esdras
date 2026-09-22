@@ -69,7 +69,7 @@ O trabalho segue o fluxo aprovado no projeto. Cada passo aponta para a tela corr
 9. **Registrar uma reunião, se necessário** — o módulo **Reuniões** guarda presença, assuntos e anotações factuais para uma eventual ata.
 10. **Gerar a ata** — na reunião, use "Gerar minuta da ata" e siga o fluxo rascunho → revisão → finalizada.
 11. **Consultar o histórico** — aba **Histórico** do dispositivo.
-12. **Acompanhar o novo Estatuto** — menu **Reforma → Em construção** (numeração, textos, novos e revogados).
+12. **Ler o documento completo** — menu **Reforma → Proposta em construção** (numeração, textos, novos e revogados).
 13. **Acompanhar e contribuir** — menu **Reforma → Acompanhamento**. Veja cada dispositivo no celular, consulte redação atual, texto vigente, proposta inicial, justificativa e pendências; use **Contribuir** para sugerir, comentar, registrar pendência ou fazer anotação pessoal. O quadro comparativo completo está na mesma tela.
 14. **Exportar relatórios** — menu **Reuniões → Relatórios**.
 `,
@@ -299,12 +299,12 @@ Livros doutrinários que orientam as decisões da comissão (ex.: disciplina na 
   },
   {
     id: "estatuto-construcao",
-    titulo: "Estatuto em construção e Acompanhamento",
+    titulo: "Proposta em construção e Acompanhamento",
     markdown: `
-### Em construção (Reforma → Em construção)
+### Proposta em construção (Reforma → Proposta em construção)
 Mostra o **novo Estatuto sendo montado**, na ordem e numeração da proposta:
 
-- **Em construção** (padrão) — todos os dispositivos: redações concluídas, em andamento e não iniciadas; textos na prioridade consolidada → trabalho → proposta inicial → vigente; selos de status, **NOVO** e **revogado** (riscado).
+- **Proposta completa** (padrão) — todos os dispositivos: redações concluídas, em andamento e não iniciadas; textos na prioridade consolidada → trabalho → proposta inicial → vigente; selos de status, **NOVO** e **revogado** (riscado).
 - **Redações concluídas** — apenas o texto pronto para integrar a proposta final.
 - Numeração com chip **era X** quando o número mudou em relação ao vigente; contadores de artigos, redações concluídas, em andamento, novos e revogados.
 - Filtros por capítulo, status, busca, "ocultar revogados" e "somente com texto".
@@ -396,7 +396,7 @@ Peça ao **administrador** para redefinir. Ao redefinir, a troca de senha volta 
 Não. A IA é **assistiva**: sugere e responde, sempre rotulada. Toda alteração depende de ação humana explícita.
 
 ### Onde vejo o resultado final?
-- **Em construção** (Reforma → Em construção): o novo Estatuto sendo montado, com tudo em andamento.
+- **Proposta em construção** (Reforma → Proposta em construção): o novo Estatuto sendo montado, com tudo em andamento.
 - **Acompanhamento** (Reforma → Acompanhamento): evolução dispositivo por dispositivo, contribuições dos membros e quadro comparativo completo.
 - **Relatórios** (Reuniões → Relatórios): exportações em .txt. Se a numeração ainda divergir da ordem, a tela avisa para reordenar/aplicar em Renumeração antes de usar o documento.
 
