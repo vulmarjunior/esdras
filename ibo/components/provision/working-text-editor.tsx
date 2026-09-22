@@ -27,9 +27,17 @@ interface Props {
   version: number;
   canEdit: boolean;
   compararTexto?: string;
+  editorMinHeightClass?: string;
 }
 
-export function WorkingTextEditor({ provisionId, initialText, version, canEdit, compararTexto }: Props) {
+export function WorkingTextEditor({
+  provisionId,
+  initialText,
+  version,
+  canEdit,
+  compararTexto,
+  editorMinHeightClass,
+}: Props) {
   const [text, setText] = useState(initialText);
   const [reason, setReason] = useState("");
   const [aiResult, setAiResult] = useState<string | null>(null);
@@ -94,6 +102,7 @@ export function WorkingTextEditor({ provisionId, initialText, version, canEdit, 
           value={text}
           onChange={setText}
           placeholder="Redação de trabalho ainda não definida."
+          minHeightClass={editorMinHeightClass}
         />
       ) : (
         <RichTextContent text={text} />

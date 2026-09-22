@@ -269,7 +269,7 @@ export function ChapterWorkbench({
   }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4 xl:relative xl:left-1/2 xl:w-[min(96rem,calc(100vw-3rem))] xl:-translate-x-1/2">
       <header className="flex flex-wrap items-end justify-between gap-3">
         <div>
           <p className="text-xs font-semibold uppercase tracking-wider text-primary">Reforma · ambiente principal</p>
@@ -329,7 +329,7 @@ export function ChapterWorkbench({
 
       <div className={cn(
         "grid min-h-[680px] overflow-hidden rounded-2xl border bg-card shadow-sm",
-        panelOpen ? "lg:grid-cols-[220px_minmax(0,1fr)_310px]" : "lg:grid-cols-[220px_minmax(0,1fr)]",
+        panelOpen ? "lg:grid-cols-[210px_minmax(0,1fr)_300px] xl:grid-cols-[230px_minmax(0,1fr)_330px]" : "lg:grid-cols-[210px_minmax(0,1fr)] xl:grid-cols-[230px_minmax(0,1fr)]",
       )}>
         <aside className="border-b bg-muted/25 lg:border-r lg:border-b-0">
           <div className="border-b p-3">
@@ -394,7 +394,7 @@ export function ChapterWorkbench({
           </div>
 
           <ScrollArea className="h-[630px]">
-            <article className="mx-auto max-w-3xl px-4 py-6 sm:px-7">
+            <article className="mx-auto max-w-4xl px-4 py-6 sm:px-7 lg:px-8">
               <button
                 type="button"
                 onClick={() => setSelectedId(chapter.id)}
@@ -654,17 +654,20 @@ export function ChapterWorkbench({
       </Dialog>
 
       <Dialog open={editingOpen} onOpenChange={setEditingOpen}>
-        <DialogContent className="max-h-[92vh] overflow-y-auto sm:max-w-4xl">
-          <DialogHeader>
+        <DialogContent className="h-[calc(100dvh-1rem)] w-[calc(100vw-1rem)] max-w-none gap-0 overflow-hidden rounded-xl p-0 sm:h-[94vh] sm:w-[calc(100vw-2rem)] sm:!max-w-6xl xl:!max-w-7xl">
+          <DialogHeader className="shrink-0 border-b px-4 py-4 pr-14 sm:px-6">
             <DialogTitle>Redigir {selected ? label(selected) : "dispositivo"}</DialogTitle>
             <DialogDescription>
               Edite a redação de trabalho sem sair do capítulo. Cada salvamento cria uma nova versão no histórico.
             </DialogDescription>
           </DialogHeader>
           {selected && (
-            <div className="space-y-5">
-              <section className="rounded-xl border p-4">
-                <h4 className="mb-3 text-sm font-semibold">Redação de trabalho</h4>
+            <div className="min-h-0 flex-1 overflow-y-auto p-3 sm:p-5 lg:grid lg:grid-cols-[minmax(0,1fr)_21rem] lg:items-start lg:gap-5 lg:p-6">
+              <section className="min-w-0 rounded-xl border bg-background p-3 sm:p-5">
+                <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+                  <h4 className="text-sm font-semibold">Redação de trabalho</h4>
+                  <span className="text-xs text-muted-foreground">Área ampliada de edição</span>
+                </div>
                 <WorkingTextEditor
                   key={`${selected.id}:${selected.version}`}
                   provisionId={selected.id}
@@ -672,29 +675,33 @@ export function ChapterWorkbench({
                   version={selected.version}
                   canEdit={canEdit && selected.status !== "aprovado"}
                   compararTexto={selected.textoVigente}
+                  editorMinHeightClass="min-h-[19rem] sm:min-h-[26rem] lg:min-h-[34rem]"
                 />
               </section>
-              <section className="rounded-xl border p-4">
-                <h4 className="mb-3 text-sm font-semibold">Justificativa da alteração</h4>
-                <JustificativaEditor
-                  key={`${selected.id}:${selected.justificativa}`}
+
+              <aside className="mt-4 space-y-4 lg:sticky lg:top-0 lg:mt-0">
+                <section className="rounded-xl border bg-background p-4">
+                  <h4 className="mb-3 text-sm font-semibold">Justificativa da alteração</h4>
+                  <JustificativaEditor
+                    key={`${selected.id}:${selected.justificativa}`}
+                    provisionId={selected.id}
+                    initial={selected.justificativa}
+                    canEdit={canEdit}
+                  />
+                </section>
+                <ApprovalControl
+                  key={`${selected.id}:${selected.status}:${selected.redacaoTrabalho}`}
                   provisionId={selected.id}
-                  initial={selected.justificativa}
+                  status={selected.status}
                   canEdit={canEdit}
+                  hasWorkingText={Boolean(selected.redacaoTrabalho.trim())}
                 />
-              </section>
-              <ApprovalControl
-                key={`${selected.id}:${selected.status}:${selected.redacaoTrabalho}`}
-                provisionId={selected.id}
-                status={selected.status}
-                canEdit={canEdit}
-                hasWorkingText={Boolean(selected.redacaoTrabalho.trim())}
-              />
-              <div className="flex justify-end">
-                <Link href={`/dispositivo/${selected.id}?aba=historico&${returnQuery}`} className={buttonVariants({ variant: "outline", size: "sm" })}>
-                  Abrir tela clássica: histórico e referências
-                </Link>
-              </div>
+                <div className="flex justify-end">
+                  <Link href={`/dispositivo/${selected.id}?aba=historico&${returnQuery}`} className={buttonVariants({ variant: "outline", size: "sm" })}>
+                    Abrir tela clássica: histórico e referências
+                  </Link>
+                </div>
+              </aside>
             </div>
           )}
         </DialogContent>
