@@ -38,11 +38,14 @@ export async function updateRedacao(
   reason: string
 ): Promise<ActionState> {
   const user = await requireRole(...rolesCom("editar_redacao"));
-  const prov = await get<{ version: number; redacao_trabalho: string }>(
-    "SELECT version, redacao_trabalho FROM provisions WHERE id = ?",
+  const prov = await get<{ version: number; redacao_trabalho: string; status: string }>(
+    "SELECT version, redacao_trabalho, status FROM provisions WHERE id = ?",
     [provisionId]
   );
   if (!prov) return { error: "Dispositivo não encontrado." };
+  if (prov.status === "aprovado") {
+    return { error: "Reabra o dispositivo antes de alterar uma redação aprovada." };
+  }
   const conflito = avaliarConflito(expectedVersion, prov.version);
   if (conflito.conflito) {
     return { conflict: true, error: conflito.mensagem || "Conflito de versão." };
@@ -71,6 +74,7 @@ export async function updateRedacao(
   });
   await logMeetingEvent("redacao_atualizada", `Redação de ${provisionId} atualizada`, user.id);
   revalidatePath(`/dispositivo/${provisionId}`);
+  revalidatePath("/mesa-trabalho");
   await publishRealtime({ entity: "provision", id: provisionId, action: "redacao" });
   return { ok: true, message: "Redação salva. Nova versão criada." };
 }
@@ -80,6 +84,7 @@ export async function updateJustificativa(provisionId: string, justificativa: st
   await run("UPDATE provisions SET justificativa = ?, updated_at = ? WHERE id = ?", [sanitizeHtml(justificativa), now(), provisionId]);
   await audit(user.id, user.name, "Justificativa atualizada", "provision", provisionId);
   revalidatePath(`/dispositivo/${provisionId}`);
+  revalidatePath("/mesa-trabalho");
   await publishRealtime({ entity: "provision", id: provisionId, action: "justificativa" });
   return { ok: true };
 }
@@ -120,6 +125,16 @@ export async function setStatus(provisionId: string, status: string): Promise<Ac
   const user = await requireRole(...rolesCom("gerenciar_status"));
   const allowed = ["nao_iniciado", "em_analise", "em_discussao", "redacao_definida", "aprovado", "reaberto"];
   if (!allowed.includes(status)) return { error: "Status inválido." };
+  if (status === "aprovado") {
+    const provision = await get<{ redacao_trabalho: string }>(
+      "SELECT redacao_trabalho FROM provisions WHERE id = ?",
+      [provisionId],
+    );
+    if (!provision) return { error: "Dispositivo não encontrado." };
+    if (!htmlToText(provision.redacao_trabalho).trim()) {
+      return { error: "Salve uma redação de trabalho antes de aprovar." };
+    }
+  }
 
   await transaction(async () => {
     if (status === "aprovado") {
@@ -131,6 +146,7 @@ export async function setStatus(provisionId: string, status: string): Promise<Ac
   });
   await logMeetingEvent(status === "aprovado" ? "aprovado" : "status", `${provisionId} ${status === "aprovado" ? "aprovado" : "marcado como " + status}`, user.id);
   revalidatePath(`/dispositivo/${provisionId}`);
+  revalidatePath("/mesa-trabalho");
   revalidatePath("/");
   await publishRealtime({ entity: "provision", id: provisionId, action: "status" });
   return { ok: true };

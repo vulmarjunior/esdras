@@ -111,7 +111,7 @@ No painel contextual é possível comparar o texto vigente com a redação atual
 
 Os comandos **Redigir** e **Colaboração** abrem dentro da própria Mesa:
 
-- **Redigir** — editor da redação de trabalho, histórico por versão, ferramentas de apoio por IA e justificativa da alteração.
+- **Redigir** — editor da redação de trabalho, histórico por versão, ferramentas de apoio por IA, justificativa e o comando explícito **Aprovar redação**. A aprovação copia a redação de trabalho para a redação consolidada e bloqueia novas edições até que o dispositivo seja reaberto.
 - **Colaboração** — sugestões de redação, comentários, pendências e anotação pessoal privada.
 
 A tela completa do dispositivo permanece disponível como acesso opcional para histórico, votação consultiva e moderação avançada. Quando ela for aberta, o botão **Voltar à Mesa de Trabalho** recupera o capítulo e o dispositivo selecionados. A deliberação formal continua vinculada ao ambiente de reuniões.

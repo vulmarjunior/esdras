@@ -36,6 +36,7 @@ import { PersonalNoteForm } from "@/components/provision/personal-note-form";
 import { SuggestionForm } from "@/components/provision/suggestion-forms";
 import { CommentForm, CommentList } from "@/components/provision/comment-forms";
 import { PendingForm, PendingItem } from "@/components/provision/pending-forms";
+import { ApprovalControl } from "@/components/workbench/approval-control";
 import { Button, buttonVariants } from "@/components/ui/button";
 import {
   Dialog,
@@ -669,7 +670,7 @@ export function ChapterWorkbench({
                   provisionId={selected.id}
                   initialText={selected.redacaoTrabalho || selected.propostaInicial || selected.textoVigente}
                   version={selected.version}
-                  canEdit={canEdit}
+                  canEdit={canEdit && selected.status !== "aprovado"}
                   compararTexto={selected.textoVigente}
                 />
               </section>
@@ -682,6 +683,13 @@ export function ChapterWorkbench({
                   canEdit={canEdit}
                 />
               </section>
+              <ApprovalControl
+                key={`${selected.id}:${selected.status}:${selected.redacaoTrabalho}`}
+                provisionId={selected.id}
+                status={selected.status}
+                canEdit={canEdit}
+                hasWorkingText={Boolean(selected.redacaoTrabalho.trim())}
+              />
               <div className="flex justify-end">
                 <Link href={`/dispositivo/${selected.id}?aba=historico&${returnQuery}`} className={buttonVariants({ variant: "outline", size: "sm" })}>
                   Ver histórico e análise completa

@@ -161,7 +161,7 @@ export function DeviceTabs(props: Props) {
           propostaInicial={prov.proposta_inicial}
           redacaoTrabalho={prov.redacao_trabalho}
           versao={prov.version}
-          canEditWork={canEditWork}
+          canEditWork={canEditWork && prov.status !== "aprovado"}
           canFixExtraction={canFixExtraction}
         />
 
