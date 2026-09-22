@@ -2,7 +2,6 @@
 
 import { revalidatePath } from "next/cache";
 import { get, run, transaction, now } from "@/lib/db";
-import { getActiveMeeting } from "@/lib/data";
 import { requireRole } from "@/lib/auth";
 import { ALTERACAO_TYPE_LABELS } from "@/lib/labels";
 import { sanitizeHtml, htmlToText } from "@/lib/rich-text";
@@ -18,19 +17,6 @@ async function audit(userId: number, user_name: string, action: string, entity: 
   );
 }
 
-async function logMeetingEvent(tipo: string, descricao: string, userId: number | null) {
-  const meeting = await getActiveMeeting();
-  if (!meeting) return;
-  const hora = new Date().toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
-  await run("INSERT INTO meeting_events (meeting_id, user_id, hora, tipo, descricao) VALUES (?, ?, ?, ?, ?)", [
-    meeting.id,
-    userId,
-    hora,
-    tipo,
-    descricao,
-  ]);
-}
-
 export async function updateRedacao(
   provisionId: string,
   content: string,
@@ -44,7 +30,7 @@ export async function updateRedacao(
   );
   if (!prov) return { error: "Dispositivo não encontrado." };
   if (prov.status === "aprovado") {
-    return { error: "Reabra o dispositivo antes de alterar uma redação aprovada." };
+    return { error: "Reabra o dispositivo antes de alterar uma redação concluída." };
   }
   const conflito = avaliarConflito(expectedVersion, prov.version);
   if (conflito.conflito) {
@@ -72,7 +58,6 @@ export async function updateRedacao(
     ]);
     await audit(user.id, user.name, "Redação de trabalho atualizada", "provision", provisionId, reason || "");
   });
-  await logMeetingEvent("redacao_atualizada", `Redação de ${provisionId} atualizada`, user.id);
   revalidatePath(`/dispositivo/${provisionId}`);
   revalidatePath("/mesa-trabalho");
   await publishRealtime({ entity: "provision", id: provisionId, action: "redacao" });
@@ -132,7 +117,7 @@ export async function setStatus(provisionId: string, status: string): Promise<Ac
     );
     if (!provision) return { error: "Dispositivo não encontrado." };
     if (!htmlToText(provision.redacao_trabalho).trim()) {
-      return { error: "Salve uma redação de trabalho antes de aprovar." };
+      return { error: "Salve uma redação de trabalho antes de concluir." };
     }
   }
 
@@ -144,7 +129,6 @@ export async function setStatus(provisionId: string, status: string): Promise<Ac
     }
     await audit(user.id, user.name, "Status alterado para " + status, "provision", provisionId);
   });
-  await logMeetingEvent(status === "aprovado" ? "aprovado" : "status", `${provisionId} ${status === "aprovado" ? "aprovado" : "marcado como " + status}`, user.id);
   revalidatePath(`/dispositivo/${provisionId}`);
   revalidatePath("/mesa-trabalho");
   revalidatePath("/");
@@ -162,7 +146,6 @@ export async function setAlteracaoTipo(provisionId: string, tipo: string): Promi
     await run("UPDATE provisions SET alteracao_tipo = ?, updated_at = ? WHERE id = ?", [tipo, now(), provisionId]);
     await audit(user.id, user.name, "Tipo de alteração definido como " + tipo, "provision", provisionId);
   });
-  await logMeetingEvent("alteracao", `Dispositivo ${provisionId} classificado como ${tipo}`, user.id);
   revalidatePath(`/dispositivo/${provisionId}`);
   revalidatePath("/");
   await publishRealtime({ entity: "provision", id: provisionId, action: "classificacao" });

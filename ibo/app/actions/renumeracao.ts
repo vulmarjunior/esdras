@@ -16,19 +16,6 @@ async function audit(userId: number, user_name: string, action: string, entity: 
   );
 }
 
-async function logMeetingEvent(tipo: string, descricao: string, userId: number | null) {
-  const meeting = await get<{ id: number }>("SELECT id FROM meetings WHERE status = 'em_andamento' ORDER BY id DESC LIMIT 1");
-  if (!meeting) return;
-  const hora = new Date().toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
-  await run("INSERT INTO meeting_events (meeting_id, user_id, hora, tipo, descricao) VALUES (?, ?, ?, ?, ?)", [
-    meeting.id,
-    userId,
-    hora,
-    tipo,
-    descricao,
-  ]);
-}
-
 export type RenumeracaoState = { ok?: boolean; error?: string; message?: string };
 
 /**
@@ -101,7 +88,7 @@ export async function ordenarPorNumeroDocumentoAction(): Promise<RenumeracaoStat
 /**
  * PRD §17 — aplica a numeração de trabalho (artigos e capítulos) conforme a
  * ordem da árvore proposta. A estrutura vigente e seus números históricos
- * permanecem intactos. Artigos já aprovados que mudam de número geram uma
+ * permanecem intactos. Artigos com redação concluída que mudam de número geram uma
  * pendência automática de revisão das referências.
  */
 export async function applyRenumeracao(): Promise<RenumeracaoState> {
@@ -149,8 +136,6 @@ export async function applyRenumeracao(): Promise<RenumeracaoState> {
       detalhes.length ? detalhes.join("\n") : "Nenhuma alteração de número necessária (ordem já sequencial)."
     );
   });
-  await logMeetingEvent("renumeracao", `Renumeração aplicada — ${alterados} artigo(s) atualizado(s)`, user.id);
-
   revalidatePath("/");
   revalidatePath("/renumeracao");
   revalidatePath("/consolidado");

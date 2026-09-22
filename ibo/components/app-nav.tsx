@@ -219,7 +219,7 @@ export function MobileNav({ isAdmin }: { isAdmin: boolean }) {
         </div>
         <div className="mt-auto border-t p-4">
           <p className="text-xs text-muted-foreground">
-            ESDRAS — Espaço de Sugestões, Deliberações, Revisões, Atas e Sistematização
+            ESDRAS — Espaço de Sugestões, Desenvolvimento, Revisões, Atas e Sistematização
           </p>
         </div>
       </SheetContent>

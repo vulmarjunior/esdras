@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-import { createMeeting, updateMeeting, deleteMeeting, startMeeting, endMeeting, setPresence, addManualEvent, addDecision, generateMinutes, setMinutesStatus, saveMinutes, reviewMinutes, addMinuteRetification } from "@/app/actions/meetings";
+import { createMeeting, updateMeeting, deleteMeeting, startMeeting, endMeeting, setPresence, addManualEvent, generateMinutes, setMinutesStatus, saveMinutes, reviewMinutes, addMinuteRetification } from "@/app/actions/meetings";
 import { ROLE_LABELS, STATUS_LABELS } from "@/lib/labels";
 import { ConfirmDialog, type ConfirmDialogState } from "@/components/confirm-dialog";
 import { Markdown } from "@/components/markdown";
@@ -189,7 +189,7 @@ export function EditMeetingForm({
           setConfirmState({
             title: `Excluir Reunião nº ${initial.numero}`,
             description:
-              "Todos os eventos, presenças, deliberações e minutas vinculados a esta reunião serão removidos permanentemente. Esta ação não pode ser desfeita.",
+              "Todos os registros, presenças e minutas vinculados a esta reunião serão removidos permanentemente. Esta ação não pode ser desfeita.",
             confirmLabel: "Excluir reunião",
           })
         }
@@ -313,45 +313,8 @@ export function ManualEventForm({ meetingId, canEdit }: { meetingId: number; can
   }
   return (
     <div className="flex gap-2">
-      <input value={desc} onChange={(e) => setDesc(e.target.value)} placeholder="Registrar evento da sessão..." className="h-9 w-full rounded-md border bg-background px-3 text-sm" />
+      <input value={desc} onChange={(e) => setDesc(e.target.value)} placeholder="Registrar assunto, encaminhamento ou observação..." className="h-9 w-full rounded-md border bg-background px-3 text-sm" />
       <Button size="sm" type="button" onClick={submit} disabled={pending || !desc.trim()}>Registrar</Button>
-    </div>
-  );
-}
-
-export function DecisionForm({ meetingId, provisions, canEdit }: { meetingId: number; provisions: { id: string; label: string }[]; canEdit: boolean }) {
-  const [form, setForm] = useState({ provision_id: "", tipo: "aprovacao", texto: "" });
-  const [pending, setPending] = useState(false);
-  const router = useRouter();
-  if (!canEdit) return null;
-  async function submit() {
-    setPending(true);
-    const res = await addDecision(meetingId, form.provision_id || null, form.tipo, form.texto);
-    setPending(false);
-    if (res.error) return toast.error(res.error);
-    toast.success("Deliberação " + (res.message || "registrada"));
-    setForm({ provision_id: "", tipo: "aprovacao", texto: "" });
-    router.refresh();
-  }
-  return (
-    <div className="space-y-2 rounded-lg border p-3">
-      <div className="grid gap-2 sm:grid-cols-2">
-        <select value={form.provision_id} onChange={(e) => setForm({ ...form, provision_id: e.target.value })} className="h-9 rounded-md border bg-background px-2 text-sm">
-          <option value="">Sem dispositivo vinculado</option>
-          {provisions.map((p) => <option key={p.id} value={p.id}>{p.label}</option>)}
-        </select>
-        <select value={form.tipo} onChange={(e) => setForm({ ...form, tipo: e.target.value })} className="h-9 rounded-md border bg-background px-2 text-sm">
-          <option value="aprovacao">Aprovação</option>
-          <option value="manutencao">Manter redação atual</option>
-          <option value="incorporacao">Incorporar sugestão de redação</option>
-          <option value="rejeicao">Rejeitar sugestão de redação</option>
-          <option value="alteracao">Alterar redação</option>
-          <option value="adiamento">Adiar análise</option>
-          <option value="outra">Outra</option>
-        </select>
-      </div>
-      <textarea rows={2} value={form.texto} onChange={(e) => setForm({ ...form, texto: e.target.value })} className="w-full rounded-md border bg-background px-3 py-2 text-sm" placeholder="Texto da deliberação..." />
-      <Button size="sm" type="button" onClick={submit} disabled={pending || !form.texto.trim()}>Registrar deliberação</Button>
     </div>
   );
 }
@@ -393,7 +356,7 @@ export function MinutesPanel({
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Erro na IA");
       await saveMinutes(meetingId, data.result);
-      toast.success("Minuta reescrita pela IA. Revise antes de aprovar.");
+      toast.success("Minuta reescrita pela IA. Revise antes de finalizar.");
       router.refresh();
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Erro ao gerar minuta com IA.");
@@ -434,7 +397,7 @@ export function MinutesPanel({
         {minutes && canEdit && (
           <>
             {minutes.status === "rascunho" && <Button size="sm" onClick={() => setStatus("em_revisao")}>Enviar para revisão</Button>}
-            {minutes.status === "em_revisao" && <Button size="sm" onClick={() => setStatus("aprovada")}>Aprovar ata</Button>}
+            {minutes.status === "em_revisao" && <Button size="sm" onClick={() => setStatus("aprovada")}>Finalizar ata</Button>}
           </>
         )}
         {minutes && <span className="text-xs text-muted-foreground">Status: {STATUS_LABELS[minutes.status] || minutes.status}</span>}
@@ -446,7 +409,7 @@ export function MinutesPanel({
           {retOpen && (
             <div className="space-y-2 rounded-lg border border-amber-300/60 bg-amber-50/40 p-3 dark:border-amber-800/60 dark:bg-amber-950/20">
               <p className="text-xs text-muted-foreground">
-                Ata aprovada fica bloqueada. Correções são registradas como retificação, preservando o texto aprovado.
+                A ata finalizada fica bloqueada. Correções são registradas como retificação, preservando o texto finalizado.
               </p>
               <textarea rows={3} value={retText} onChange={(e) => setRetText(e.target.value)} placeholder="Descreva a correção..." className="w-full rounded-md border bg-background px-3 py-2 text-sm" />
               <Button size="sm" type="button" onClick={retificar} disabled={retPending || !retText.trim()}>

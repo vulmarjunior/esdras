@@ -80,7 +80,7 @@ export default async function ConsolidatedPage({
               modo === "aprovados" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-muted"
             )}
           >
-            Somente aprovados
+            Redações concluídas
           </Link>
         </div>
         <Link href="/revisao" className="ml-3 inline-block text-sm text-primary underline underline-offset-4">

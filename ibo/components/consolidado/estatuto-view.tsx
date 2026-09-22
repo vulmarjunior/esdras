@@ -167,7 +167,7 @@ export function EstatutoView({
         <Badge variant="outline" className="border-primary/40 text-primary">
           {contadores.total} artigos
         </Badge>
-        <Badge variant="outline">{contadores.aprovados} aprovados</Badge>
+        <Badge variant="outline">{contadores.aprovados} com redação concluída</Badge>
         <Badge variant="outline">{contadores.andamento} em andamento</Badge>
         <Badge variant="outline">{contadores.naoIniciados} não iniciados</Badge>
         {contadores.novos > 0 && (
@@ -191,7 +191,7 @@ export function EstatutoView({
       {vazio ? (
         <p className="text-sm text-muted-foreground">
           {modo === "aprovados"
-            ? "Nenhum dispositivo aprovado ainda. Aprove dispositivos na tela de análise para compor o Estatuto consolidado."
+            ? "Nenhuma redação foi concluída ainda. Conclua as redações na Mesa de Trabalho para compor a proposta final."
             : "Nenhum dispositivo na proposta."}
         </p>
       ) : grupos.length === 0 ? (
@@ -220,7 +220,7 @@ export function EstatutoView({
                   </h3>
                   <span className="text-xs text-muted-foreground">
                     {conteudo.filter((i) => i.type === "artigo" && i.status === "aprovado").length}/
-                    {conteudo.filter((i) => i.type === "artigo").length} artigos aprovados
+                    {conteudo.filter((i) => i.type === "artigo").length} redações concluídas
                   </span>
                 </div>
                 {conteudo.length === 0 ? (

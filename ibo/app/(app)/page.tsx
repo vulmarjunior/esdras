@@ -31,7 +31,7 @@ const STATUS_META: Record<string, { label: string; icon: typeof Circle }> = {
   em_analise: { label: "Em análise", icon: Loader2 },
   em_discussao: { label: "Em discussão", icon: PenLine },
   redacao_definida: { label: "Redação definida", icon: CheckCircle2 },
-  aprovado: { label: "Aprovados", icon: CheckCircle2 },
+  aprovado: { label: "Redações concluídas", icon: CheckCircle2 },
   reaberto: { label: "Reabertos", icon: RotateCcw },
 };
 

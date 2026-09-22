@@ -20,7 +20,7 @@ export default function LoginPage() {
             Reforma do Estatuto Social da IBO
           </h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            ESDRAS — Espaço de Sugestões, Deliberações, Revisões, Atas e Sistematização
+            ESDRAS — Espaço de Sugestões, Desenvolvimento, Revisões, Atas e Sistematização
           </p>
         </div>
 

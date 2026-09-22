@@ -40,7 +40,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
                 Reforma do Estatuto Social da IBO
               </h1>
               <p className="hidden truncate text-xs text-muted-foreground sm:block">
-                ESDRAS — Espaço de Sugestões, Deliberações, Revisões, Atas e Sistematização
+                ESDRAS — Espaço de Sugestões, Desenvolvimento, Revisões, Atas e Sistematização
               </p>
             </div>
           </div>

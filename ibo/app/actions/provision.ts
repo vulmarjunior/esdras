@@ -23,8 +23,6 @@ export {
   createPendingIssue,
   resolvePending,
   createReference,
-  vote,
-  removeVote,
   addProvisionRelation,
   removeProvisionRelation,
 } from "./colaboracao";

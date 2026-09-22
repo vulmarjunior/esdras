@@ -21,10 +21,10 @@ export default async function MeetingsPage() {
 
   const meetings = await all<{
     id: number; numero: number; data: string; horario: string | null; status: string;
-    coordenador: string | null; secretario: string | null; decisoes: number;
+    coordenador: string | null; secretario: string | null; registros: number;
   }>(`
     SELECT m.*, cu.name AS coordenador, su.name AS secretario,
-      (SELECT COUNT(*) FROM meeting_decisions md WHERE md.meeting_id = m.id) AS decisoes
+      (SELECT COUNT(*) FROM meeting_events me WHERE me.meeting_id = m.id AND me.tipo = 'registro') AS registros
     FROM meetings m
     LEFT JOIN users cu ON cu.id = m.coordenador_id
     LEFT JOIN users su ON su.id = m.secretario_id
@@ -37,7 +37,7 @@ export default async function MeetingsPage() {
     <div className="space-y-6">
       <div>
         <h2 className="text-2xl font-semibold tracking-tight">Reuniões</h2>
-        <p className="text-sm text-muted-foreground">Módulo de reuniões, deliberações e atas da comissão.</p>
+        <p className="text-sm text-muted-foreground">Registro de reuniões, presença, assuntos tratados e atas da comissão.</p>
       </div>
 
       <CreateMeetingForm users={users} canEdit={canEdit} />
@@ -61,7 +61,7 @@ export default async function MeetingsPage() {
                   <p className="text-foreground">{m.data}{m.horario ? ` às ${m.horario}` : ""}</p>
                   {m.coordenador && <p>Coordenação: {m.coordenador}</p>}
                   {m.secretario && <p>Secretário(a): {m.secretario}</p>}
-                  <p>{m.decisoes} deliberação(ões)</p>
+                  <p>{m.registros} registro(s) da reunião</p>
                 </CardContent>
               </Card>
             </Link>

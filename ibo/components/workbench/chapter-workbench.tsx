@@ -369,7 +369,7 @@ export function ChapterWorkbench({
                       {item.titulo || "Sem título"}
                     </span>
                     <span className={cn("mt-1 block pl-5 text-[11px]", active ? "text-primary-foreground/70" : "text-muted-foreground/75")}>
-                      {itemStats.approved}/{itemStats.total} artigos aprovados
+                      {itemStats.approved}/{itemStats.total} redações concluídas
                     </span>
                   </button>
                 );
@@ -388,7 +388,7 @@ export function ChapterWorkbench({
                 </h3>
               </div>
               <span className="rounded-full border bg-background px-2.5 py-1 text-xs text-muted-foreground">
-                {stats.approved} de {stats.total} artigos aprovados
+                {stats.approved} de {stats.total} redações concluídas
               </span>
             </div>
           </div>
@@ -497,7 +497,7 @@ export function ChapterWorkbench({
                     href={activeMeetingId ? `/reunioes/${activeMeetingId}` : "/reunioes"}
                     className={buttonVariants({ variant: "outline", size: "sm", className: "justify-start" })}
                   >
-                    <Users /> Deliberar
+                    <Users /> Colaborar
                   </Link>
                 </div>
 
@@ -640,7 +640,7 @@ export function ChapterWorkbench({
           </section>
 
           <p className="text-xs text-muted-foreground">
-            Dispositivos subordinados acompanham o item movimentado. Referências internas potencialmente afetadas serão sinalizadas para revisão humana; nenhum texto é aprovado automaticamente.
+            Dispositivos subordinados acompanham o item movimentado. Referências internas potencialmente afetadas serão sinalizadas para revisão humana; nenhum texto é concluído automaticamente.
           </p>
 
           <DialogFooter>
@@ -692,7 +692,7 @@ export function ChapterWorkbench({
               />
               <div className="flex justify-end">
                 <Link href={`/dispositivo/${selected.id}?aba=historico&${returnQuery}`} className={buttonVariants({ variant: "outline", size: "sm" })}>
-                  Ver histórico e análise completa
+                  Abrir tela clássica: histórico e referências
                 </Link>
               </div>
             </div>
@@ -751,7 +751,7 @@ export function ChapterWorkbench({
               </TabsContent>
               <div className="mt-4 flex justify-end border-t pt-4">
                 <Link href={`/dispositivo/${selected.id}?aba=colaboracao&${returnQuery}`} className={buttonVariants({ variant: "outline", size: "sm" })}>
-                  Abrir moderação e votação completas
+                  Abrir tela clássica de consulta
                 </Link>
               </div>
             </Tabs>

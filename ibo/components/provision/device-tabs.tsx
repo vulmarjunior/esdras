@@ -19,7 +19,6 @@ import {
   PendingForm,
   PendingItem,
   ReferenceForm,
-  VoteButtons,
   JustificativaEditor,
   NewProvisionForm,
   ProvisionAdminActions,
@@ -62,17 +61,12 @@ interface Props {
   directChildren: number;
   parentType: string | null;
   suggestions: Suggestion[];
-  sugVotesMap: Record<number, Record<string, number>>;
-  mySugVotesMap: Record<number, string>;
   comments: Comment[];
   pendings: PendingIssue[];
   references: { id: number; tipo: string; texto: string }[];
   versions: Version[];
   relations: { related_id: string; type: string; numero: string | null }[];
   devices: RelationDeviceOption[];
-  votes: { opinion: string; c: number }[];
-  myVote: string | null;
-  votedCount: number;
   personalNote: string;
   referenciasAfetadas: ReferenciaAfetadaItem[];
 }
@@ -150,7 +144,7 @@ export function DeviceTabs(props: Props) {
           <CardContent className="space-y-2 pt-5">
             <StatusControl provisionId={id} status={prov.status} canEdit={canManage} />
             <FieldHelper>
-              Fluxo de trabalho: Não iniciado → Em análise → Em discussão → Redação definida → Aprovado. Aprovar congela a redação consolidada.
+              Fluxo editorial: Não iniciado → Em análise → Em discussão → Redação definida → Redação concluída. A conclusão apenas define o texto que comporá a proposta final.
             </FieldHelper>
           </CardContent>
         </Card>
@@ -188,28 +182,6 @@ export function DeviceTabs(props: Props) {
           <CardHeader className="pb-2">
             <CardTitle className="flex items-center gap-2 text-base">
               <NumBadge n="3" className="bg-muted text-muted-foreground" />
-              Opinião consultiva
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            <VoteButtons provisionId={id} currentOpinion={props.myVote} />
-            <FieldHelper>Manifestação consultiva dos membros sobre o dispositivo — não é a votação formal da comissão.</FieldHelper>
-            <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
-              <span>{props.votedCount} membro(s) se manifestaram. Caráter consultivo — não constitui votação formal da comissão.</span>
-              {props.votes.map((v) => (
-                <span key={v.opinion} className="inline-flex items-center gap-1 rounded-full border bg-muted/50 px-2 py-0.5">
-                  <span className={`h-1.5 w-1.5 rounded-full ${v.opinion === "concordo" ? "bg-emerald-500" : v.opinion === "discordo" ? "bg-red-500" : "bg-amber-500"}`} />
-                  {v.opinion}: {v.c}
-                </span>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="flex items-center gap-2 text-base">
-              <NumBadge n="4" className="bg-muted text-muted-foreground" />
               Dispositivos relacionados
             </CardTitle>
           </CardHeader>
@@ -222,7 +194,7 @@ export function DeviceTabs(props: Props) {
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="flex items-center gap-2 text-base">
-              <NumBadge n="5" className="bg-muted text-muted-foreground" />
+              <NumBadge n="4" className="bg-muted text-muted-foreground" />
               Fundamentação
             </CardTitle>
           </CardHeader>
@@ -259,12 +231,12 @@ export function DeviceTabs(props: Props) {
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-base">
                 <NumBadge n="✓" className="bg-emerald-600 text-white" />
-                Redação consolidada (aprovada)
+                Redação concluída para a proposta
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-2">
               <RichTextContent text={prov.redacao_consolidada} />
-              <FieldHelper>Texto final aprovado — entra no Estatuto consolidado e fica bloqueado.</FieldHelper>
+              <FieldHelper>Texto final deste dispositivo na proposta — fica bloqueado até eventual reabertura.</FieldHelper>
             </CardContent>
           </Card>
         )}
@@ -287,8 +259,6 @@ export function DeviceTabs(props: Props) {
                 key={s.id}
                 sug={s}
                 canManage={canManage}
-                votes={props.sugVotesMap[s.id]}
-                myVote={props.mySugVotesMap[s.id]}
               />
             ))}
           </CardContent>

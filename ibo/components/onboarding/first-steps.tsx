@@ -10,12 +10,12 @@ import { lerFlag, gravarFlag, lerPassosFeitos, gravarPasso } from "@/components/
 const PASSOS = [
   { id: "painel", label: "Conheça o Painel da Reforma", desc: "Progresso, capítulos e status dos artigos.", href: "/" },
   { id: "dispositivo", label: "Abra um dispositivo", desc: "Leia o texto vigente, a proposta inicial e a redação de trabalho.", href: "/" },
-  { id: "colaborar", label: "Sugira e comente", desc: "Apresente sugestões de redação e opiniões na aba Colaboração.", href: "/" },
+  { id: "colaborar", label: "Sugira e comente", desc: "Apresente sugestões de redação e comentários na Mesa de Trabalho.", href: "/mesa-trabalho" },
   { id: "fundamentar", label: "Fundamente e registre pendências", desc: "Referências bíblicas, doutrinárias, jurídicas e pastorais.", href: "/" },
   { id: "guia", label: "Use o Guia de redação", desc: "Dúvidas de redação e checklist técnico (LC 95).", href: "/guia-redacao" },
   { id: "documentos", label: "Consulte os documentos doutrinários", desc: "Confissões e declarações de fé.", href: "/documentos" },
-  { id: "reunioes", label: "Acompanhe reuniões e atas", desc: "Presença, deliberações, minuta e aprovação da ata.", href: "/reunioes" },
-  { id: "consolidado", label: "Veja o Estatuto consolidado", desc: "Somente os dispositivos aprovados, na ordem final.", href: "/consolidado" },
+  { id: "reunioes", label: "Registre reuniões e atas", desc: "Presença, assuntos, registros e finalização da ata.", href: "/reunioes" },
+  { id: "consolidado", label: "Veja a proposta consolidada", desc: "Somente as redações concluídas, na ordem final.", href: "/consolidado?modo=aprovados" },
 ];
 
 export function FirstSteps({ userId }: { userId: number }) {

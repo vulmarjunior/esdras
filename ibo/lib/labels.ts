@@ -3,8 +3,11 @@ export const STATUS_LABELS: Record<string, string> = {
   em_analise: "Em análise",
   em_discussao: "Em discussão",
   redacao_definida: "Redação definida",
-  aprovado: "Aprovado",
+  aprovado: "Redação concluída",
   reaberto: "Reaberto",
+  rascunho: "Rascunho",
+  em_revisao: "Em revisão",
+  aprovada: "Finalizada",
 };
 
 export const STATUS_VARIANTS: Record<string, string> = {

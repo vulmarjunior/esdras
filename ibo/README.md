@@ -1,8 +1,8 @@
 # ESDRAS — Reforma do Estatuto da IBO (MVP)
 
-Espaço de Sugestões, Deliberações, Revisões, Atas e Sistematização para a **Comissão de Reforma do Estatuto Social da Igreja Batista Olaria (IBO)**.
+Espaço de Sugestões, Desenvolvimento, Revisões, Atas e Sistematização para a **Comissão de Reforma do Estatuto Social da Igreja Batista Olaria (IBO)**.
 
-Aplicação web para análise do Estatuto dispositivo por dispositivo (capítulo → artigo → parágrafo → inciso → alínea), com texto vigente, proposta inicial de reforma, redação de trabalho, sugestões, comentários, pendências, fundamentação bíblica/doutrinária/jurídica, reuniões com deliberações e atas, histórico de versões, trilha de auditoria e geração automática do Estatuto consolidado.
+Aplicação web para análise do Estatuto dispositivo por dispositivo (capítulo → artigo → parágrafo → inciso → alínea), com texto vigente, proposta inicial de reforma, redação de trabalho, sugestões, comentários, pendências, fundamentação bíblica/doutrinária/jurídica, registros de reuniões e atas, histórico de versões, trilha de auditoria e geração automática da proposta consolidada.
 
 Especificação completa: [`PRD_ESDRAS.md`](../PRD_ESDRAS.md).
 
@@ -61,12 +61,12 @@ Sem a chave, o sistema funciona normalmente; os botões de IA retornam "GROQ_API
 11. Fundamentos doutrinários e jurídicos
 12. Novos dispositivos (marcados como "proposta inicial" / "novo")
 13. Histórico de versões (PRD §19)
-14. Status/workflow (não iniciado → … → aprovado → reaberto, PRD §8)
+14. Status editorial (não iniciado → … → redação concluída → reaberto; o código legado permanece `aprovado`)
 15. Reuniões com modo reunião, presença e registro automático de eventos (PRD §21–24)
-16. Deliberações com código `DEC-AAAA-MM-DD-NNN-NNN` (PRD §25)
+16. Registros manuais de reuniões e geração de atas
 17. Geração de minuta de ata a partir dos registros (PRD §27), com opção de redação por IA restrita aos fatos registrados (PRD §28)
 18. IA editorial: revisar gramática, melhorar clareza, linguagem estatutária, simplificar, revisar justificativa — sempre como sugestão com "Aplicar" explícito (PRD §31–32)
-19. Estatuto consolidado (somente dispositivos aprovados, PRD §34)
+19. Proposta consolidada (somente redações concluídas)
 20. Exportações: consolidado, quadro comparativo, relatório da reforma, fundamentação, histórico da comissão, atas (PRD §35)
 21. Trilha de auditoria (PRD §20)
 
@@ -77,7 +77,7 @@ app/
   (app)/                # área autenticada
     page.tsx            # Painel da Reforma (progresso + navegação)
     dispositivo/[id]/   # tela de análise do dispositivo
-    reunioes/           # módulo reuniões, deliberações e atas
+    reunioes/           # módulo de registros de reuniões e atas
     pendentes/          # questões pendentes
     consolidado/        # Estatuto consolidado
     relatorios/         # exportações

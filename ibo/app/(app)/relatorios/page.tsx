@@ -6,12 +6,12 @@ import { FileDown } from "lucide-react";
 export const dynamic = "force-dynamic";
 
 const EXPORTS = [
-  { type: "consolidado", title: "Estatuto consolidado", desc: "Somente o texto final aprovado, na ordem do documento." },
-  { type: "comparativo", title: "Quadro comparativo", desc: "Redação vigente × redação proposta/aprovada, artigo por artigo." },
+  { type: "consolidado", title: "Proposta consolidada", desc: "Somente as redações concluídas, na ordem do documento." },
+  { type: "comparativo", title: "Quadro comparativo", desc: "Redação vigente × redação proposta, artigo por artigo." },
   { type: "reforma", title: "Relatório da reforma", desc: "Dispositivo, tipo de alteração e justificativa." },
   { type: "fundamentacao", title: "Relatório de fundamentação", desc: "Referências bíblicas, doutrinárias e jurídicas por dispositivo." },
-  { type: "historico", title: "Histórico da comissão", desc: "Reuniões, deliberações, artigos aprovados e pendências." },
-  { type: "atas", title: "Atas aprovadas", desc: "Exportação individual das atas aprovadas." },
+  { type: "historico", title: "Histórico da comissão", desc: "Reuniões, registros, redações concluídas e pendências." },
+  { type: "atas", title: "Atas finalizadas", desc: "Exportação individual das atas finalizadas." },
 ];
 
 export default async function ReportsPage() {

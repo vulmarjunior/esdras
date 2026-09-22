@@ -10,7 +10,6 @@ import {
   updateProvision,
   deleteProvision,
   setAlteracaoTipo,
-  setStatus,
 } from "@/app/actions/provision";
 import { ConfirmDialog, type ConfirmDialogState } from "@/components/confirm-dialog";
 import { SubmitBtn } from "@/components/provision/submit-btn";
@@ -287,48 +286,6 @@ export function ProvisionAdminActions({
         )}
       </div>
       <ConfirmDialog state={confirmState} pending={pending} onConfirm={remove} onClose={() => setConfirmState(null)} />
-    </div>
-  );
-}
-
-/** Atalho para aprovar um dispositivo diretamente na tela da reunião (§23). */
-export function ApproveDeviceForm({ devices, canEdit }: { devices: { id: string; label: string }[]; canEdit: boolean }) {
-  const [deviceId, setDeviceId] = useState("");
-  const [pending, setPending] = useState(false);
-  const router = useRouter();
-  if (!canEdit) return null;
-  async function approve() {
-    if (!deviceId) return;
-    setPending(true);
-    const res = await setStatus(deviceId, "aprovado");
-    setPending(false);
-    if (res.error) return toast.error(res.error);
-    toast.success(res.message || "Dispositivo aprovado.");
-    setDeviceId("");
-    router.refresh();
-  }
-  return (
-    <div className="flex flex-wrap items-center gap-2">
-      <select
-        value={deviceId}
-        onChange={(e) => setDeviceId(e.target.value)}
-        className="h-9 min-w-0 flex-1 rounded-md border bg-background px-2 text-sm"
-      >
-        <option value="">Aprovar dispositivo...</option>
-        {devices.map((d) => (
-          <option key={d.id} value={d.id}>
-            {d.label}
-          </option>
-        ))}
-      </select>
-      <Button
-        size="sm"
-        className="bg-emerald-600 text-white hover:bg-emerald-700"
-        disabled={pending || !deviceId}
-        onClick={approve}
-      >
-        Aprovar
-      </Button>
     </div>
   );
 }

@@ -91,21 +91,6 @@ export default async function DevicePage({
     JOIN users u ON u.id = s.author_id
     WHERE s.provision_id = ? ORDER BY s.id DESC`, [id]);
 
-  const sugVotes = await all<{ suggestion_id: number; opinion: string; c: number }>(`
-    SELECT v.suggestion_id, v.opinion, COUNT(*) c FROM votes v
-    WHERE v.suggestion_id IN (SELECT id FROM suggestions WHERE provision_id = ?)
-    GROUP BY v.suggestion_id, v.opinion`, [id]);
-  const mySugVotes = await all<{ suggestion_id: number; opinion: string }>(`
-    SELECT v.suggestion_id, v.opinion FROM votes v
-    WHERE v.user_id = ? AND v.suggestion_id IN (SELECT id FROM suggestions WHERE provision_id = ?)`, [user.id, id]);
-  const sugVotesMap = new Map<number, Record<string, number>>();
-  for (const v of sugVotes) {
-    const m = sugVotesMap.get(v.suggestion_id) || {};
-    m[v.opinion] = v.c;
-    sugVotesMap.set(v.suggestion_id, m);
-  }
-  const mySugVotesMap = new Map(mySugVotes.map((v) => [v.suggestion_id, v.opinion]));
-
   const comments = await all<Comment>(`
     SELECT c.*, u.name AS author_name FROM comments c
     JOIN users u ON u.id = c.author_id
@@ -129,16 +114,10 @@ export default async function DevicePage({
     JOIN provisions p ON p.id = r.related_id
     WHERE r.provision_id = ? ORDER BY p.ordem`, [id]);
 
-  const votes = await all<{ opinion: string; c: number }>(
-    "SELECT opinion, COUNT(*) c FROM votes WHERE provision_id = ? GROUP BY opinion", [id]);
-  const myVote = await get<{ opinion: string }>("SELECT opinion FROM votes WHERE provision_id = ? AND user_id = ?", [id, user.id]);
-
   const personalNote = (await get<{ content: string }>(
     "SELECT content FROM personal_notes WHERE provision_id = ? AND user_id = ?",
     [id, user.id]
   ))?.content ?? "";
-
-  const votedCount = (await get<{ c: number }>("SELECT COUNT(DISTINCT user_id) c FROM votes WHERE provision_id = ?", [id]))?.c ?? 0;
 
   const directChildren = (await get<{ c: number }>("SELECT COUNT(*) c FROM provisions WHERE parent_id = ?", [id]))?.c ?? 0;
   const allowedTabs: TabKey[] = ["analise", "colaboracao", "pendencias", "historico"];
@@ -194,6 +173,15 @@ export default async function DevicePage({
       </aside>
 
       <div className="order-1 min-w-0 space-y-5 lg:order-2">
+        <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-amber-300/70 bg-amber-50/50 px-4 py-3 text-sm dark:border-amber-800 dark:bg-amber-950/20">
+          <div>
+            <p className="font-semibold">Tela clássica de consulta</p>
+            <p className="text-xs text-muted-foreground">Mantida como referência e contingência. O trabalho principal por capítulo acontece na Mesa de Trabalho.</p>
+          </div>
+          <Link href={workbenchHref || `/mesa-trabalho?dispositivo=${id}`} className="font-medium text-primary underline underline-offset-4">
+            Ir para a Mesa de Trabalho
+          </Link>
+        </div>
         <div>
           {workbenchHref && (
             <Link href={workbenchHref} className="mb-3 inline-flex items-center text-sm font-medium text-primary hover:underline">
@@ -309,17 +297,12 @@ export default async function DevicePage({
           directChildren={directChildren}
           parentType={parentType}
           suggestions={suggestions}
-          sugVotesMap={Object.fromEntries(sugVotesMap)}
-          mySugVotesMap={Object.fromEntries(mySugVotesMap)}
           comments={comments}
           pendings={pendings}
           references={references}
           versions={versions}
           relations={relations}
           devices={devices}
-          votes={votes}
-          myVote={myVote?.opinion ?? null}
-          votedCount={votedCount}
           personalNote={personalNote}
           referenciasAfetadas={referenciasAfetadas}
         />

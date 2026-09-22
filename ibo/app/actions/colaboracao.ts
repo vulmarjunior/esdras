@@ -2,7 +2,6 @@
 
 import { revalidatePath } from "next/cache";
 import { get, run } from "@/lib/db";
-import { getActiveMeeting } from "@/lib/data";
 import { requireRole, requireUser } from "@/lib/auth";
 import { rolesCom } from "@/lib/permissions";
 import { publishRealtime } from "@/lib/realtime";
@@ -13,19 +12,6 @@ async function audit(userId: number, user_name: string, action: string, entity: 
     "INSERT INTO audit_logs (user_id, user_name, action, entity, entity_id, detail) VALUES (?, ?, ?, ?, ?, ?)",
     [userId, user_name, action, entity, entity_id, detail || ""]
   );
-}
-
-async function logMeetingEvent(tipo: string, descricao: string, userId: number | null) {
-  const meeting = await getActiveMeeting();
-  if (!meeting) return;
-  const hora = new Date().toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
-  await run("INSERT INTO meeting_events (meeting_id, user_id, hora, tipo, descricao) VALUES (?, ?, ?, ?, ?)", [
-    meeting.id,
-    userId,
-    hora,
-    tipo,
-    descricao,
-  ]);
 }
 
 export async function createSuggestion(
@@ -41,7 +27,6 @@ export async function createSuggestion(
     [provisionId, user.id, texto, justificativa || "", ondeEsta || ""]
   );
   await audit(user.id, user.name, "Criou sugestão #" + res.lastInsertRowid, "provision", provisionId);
-  await logMeetingEvent("sugestao", `Sugestão #${res.lastInsertRowid} criada em ${provisionId}`, user.id);
   revalidatePath(`/dispositivo/${provisionId}`);
   await publishRealtime({ entity: "provision", id: provisionId, action: "sugestao" });
   return { ok: true, message: "Sugestão de redação registrada." };
@@ -55,7 +40,6 @@ export async function updateSuggestionStatus(suggestionId: number, status: strin
   if (!sug) return { error: "Sugestão de redação não encontrada." };
   await run("UPDATE suggestions SET status = ? WHERE id = ?", [status, suggestionId]);
   await audit(user.id, user.name, `Sugestão #${suggestionId} ${status}`, "suggestion", String(suggestionId));
-  await logMeetingEvent(status === "aceita" ? "sugestao_aceita" : "sugestao", `Sugestão #${suggestionId} ${status}`, user.id);
   revalidatePath(`/dispositivo/${sug.provision_id}`);
   await publishRealtime({ entity: "provision", id: sug.provision_id, action: "sugestao_status" });
   return { ok: true };
@@ -116,44 +100,6 @@ export async function createReference(provisionId: string, tipo: string, texto: 
   await audit(user.id, user.name, "Adicionou referência " + tipo, "provision", provisionId);
   revalidatePath(`/dispositivo/${provisionId}`);
   await publishRealtime({ entity: "provision", id: provisionId, action: "referencia" });
-  return { ok: true };
-}
-
-export async function vote(provisionId: string | null, opinion: string, suggestionId: number | null = null): Promise<ActionState> {
-  const user = await requireRole(...rolesCom("contribuir"));
-  const allowed = ["concordo", "discordo", "ressalva"];
-  if (!allowed.includes(opinion)) return { error: "Voto inválido." };
-  if (suggestionId != null) {
-    await run(
-      `INSERT INTO votes (user_id, provision_id, suggestion_id, opinion) VALUES (?, NULL, ?, ?)
-       ON CONFLICT(user_id, suggestion_id) WHERE suggestion_id IS NOT NULL
-       DO UPDATE SET opinion = excluded.opinion, created_at = datetime('now')`,
-      [user.id, suggestionId, opinion]
-    );
-    if (provisionId) revalidatePath(`/dispositivo/${provisionId}`);
-    await publishRealtime({ entity: "provision", id: provisionId || "", action: "voto" });
-    return { ok: true };
-  }
-  if (!provisionId) return { error: "Dispositivo não informado." };
-  await run(
-    `INSERT INTO votes (user_id, provision_id, opinion) VALUES (?, ?, ?)
-     ON CONFLICT(user_id, provision_id) WHERE suggestion_id IS NULL
-     DO UPDATE SET opinion = excluded.opinion, created_at = datetime('now')`,
-    [user.id, provisionId, opinion]
-  );
-  revalidatePath(`/dispositivo/${provisionId}`);
-  await publishRealtime({ entity: "provision", id: provisionId, action: "voto" });
-  return { ok: true };
-}
-
-export async function removeVote(provisionId: string | null, suggestionId: number | null = null): Promise<ActionState> {
-  const user = await requireUser();
-  if (suggestionId != null) {
-    await run("DELETE FROM votes WHERE user_id = ? AND suggestion_id = ?", [user.id, suggestionId]);
-  } else if (provisionId) {
-    await run("DELETE FROM votes WHERE user_id = ? AND provision_id = ?", [user.id, provisionId]);
-  }
-  if (provisionId) revalidatePath(`/dispositivo/${provisionId}`);
   return { ok: true };
 }
 

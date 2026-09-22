@@ -37,7 +37,7 @@ export function CoherenceAnalyzer({ textos }: { textos: { id: string; label: str
           {loading ? "Analisando..." : "Analisar coerência"}
         </Button>
         <span className="text-xs text-muted-foreground">
-          Analisa {textos.length} dispositivo(s) aprovado(s). Sempre como alerta — nenhuma alteração automática.
+          Analisa {textos.length} dispositivo(s) com redação concluída. Sempre como alerta — nenhuma alteração automática.
         </span>
       </div>
 

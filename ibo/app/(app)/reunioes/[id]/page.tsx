@@ -1,7 +1,6 @@
 import { notFound, redirect } from "next/navigation";
 import { getSessionUser } from "@/lib/auth";
 import { get, all } from "@/lib/db";
-import { provisionLabel } from "@/lib/data";
 import type { User } from "@/lib/types";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -10,11 +9,9 @@ import {
   EditMeetingForm,
   PresenceList,
   ManualEventForm,
-  DecisionForm,
   MinutesPanel,
   ReviewAtaForm,
 } from "@/components/meetings/meeting-actions";
-import { ApproveDeviceForm } from "@/components/provision/provision-forms";
 import { MeetingPresence } from "@/components/meetings/meeting-presence";
 
 export const dynamic = "force-dynamic";
@@ -64,7 +61,7 @@ export default async function MeetingPage({ params }: { params: Promise<{ id: st
   const events = await all<{ id: number; hora: string; tipo: string; descricao: string; user_name: string | null }>(`
     SELECT e.*, u.name AS user_name FROM meeting_events e
     LEFT JOIN users u ON u.id = e.user_id
-    WHERE e.meeting_id = ? ORDER BY e.id`, [meetingId]);
+    WHERE e.meeting_id = ? AND e.tipo = 'registro' ORDER BY e.id`, [meetingId]);
 
   const decisions = await all<{ id: number; code: string; provision_id: string | null; provision_ref: string | null; tipo: string; texto: string; user_name: string | null; created_at: string }>(`
     SELECT md.*, p.numero AS provision_ref, u.name AS user_name
@@ -88,19 +85,14 @@ export default async function MeetingPage({ params }: { params: Promise<{ id: st
         JOIN users u ON u.id = mr.author_id WHERE mr.minutes_id = ? ORDER BY mr.id`, [minutes.id])
     : [];
 
-  const provisions = await all<{ id: string; type: string; numero: string }>(
-    "SELECT id, type, numero FROM provisions WHERE type IN ('artigo','capitulo') ORDER BY ordem");
-
   const allUsers = await all<User>("SELECT id, name, email, role, created_at FROM users WHERE deleted_at IS NULL ORDER BY name");
 
   const presentCount = members.filter((m) => m.presente).length;
-  const aprovados = decisions.filter((d) => d.tipo === "aprovacao").length;
-
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
-          <h2 className="text-2xl font-semibold tracking-tight">Reunião nº {meeting.numero}</h2>
+          <h2 className="text-2xl font-semibold tracking-tight">Registro da reunião nº {meeting.numero}</h2>
           <p className="text-sm text-muted-foreground">
             {meeting.data}{meeting.horario ? ` às ${meeting.horario}` : ""}
             {meeting.local ? ` · ${meeting.local}` : ""}
@@ -158,7 +150,7 @@ export default async function MeetingPage({ params }: { params: Promise<{ id: st
           <CardContent className="space-y-3">
             <ManualEventForm meetingId={meetingId} canEdit={canEdit} />
             {events.length === 0 ? (
-              <p className="text-sm text-muted-foreground">Nenhum evento registrado.</p>
+              <p className="text-sm text-muted-foreground">Nenhum registro lançado.</p>
             ) : (
               <ul className="space-y-1 text-sm">
                 {events.map((e) => (
@@ -173,37 +165,24 @@ export default async function MeetingPage({ params }: { params: Promise<{ id: st
         </Card>
       </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base">Deliberações</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-3">
-          <ApproveDeviceForm devices={provisions.map((p) => ({ id: p.id, label: provisionLabel(p as never) }))} canEdit={canEdit} />
-          <DecisionForm meetingId={meetingId} provisions={provisions.map((p) => ({ id: p.id, label: provisionLabel(p as never) }))} canEdit={canEdit} />
-          {decisions.length === 0 ? (
-            <p className="text-sm text-muted-foreground">Nenhuma deliberação registrada.</p>
-          ) : (
-            <ul className="space-y-2">
-              {decisions.map((d) => (
-                <li key={d.id} className="rounded-lg border p-3 text-sm">
-                  <div className="mb-1 flex flex-wrap items-center justify-between gap-2">
-                    <span className="font-mono text-xs font-medium">{d.code}</span>
-                    <div className="flex gap-1.5">
-                      {d.provision_ref && <Badge variant="outline">{d.provision_ref}</Badge>}
-                      <Badge variant="secondary">{DECISION_TYPE_LABELS[d.tipo] || d.tipo}</Badge>
-                    </div>
-                  </div>
-                  <p>{d.texto}</p>
-                  <p className="mt-1 text-xs text-muted-foreground">
-                    {d.user_name || "—"} · {new Date(d.created_at + "Z").toLocaleString("pt-BR")}
-                    {d.provision_id && <span className="ml-1">· <a className="text-primary hover:underline" href={`/dispositivo/${d.provision_id}`}>abrir dispositivo</a></span>}
-                  </p>
-                </li>
-              ))}
-            </ul>
-          )}
-        </CardContent>
-      </Card>
+      {decisions.length > 0 && (
+        <details className="rounded-xl border bg-muted/20">
+          <summary className="cursor-pointer px-4 py-3 text-sm font-medium">Registros legados desta reunião ({decisions.length})</summary>
+          <div className="space-y-2 border-t p-4">
+            <p className="text-xs text-muted-foreground">Dados preservados de versões anteriores do sistema. São somente referência histórica e não representam formalização da proposta.</p>
+            {decisions.map((d) => (
+              <div key={d.id} className="rounded-lg border bg-card p-3 text-sm">
+                <div className="mb-1 flex flex-wrap items-center gap-2">
+                  <span className="font-mono text-xs">{d.code}</span>
+                  {d.provision_ref && <Badge variant="outline">{d.provision_ref}</Badge>}
+                  <Badge variant="secondary">{DECISION_TYPE_LABELS[d.tipo] || d.tipo}</Badge>
+                </div>
+                <p>{d.texto}</p>
+              </div>
+            ))}
+          </div>
+        </details>
+      )}
 
       <Card>
         <CardHeader>
@@ -216,11 +195,9 @@ export default async function MeetingPage({ params }: { params: Promise<{ id: st
       </Card>
 
       {meeting.status === "encerrada" && (
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          <Stat label="Deliberações" value={decisions.length} />
-          <Stat label="Aprovações" value={aprovados} />
+        <div className="grid gap-4 sm:grid-cols-2">
           <Stat label="Presentes" value={`${presentCount}/${members.length}`} />
-          <Stat label="Eventos registrados" value={events.length} />
+          <Stat label="Registros da reunião" value={events.length} />
         </div>
       )}
     </div>

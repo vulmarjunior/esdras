@@ -27,17 +27,17 @@ export default async function CoerenciaPage() {
       <div>
         <h2 className="text-2xl font-semibold tracking-tight">Análise de coerência</h2>
         <p className="text-sm text-muted-foreground">
-          IA analisa os dispositivos aprovados procurando duplicidades, contradições, nomenclaturas e lacunas — sempre como alerta (PRD §33).
+          A IA analisa as redações concluídas procurando duplicidades, contradições, nomenclaturas e lacunas — sempre como alerta.
         </p>
       </div>
 
       <FieldHelper>
-        O relatório é gerado pela Groq a partir do texto aprovado. Nenhuma alteração é aplicada automaticamente.
+        O relatório é gerado pela Groq a partir do texto concluído para a proposta. Nenhuma alteração é aplicada automaticamente.
       </FieldHelper>
 
       {textos.length === 0 ? (
         <p className="text-sm text-muted-foreground">
-          Nenhum dispositivo aprovado ainda. Aprove dispositivos para habilitar a análise.
+          Nenhuma redação foi concluída ainda. Conclua redações na Mesa de Trabalho para habilitar a análise.
         </p>
       ) : (
         <CoherenceAnalyzer textos={textos} />

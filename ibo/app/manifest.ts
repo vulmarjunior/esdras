@@ -5,7 +5,7 @@ export default function manifest(): MetadataRoute.Manifest {
     name: "ESDRAS — Reforma do Estatuto da IBO",
     short_name: "ESDRAS",
     description:
-      "Ambiente de trabalho da Comissão de Reforma do Estatuto Social da Igreja Batista Olaria — sugestões, deliberações, atas e consolidação.",
+      "Ambiente de trabalho da Comissão de Reforma do Estatuto Social da Igreja Batista Olaria — sugestões, desenvolvimento, atas e consolidação.",
     id: "/",
     start_url: "/",
     scope: "/",
