@@ -518,7 +518,7 @@ export function ChapterWorkbench({
                 <Tabs defaultValue="comparacao">
                   <TabsList className="grid w-full grid-cols-3">
                     <TabsTrigger value="comparacao">Comparação</TabsTrigger>
-                    <TabsTrigger value="subsidios">Subsídios</TabsTrigger>
+                    <TabsTrigger value="subsidios">Apoio à redação</TabsTrigger>
                     <TabsTrigger value="situacao">Situação</TabsTrigger>
                   </TabsList>
                   <TabsContent value="comparacao" className="space-y-3 pt-2">

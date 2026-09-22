@@ -62,7 +62,7 @@ const NAV_TEMAS: NavTema[] = [
       { href: "/mesa-trabalho", label: "Mesa de Trabalho", icon: PanelsTopLeft },
       { href: "/revisao", label: "Estatuto em revisão", icon: BookOpenText },
       { href: "/consolidado", label: "Em construção", icon: ScrollText },
-      { href: "/comparativo", label: "Comparativo", icon: ArrowLeftRight },
+      { href: "/comparativo", label: "Acompanhamento", icon: ArrowLeftRight },
       { href: "/pendentes", label: "Pendências", icon: CircleAlert },
       { href: "/renumeracao", label: "Renumeração", icon: ListOrdered },
       { href: "/coerencia", label: "Coerência", icon: ShieldAlert },

@@ -22,9 +22,9 @@ export const STATUS_VARIANTS: Record<string, string> = {
 export const SUGGESTION_STATUS_LABELS: Record<string, string> = {
   aberta: "Aberta",
   em_discussao: "Em discussão",
-  aceita: "Aceita",
-  aceita_parcialmente: "Aceita parcialmente",
-  rejeitada: "Rejeitada",
+  aceita: "Incorporada",
+  aceita_parcialmente: "Incorporada parcialmente",
+  rejeitada: "Não incorporada",
   retirada: "Retirada",
 };
 

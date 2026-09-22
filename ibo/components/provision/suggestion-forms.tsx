@@ -11,8 +11,8 @@ import { createSuggestion, updateSuggestionStatus } from "@/app/actions/provisio
 import { SubmitBtn } from "@/components/provision/submit-btn";
 import type { Suggestion } from "@/lib/types";
 
-export function SuggestionForm({ provisionId }: { provisionId: string }) {
-  const [open, setOpen] = useState(false);
+export function SuggestionForm({ provisionId, defaultOpen = false }: { provisionId: string; defaultOpen?: boolean }) {
+  const [open, setOpen] = useState(defaultOpen);
   const [pending, setPending] = useState(false);
   const router = useRouter();
   const [form, setForm] = useState({ texto: "", justificativa: "", ondeEsta: "" });

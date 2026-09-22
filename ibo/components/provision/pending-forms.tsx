@@ -11,8 +11,8 @@ import { createPendingIssue, resolvePending } from "@/app/actions/provision";
 import { SubmitBtn } from "@/components/provision/submit-btn";
 import type { PendingIssue } from "@/lib/types";
 
-export function PendingForm({ provisionId }: { provisionId: string }) {
-  const [open, setOpen] = useState(false);
+export function PendingForm({ provisionId, defaultOpen = false }: { provisionId: string; defaultOpen?: boolean }) {
+  const [open, setOpen] = useState(defaultOpen);
   const [form, setForm] = useState({ categoria: "juridica", descricao: "" });
   const [pending, setPending] = useState(false);
   const router = useRouter();

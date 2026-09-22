@@ -70,7 +70,7 @@ O trabalho segue o fluxo aprovado no projeto. Cada passo aponta para a tela corr
 10. **Gerar a ata** — na reunião, use "Gerar minuta da ata" e siga o fluxo rascunho → revisão → finalizada.
 11. **Consultar o histórico** — aba **Histórico** do dispositivo.
 12. **Acompanhar o novo Estatuto** — menu **Reforma → Em construção** (numeração, textos, novos e revogados).
-13. **Comparar ao final** — menu **Reforma → Comparativo** (vigente × nova redação, com justificativas).
+13. **Acompanhar e contribuir** — menu **Reforma → Acompanhamento**. Veja cada dispositivo no celular, consulte redação atual, texto vigente, proposta inicial, justificativa e pendências; use **Contribuir** para sugerir, comentar, registrar pendência ou fazer anotação pessoal. O quadro comparativo completo está na mesma tela.
 14. **Exportar relatórios** — menu **Reuniões → Relatórios**.
 `,
   },
@@ -299,7 +299,7 @@ Livros doutrinários que orientam as decisões da comissão (ex.: disciplina na 
   },
   {
     id: "estatuto-construcao",
-    titulo: "Estatuto em construção e Comparativo",
+    titulo: "Estatuto em construção e Acompanhamento",
     markdown: `
 ### Em construção (Reforma → Em construção)
 Mostra o **novo Estatuto sendo montado**, na ordem e numeração da proposta:
@@ -310,8 +310,14 @@ Mostra o **novo Estatuto sendo montado**, na ordem e numeração da proposta:
 - Filtros por capítulo, status, busca, "ocultar revogados" e "somente com texto".
 - Se a numeração ainda divergir da ordem, aparece um aviso com link para a Renumeração.
 
-### Comparativo (Reforma → Comparativo)
-**Quadro comparativo final**, artigo por artigo, na ordem da proposta:
+### Acompanhamento (Reforma → Acompanhamento)
+O modo **Acompanhar a reforma** foi preparado para os membros da comissão, inclusive no celular. Ele apresenta um dispositivo por vez e permite consultar:
+
+- redação atual ou ainda parcial, texto vigente, proposta inicial, justificativa e pendências;
+- mudança de numeração (por exemplo, **Art. 5º vigente → Art. 26 proposto**), status e tipo de alteração;
+- contribuições vinculadas ao dispositivo: **sugestão de redação, comentário, pendência ou anotação pessoal**. A contribuição não altera automaticamente a redação da comissão.
+
+O modo **Quadro comparativo**, disponível no topo da mesma tela, preserva a visão geral artigo por artigo, na ordem da proposta:
 
 - **Art. vigente → Art. proposta**, textos lado a lado com **diff por palavras** (retirado/acrescentado);
 - tipo de alteração, status e **justificativa**;
@@ -391,7 +397,7 @@ Não. A IA é **assistiva**: sugere e responde, sempre rotulada. Toda alteraçã
 
 ### Onde vejo o resultado final?
 - **Em construção** (Reforma → Em construção): o novo Estatuto sendo montado, com tudo em andamento.
-- **Comparativo** (Reforma → Comparativo): vigente × nova redação, com justificativas.
+- **Acompanhamento** (Reforma → Acompanhamento): evolução dispositivo por dispositivo, contribuições dos membros e quadro comparativo completo.
 - **Relatórios** (Reuniões → Relatórios): exportações em .txt. Se a numeração ainda divergir da ordem, a tela avisa para reordenar/aplicar em Renumeração antes de usar o documento.
 
 ### Como vejo o Estatuto inteiro enquanto a reforma está em andamento?
