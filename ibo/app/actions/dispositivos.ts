@@ -268,6 +268,7 @@ export async function moveProvision(
 
   revalidatePath("/");
   revalidatePath(`/dispositivo/${provisionId}`);
+  revalidatePath("/mesa-trabalho");
   revalidatePath("/renumeracao");
   revalidatePath("/consolidado");
   await publishRealtime({ entity: "provision", id: provisionId, action: "movido" });
@@ -375,6 +376,7 @@ export async function moveProposalProvision(
 
   revalidatePath("/");
   revalidatePath(`/dispositivo/${provisionId}`);
+  revalidatePath("/mesa-trabalho");
   revalidatePath("/renumeracao");
   revalidatePath("/revisao");
   revalidatePath("/consolidado");

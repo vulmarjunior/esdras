@@ -2,6 +2,8 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { toast } from "sonner";
 import {
   AlertTriangle,
   ArrowLeftRight,
@@ -10,6 +12,7 @@ import {
   FilePenLine,
   GripVertical,
   ListTree,
+  Loader2,
   MessageSquareText,
   PanelRightClose,
   PanelRightOpen,
@@ -18,13 +21,23 @@ import {
   StickyNote,
   Users,
 } from "lucide-react";
+import { moveProposalProvision } from "@/app/actions/provision";
 import { cn } from "@/lib/utils";
 import { normalizarNumero } from "@/lib/numeracao";
 import { PROVISION_TYPE_LABELS } from "@/lib/labels";
+import { simulateArticleMove } from "@/lib/workbench-move";
 import { RichTextContent } from "@/components/rich-text-content";
 import { NovoBadge, StatusBadge, StatusDot } from "@/components/status-badge";
 import { NewProvisionForm, StatusControl } from "@/components/provision/provision-forms";
 import { Button, buttonVariants } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -82,6 +95,26 @@ function flatten(nodes: WorkbenchNode[], depth = 0): FlatNode[] {
   ]);
 }
 
+function findNode(nodes: WorkbenchNode[], id: string): WorkbenchNode | undefined {
+  for (const node of nodes) {
+    if (node.id === id) return node;
+    const found = findNode(node.children, id);
+    if (found) return found;
+  }
+  return undefined;
+}
+
+function descendantIds(node: WorkbenchNode): Set<string> {
+  return new Set(flatten(node.children).map((child) => child.id));
+}
+
+function destinationLabel(node: WorkbenchNode): string {
+  const former = node.numeroVigente && normalizarNumero(node.numeroVigente) !== normalizarNumero(node.numero)
+    ? ` · vigente ${node.numeroVigente}`
+    : "";
+  return `${label(node)}${node.titulo ? ` — ${node.titulo}` : ""}${former}`;
+}
+
 function currentText(node: WorkbenchNode): string {
   if (node.status === "aprovado" && node.redacaoConsolidada.trim()) return node.redacaoConsolidada;
   return node.redacaoTrabalho || node.propostaInicial || node.textoVigente || "";
@@ -107,19 +140,36 @@ function articleStats(chapter: WorkbenchNode) {
 
 export function ChapterWorkbench({
   chapters,
+  documentTree,
   canEdit,
   activeMeetingId,
+  initialChapterId,
+  initialSelectedId,
 }: {
   chapters: WorkbenchNode[];
+  documentTree: WorkbenchNode[];
   canEdit: boolean;
   activeMeetingId: number | null;
+  initialChapterId?: string;
+  initialSelectedId?: string;
 }) {
-  const [chapterId, setChapterId] = useState(chapters[0]?.id ?? "");
+  const router = useRouter();
+  const validInitialChapter = chapters.some((item) => item.id === initialChapterId)
+    ? initialChapterId
+    : chapters[0]?.id;
+  const [chapterId, setChapterId] = useState(validInitialChapter ?? "");
   const chapter = chapters.find((item) => item.id === chapterId) ?? chapters[0];
   const items = useMemo(() => chapter ? flatten(chapter.children) : [], [chapter]);
-  const [selectedId, setSelectedId] = useState(chapter?.children[0]?.id ?? chapter?.id ?? "");
+  const validInitialSelected = initialSelectedId && findNode(documentTree, initialSelectedId)
+    ? initialSelectedId
+    : chapter?.children[0]?.id ?? chapter?.id;
+  const [selectedId, setSelectedId] = useState(validInitialSelected ?? "");
   const [query, setQuery] = useState("");
   const [panelOpen, setPanelOpen] = useState(true);
+  const [moveOpen, setMoveOpen] = useState(false);
+  const [moveParentId, setMoveParentId] = useState<string | null>(null);
+  const [moveAfterId, setMoveAfterId] = useState<string | null>(null);
+  const [movePending, setMovePending] = useState(false);
   const effectiveSelectedId = selectedId === chapter?.id || items.some((item) => item.id === selectedId)
     ? selectedId
     : chapter?.children[0]?.id ?? chapter?.id ?? "";
@@ -127,6 +177,55 @@ export function ChapterWorkbench({
     ? chapter
     : items.find((item) => item.id === effectiveSelectedId) ?? chapter;
   const selectedRef = useRef<HTMLButtonElement | null>(null);
+  const allNodes = useMemo(() => flatten(documentTree), [documentTree]);
+  const selectedDescendants = selected ? descendantIds(selected) : new Set<string>();
+  const possibleParents = selected
+    ? allNodes.filter((node) =>
+      node.id !== selected.id &&
+      !selectedDescendants.has(node.id) &&
+      node.alteracaoTipo !== "revogado" &&
+      allowedChildren(node.type).includes(selected.type),
+    )
+    : [];
+  const destinationSiblings = moveParentId === null
+    ? documentTree.filter((node) => node.id !== selected?.id && node.alteracaoTipo !== "revogado")
+    : (findNode(documentTree, moveParentId)?.children ?? [])
+      .filter((node) => node.id !== selected?.id && node.alteracaoTipo !== "revogado");
+  const moveEffects = selected
+    ? simulateArticleMove(documentTree, selected.id, moveParentId, moveAfterId)
+    : [];
+  const nodesById = new Map(allNodes.map((node) => [node.id, node]));
+  const returnQuery = new URLSearchParams({
+    origem: "mesa",
+    capitulo: chapter?.id ?? "",
+    dispositivo: selected?.id ?? "",
+  }).toString();
+
+  function openMoveDialog() {
+    if (!selected) return;
+    setMoveParentId(selected.parentId);
+    const siblings = selected.parentId === null
+      ? documentTree
+      : findNode(documentTree, selected.parentId)?.children ?? [];
+    const selectedIndex = siblings.findIndex((node) => node.id === selected.id);
+    setMoveAfterId(selectedIndex > 0 ? siblings[selectedIndex - 1].id : null);
+    setMoveOpen(true);
+  }
+
+  async function confirmMove() {
+    if (!selected) return;
+    setMovePending(true);
+    const result = await moveProposalProvision(selected.id, moveParentId, moveAfterId);
+    setMovePending(false);
+    if (result.error) return toast.error(result.error);
+    toast.success(result.message || "Dispositivo movido na proposta.");
+    const destinationChapter = moveParentId && chapters.some((item) => item.id === moveParentId)
+      ? moveParentId
+      : chapters.find((item) => moveParentId && findNode(item.children, moveParentId))?.id;
+    if (destinationChapter) setChapterId(destinationChapter);
+    setMoveOpen(false);
+    router.refresh();
+  }
 
   useEffect(() => {
     selectedRef.current?.scrollIntoView({ block: "nearest", behavior: "smooth" });
@@ -317,13 +416,20 @@ export function ChapterWorkbench({
             <ScrollArea className="h-[550px]">
               <div className="space-y-4 p-4">
                 <div className="grid grid-cols-2 gap-2">
-                  <Link href={`/dispositivo/${selected.id}`} className={buttonVariants({ size: "sm", className: "justify-start" })}>
-                    <FilePenLine /> Abrir e redigir
+                  <Link href={`/dispositivo/${selected.id}?aba=analise&${returnQuery}`} className={buttonVariants({ size: "sm", className: "justify-start" })}>
+                    <FilePenLine /> Redigir
                   </Link>
-                  <Link href="/renumeracao" className={buttonVariants({ variant: "outline", size: "sm", className: "justify-start" })}>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="justify-start"
+                    onClick={openMoveDialog}
+                    disabled={!canEdit}
+                  >
                     <GripVertical /> Reorganizar
-                  </Link>
-                  <Link href={`/dispositivo/${selected.id}`} className={buttonVariants({ variant: "outline", size: "sm", className: "justify-start" })}>
+                  </Button>
+                  <Link href={`/dispositivo/${selected.id}?aba=colaboracao&${returnQuery}`} className={buttonVariants({ variant: "outline", size: "sm", className: "justify-start" })}>
                     <MessageSquareText /> Colaboração
                   </Link>
                   <Link
@@ -398,6 +504,92 @@ export function ChapterWorkbench({
         <span className="flex items-center gap-1.5"><ListTree className="h-3.5 w-3.5" /> A numeração é consequência da posição; a identidade interna do dispositivo permanece estável.</span>
         <Link href="/comparativo" className="font-medium text-primary hover:underline">Abrir quadro comparativo</Link>
       </div>
+
+      <Dialog open={moveOpen} onOpenChange={setMoveOpen}>
+        <DialogContent className="sm:max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Reorganizar {selected ? label(selected) : "dispositivo"}</DialogTitle>
+            <DialogDescription>
+              Escolha o destino e confira toda a renumeração provocada antes de confirmar. A identidade e o histórico do dispositivo permanecem os mesmos.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="grid gap-4 sm:grid-cols-2">
+            <label className="space-y-1.5 text-xs font-medium">
+              Destino estrutural
+              <select
+                className="h-9 w-full rounded-lg border border-input bg-background px-2.5 text-sm font-normal"
+                value={moveParentId ?? "__root__"}
+                onChange={(event) => {
+                  setMoveParentId(event.target.value === "__root__" ? null : event.target.value);
+                  setMoveAfterId(null);
+                }}
+              >
+                <option value="__root__">Raiz da proposta</option>
+                {possibleParents.map((node) => (
+                  <option key={node.id} value={node.id}>{destinationLabel(node)}</option>
+                ))}
+              </select>
+            </label>
+            <label className="space-y-1.5 text-xs font-medium">
+              Posição no destino
+              <select
+                className="h-9 w-full rounded-lg border border-input bg-background px-2.5 text-sm font-normal"
+                value={moveAfterId ?? "__start__"}
+                onChange={(event) => setMoveAfterId(event.target.value === "__start__" ? null : event.target.value)}
+              >
+                <option value="__start__">No início</option>
+                {destinationSiblings.map((node) => (
+                  <option key={node.id} value={node.id}>Após {destinationLabel(node)}</option>
+                ))}
+              </select>
+            </label>
+          </div>
+
+          <section className="rounded-xl border bg-muted/20">
+            <div className="flex items-center justify-between gap-3 border-b px-3 py-2.5">
+              <h4 className="text-xs font-semibold uppercase tracking-wide">Prévia do impacto</h4>
+              <span className="text-xs text-muted-foreground">
+                {moveEffects.length} {moveEffects.length === 1 ? "artigo afetado" : "artigos afetados"}
+              </span>
+            </div>
+            <div className="max-h-56 overflow-y-auto p-2">
+              {moveEffects.length > 0 ? (
+                <ul className="space-y-1">
+                  {moveEffects.map((effect) => {
+                    const affected = nodesById.get(effect.id);
+                    return (
+                      <li key={effect.id} className={cn("flex items-center justify-between gap-3 rounded-lg px-2.5 py-2 text-sm", effect.id === selected?.id && "bg-primary/10 font-medium")}>
+                        <span className="min-w-0 truncate">
+                          {affected?.numeroVigente ? `Artigo vigente ${affected.numeroVigente}` : label(affected ?? { id: effect.id, type: "artigo", numero: effect.from })}
+                          {effect.id === selected?.id && " · movimentado"}
+                        </span>
+                        <span className="shrink-0 tabular-nums text-muted-foreground">{effect.from} → <strong className="text-foreground">{effect.to}</strong></span>
+                      </li>
+                    );
+                  })}
+                </ul>
+              ) : (
+                <p className="px-2 py-4 text-center text-xs text-muted-foreground">
+                  Esta posição não altera a numeração dos artigos. A hierarquia ainda poderá ser alterada.
+                </p>
+              )}
+            </div>
+          </section>
+
+          <p className="text-xs text-muted-foreground">
+            Dispositivos subordinados acompanham o item movimentado. Referências internas potencialmente afetadas serão sinalizadas para revisão humana; nenhum texto é aprovado automaticamente.
+          </p>
+
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={() => setMoveOpen(false)} disabled={movePending}>Cancelar</Button>
+            <Button type="button" onClick={confirmMove} disabled={movePending || !canEdit}>
+              {movePending && <Loader2 className="animate-spin" />}
+              Confirmar movimentação
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

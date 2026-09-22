@@ -67,8 +67,12 @@ function mapNode(
   };
 }
 
-export default async function WorkbenchPage() {
-  const user = await getSessionUser();
+export default async function WorkbenchPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ capitulo?: string; dispositivo?: string }>;
+}) {
+  const [query, user] = await Promise.all([searchParams, getSessionUser()]);
   if (!user) redirect("/login");
 
   const [
@@ -96,26 +100,30 @@ export default async function WorkbenchPage() {
   const pendings = new Set(pendingIds);
   const suggestions = new Map(suggestionRows.map((row) => [row.provision_id, Number(row.c)]));
   const comments = new Map(commentRows.map((row) => [row.provision_id, Number(row.c)]));
-  const chapters = tree
-    .filter((node) => node.type === "capitulo" && node.alteracao_tipo !== "revogado")
-    .map((node) =>
-      mapNode(
-        node,
-        numerosProposta,
-        numerosVigentes,
-        numerosSugeridos,
-        notes,
-        pendings,
-        suggestions,
-        comments,
-      ),
-    );
+  const documentTree = tree.map((node) =>
+    mapNode(
+      node,
+      numerosProposta,
+      numerosVigentes,
+      numerosSugeridos,
+      notes,
+      pendings,
+      suggestions,
+      comments,
+    ),
+  );
+  const chapters = documentTree.filter(
+    (node) => node.type === "capitulo" && node.alteracaoTipo !== "revogado",
+  );
 
   return (
     <ChapterWorkbench
       chapters={chapters}
+      documentTree={documentTree}
       canEdit={user.role === "admin" || user.role === "coordenador"}
       activeMeetingId={activeMeeting?.id ?? null}
+      initialChapterId={query.capitulo}
+      initialSelectedId={query.dispositivo}
     />
   );
 }

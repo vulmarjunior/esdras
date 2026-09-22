@@ -28,7 +28,7 @@ import {
 } from "@/components/provision/provision-forms";
 import type { Suggestion, Comment, PendingIssue } from "@/lib/types";
 
-type TabKey = "analise" | "colaboracao" | "pendencias" | "historico";
+export type TabKey = "analise" | "colaboracao" | "pendencias" | "historico";
 
 interface Version {
   version: number;
@@ -40,6 +40,7 @@ interface Version {
 }
 
 interface Props {
+  initialTab?: TabKey;
   id: string;
   prov: {
     type: string;
@@ -86,7 +87,7 @@ function NumBadge({ n, className }: { n: string; className?: string }) {
 
 export function DeviceTabs(props: Props) {
   const { id, prov, canEditWork, canManage, canFixExtraction } = props;
-  const [tab, setTab] = useState<TabKey>("analise");
+  const [tab, setTab] = useState<TabKey>(props.initialTab ?? "analise");
 
   const tabs: { key: TabKey; label: string; count?: number }[] = [
     { key: "analise", label: "Análise" },

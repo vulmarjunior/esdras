@@ -25,15 +25,20 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { StatusBadge, NovoBadge } from "@/components/status-badge";
 import { StructuralNav } from "@/components/structural-nav";
-import { DeviceTabs } from "@/components/provision/device-tabs";
+import { DeviceTabs, type TabKey } from "@/components/provision/device-tabs";
 import type { RelationDeviceOption } from "@/components/provision/provision-forms";
 import type { Suggestion, Comment, PendingIssue } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
 
-export default async function DevicePage({ params }: { params: Promise<{ id: string }> }) {
-  const { id } = await params;
-  const user = await getSessionUser();
+export default async function DevicePage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ id: string }>;
+  searchParams: Promise<{ aba?: string; origem?: string; capitulo?: string; dispositivo?: string }>;
+}) {
+  const [{ id }, query, user] = await Promise.all([params, searchParams, getSessionUser()]);
   if (!user) redirect("/login");
 
   const prov = await getProvision(id);
@@ -136,6 +141,14 @@ export default async function DevicePage({ params }: { params: Promise<{ id: str
   const votedCount = (await get<{ c: number }>("SELECT COUNT(DISTINCT user_id) c FROM votes WHERE provision_id = ?", [id]))?.c ?? 0;
 
   const directChildren = (await get<{ c: number }>("SELECT COUNT(*) c FROM provisions WHERE parent_id = ?", [id]))?.c ?? 0;
+  const allowedTabs: TabKey[] = ["analise", "colaboracao", "pendencias", "historico"];
+  const initialTab = allowedTabs.includes(query.aba as TabKey) ? (query.aba as TabKey) : "analise";
+  const workbenchHref = query.origem === "mesa"
+    ? `/mesa-trabalho?${new URLSearchParams({
+      ...(query.capitulo ? { capitulo: query.capitulo } : {}),
+      dispositivo: query.dispositivo || id,
+    }).toString()}`
+    : null;
 
   return (
     <div className="grid gap-6 lg:grid-cols-[260px_1fr]">
@@ -182,6 +195,11 @@ export default async function DevicePage({ params }: { params: Promise<{ id: str
 
       <div className="order-1 min-w-0 space-y-5 lg:order-2">
         <div>
+          {workbenchHref && (
+            <Link href={workbenchHref} className="mb-3 inline-flex items-center text-sm font-medium text-primary hover:underline">
+              ← Voltar à Mesa de Trabalho
+            </Link>
+          )}
           <nav className="mb-1 text-xs text-muted-foreground">
             {chain.map((c) => (
               <span key={c.id}>
@@ -269,6 +287,7 @@ export default async function DevicePage({ params }: { params: Promise<{ id: str
         )}
 
         <DeviceTabs
+          initialTab={initialTab}
           id={id}
           prov={{
             type: prov.type,
