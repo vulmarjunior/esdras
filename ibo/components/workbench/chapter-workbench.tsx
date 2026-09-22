@@ -201,6 +201,15 @@ export function ChapterWorkbench({
     dispositivo: selected?.id ?? "",
   }).toString();
 
+  function focusCreated(id: string, targetChapterId: string) {
+    setChapterId(targetChapterId);
+    setSelectedId(id);
+    router.push(`/mesa-trabalho?${new URLSearchParams({
+      capitulo: targetChapterId,
+      dispositivo: id,
+    }).toString()}`);
+  }
+
   function openMoveDialog() {
     if (!selected) return;
     setMoveParentId(selected.parentId);
@@ -265,6 +274,39 @@ export function ChapterWorkbench({
           </Button>
         </div>
       </header>
+
+      {canEdit && (
+        <section className="grid gap-3 sm:grid-cols-2" aria-label="Inclusão de estrutura">
+          <div className="rounded-xl border bg-card p-3">
+            <div className="mb-2">
+              <p className="text-sm font-medium">Estrutura geral</p>
+              <p className="text-xs text-muted-foreground">Acrescente um capítulo à proposta.</p>
+            </div>
+            <NewProvisionForm
+              parentId={null}
+              parentType="root"
+              canEdit={canEdit}
+              types={["capitulo"]}
+              label="Novo capítulo"
+              onCreated={(id) => focusCreated(id, id)}
+            />
+          </div>
+          <div className="rounded-xl border bg-card p-3">
+            <div className="mb-2">
+              <p className="text-sm font-medium">{label(chapter)}</p>
+              <p className="text-xs text-muted-foreground">Crie uma seção dentro do capítulo atualmente aberto.</p>
+            </div>
+            <NewProvisionForm
+              parentId={chapter.id}
+              parentType="capitulo"
+              canEdit={canEdit}
+              types={["secao"]}
+              label="Nova seção neste capítulo"
+              onCreated={(id) => focusCreated(id, chapter.id)}
+            />
+          </div>
+        </section>
+      )}
 
       <div className={cn(
         "grid min-h-[680px] overflow-hidden rounded-2xl border bg-card shadow-sm",
@@ -449,6 +491,7 @@ export function ChapterWorkbench({
                       canEdit={canEdit}
                       types={allowedChildren(selected.type)}
                       label="Adicionar dispositivo subordinado"
+                      onCreated={(id) => focusCreated(id, chapter.id)}
                     />
                   </div>
                 )}
