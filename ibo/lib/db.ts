@@ -1,6 +1,30 @@
 import { Pool, type PoolClient } from "pg";
+import { AsyncLocalStorage } from "node:async_hooks";
 
 const DB_URL = process.env.DATABASE_URL || "";
+
+/**
+ * O Vercel cria instâncias efêmeras e concorrentes. No Supabase, a porta 5432
+ * do shared pooler usa sessões dedicadas; a 6543 usa transaction pooling, que
+ * permite compartilhar conexões entre essas instâncias.
+ */
+function databaseUrlForRuntime(url: string): string {
+  try {
+    const parsed = new URL(url);
+    if (parsed.hostname.endsWith(".pooler.supabase.com") && parsed.port === "5432") {
+      parsed.port = "6543";
+      return parsed.toString();
+    }
+  } catch {
+    // A validação da URL continuará a cargo do pg, como antes.
+  }
+  return url;
+}
+
+function poolMax(): number {
+  const configured = Number(process.env.DB_POOL_MAX || "1");
+  return Number.isInteger(configured) && configured > 0 ? configured : 1;
+}
 
 /** SSL apenas fora de localhost (o Postgres de teste local não tem TLS). */
 function sslFor(url: string): false | { rejectUnauthorized: boolean } {
@@ -14,11 +38,17 @@ function sslFor(url: string): false | { rejectUnauthorized: boolean } {
 }
 
 export const pool = new Pool({
-  connectionString: DB_URL,
+  connectionString: databaseUrlForRuntime(DB_URL),
   ssl: sslFor(DB_URL),
+  // Cada instância serverless mantém no máximo uma conexão cliente.
+  max: poolMax(),
+  idleTimeoutMillis: 5_000,
+  connectionTimeoutMillis: 10_000,
+  allowExitOnIdle: true,
 });
 
-let txClient: PoolClient | null = null;
+// Mantém o cliente transacional apenas no contexto assíncrono da requisição.
+const transactionClient = new AsyncLocalStorage<PoolClient>();
 
 /**
  * Converte SQL do dialeto SQLite para Postgres:
@@ -67,7 +97,7 @@ function convert(sql: string): { sql: string; orIgnore: boolean } {
 
 async function exec(sql: string, params: unknown[] = []) {
   const { sql: converted } = convert(sql);
-  const client = txClient || pool;
+  const client = transactionClient.getStore() || pool;
   return client.query(converted, params);
 }
 
@@ -100,26 +130,24 @@ export async function run(
   if (/^\s*insert/i.test(converted)) {
     finalSql = converted.trimEnd() + " RETURNING id";
   }
-  const client = txClient || pool;
+  const client = transactionClient.getStore() || pool;
   const res = await client.query(finalSql, params);
   const id = res.rows?.[0]?.id;
   return { lastInsertRowid: id === undefined ? 0 : Number(id) };
 }
 
 export async function transaction<T>(fn: () => T | Promise<T>): Promise<T> {
-  if (txClient) return fn();
+  if (transactionClient.getStore()) return fn();
   const client = await pool.connect();
-  txClient = client;
   try {
     await client.query("BEGIN");
-    const result = await fn();
+    const result = await transactionClient.run(client, fn);
     await client.query("COMMIT");
     return result;
   } catch (e) {
     await client.query("ROLLBACK").catch(() => {});
     throw e;
   } finally {
-    txClient = null;
     client.release();
   }
 }

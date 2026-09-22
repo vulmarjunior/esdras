@@ -114,6 +114,16 @@ Os códigos internos legados foram mantidos. Evitar renomeá-los no banco sem pl
 
 Produção e previews do Vercel utilizam o único `DATABASE_URL` disponível no projeto. Portanto, qualquer gravação feita em um preview altera o mesmo banco utilizado pela produção. Navegação e leitura são seguras; testes fictícios de escrita em preview não são isolados.
 
+### Correção de esgotamento de conexões
+
+Após a primeira edição de título em produção, o salvamento respondeu, mas a recarga da Mesa falhou com `EMAXCONNSESSION` porque o shared pooler em modo de sessão atingiu o limite de 15 clientes. A correção foi aplicada em `lib/db.ts`:
+
+- URLs `*.pooler.supabase.com:5432` são usadas em `:6543` pela aplicação, ativando transaction pooling, adequado ao Vercel serverless;
+- o pool do `pg` usa uma conexão por instância (`DB_POOL_MAX`, padrão `1`), libera conexões ociosas após 5 segundos e limita a espera de conexão a 10 segundos;
+- o cliente de transação passou de variável global para `AsyncLocalStorage`, impedindo que requisições concorrentes compartilhem indevidamente a mesma transação.
+
+Não reverter a aplicação para session pooling no Vercel. Alterações futuras na conexão devem ser confrontadas com a documentação vigente do Supabase para ambientes serverless.
+
 Para testes completos sem afetar dados reais, usar o ambiente local documentado:
 
 - `node scripts/dev-db.mjs`
