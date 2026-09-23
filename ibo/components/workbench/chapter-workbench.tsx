@@ -752,7 +752,7 @@ export function ChapterWorkbench({
             <div className="flex items-center justify-between gap-3 border-b px-3 py-2.5">
               <h4 className="text-xs font-semibold uppercase tracking-wide">Prévia do impacto</h4>
               <span className="text-xs text-muted-foreground">
-                {moveEffects.length} {moveEffects.length === 1 ? "artigo afetado" : "artigos afetados"}
+                {moveEffects.length} {moveEffects.length === 1 ? "dispositivo afetado" : "dispositivos afetados"}
               </span>
             </div>
             <div className="max-h-56 overflow-y-auto p-2">
@@ -763,7 +763,7 @@ export function ChapterWorkbench({
                     return (
                       <li key={effect.id} className={cn("flex items-center justify-between gap-3 rounded-lg px-2.5 py-2 text-sm", effect.id === selected?.id && "bg-primary/10 font-medium")}>
                         <span className="min-w-0 truncate">
-                          {affected?.numeroVigente ? `Artigo vigente ${affected.numeroVigente}` : label(affected ?? { id: effect.id, type: "artigo", numero: effect.from })}
+                          {affected ? label(affected) : effect.id}{affected?.numeroVigente ? ` · vigente ${affected.numeroVigente}` : ""}
                           {effect.id === selected?.id && " · movimentado"}
                         </span>
                         <span className="shrink-0 tabular-nums text-muted-foreground">{effect.from} → <strong className="text-foreground">{effect.to}</strong></span>
@@ -773,7 +773,7 @@ export function ChapterWorkbench({
                 </ul>
               ) : (
                 <p className="px-2 py-4 text-center text-xs text-muted-foreground">
-                  Esta posição não altera a numeração dos artigos. A hierarquia ainda poderá ser alterada.
+                  Esta posição não altera a numeração dos dispositivos. A hierarquia ainda poderá ser alterada.
                 </p>
               )}
             </div>
