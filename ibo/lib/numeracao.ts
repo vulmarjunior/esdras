@@ -110,3 +110,33 @@ export function contarTipo(nodes: NoNumeravel[], tipo: string): number {
   visitar(nodes);
   return total;
 }
+
+/**
+ * Numeração local dos dispositivos subordinados, pela posição real na proposta.
+ * Capítulos e artigos continuam sujeitos ao fluxo próprio de renumeração.
+ * O Estatuto vigente não é alterado.
+ */
+export function numerarSubordinados(nodes: NoNumeravel[]): Map<string, string> {
+  const numeros = new Map<string, string>();
+  const alinea = (index: number): string => {
+    let n = index;
+    let value = "";
+    do {
+      value = String.fromCharCode(97 + n % 26) + value;
+      n = Math.floor(n / 26) - 1;
+    } while (n >= 0);
+    return value;
+  };
+  const visitar = (lista: NoNumeravel[]) => {
+    const ativos = lista.filter((node) => !ALTERACOES_REMOVIDAS.has(node.alteracao_tipo ?? ""));
+    const parags = ativos.filter((node) => node.type === "paragrafo");
+    const incisos = ativos.filter((node) => node.type === "inciso");
+    const alineas = ativos.filter((node) => node.type === "alinea");
+    parags.forEach((node, i) => numeros.set(node.id, parags.length === 1 ? "único" : `${i + 1}º`));
+    incisos.forEach((node, i) => numeros.set(node.id, toRoman(i + 1)));
+    alineas.forEach((node, i) => numeros.set(node.id, alinea(i)));
+    for (const node of ativos) visitar(node.children);
+  };
+  visitar(nodes);
+  return numeros;
+}
