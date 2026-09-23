@@ -36,4 +36,62 @@ describe("prévia de movimentação da Mesa de Trabalho", () => {
       { id: "art-2", from: "2º", to: "1º" },
     ]);
   });
+  it("renumera o segundo parágrafo ao movê-lo para a terceira posição", () => {
+    const tree: WorkbenchMoveNode[] = [{
+      id: "cap-2", type: "capitulo", children: [{
+        ...article(2), children: [
+          { id: "p1", type: "paragrafo", children: [] },
+          { id: "p2", type: "paragrafo", children: [] },
+          { id: "p3", type: "paragrafo", children: [] },
+        ],
+      }],
+    }];
+    const effects = simulateArticleMove(tree, "p2", "art-2", "p3");
+    expect(effects).toEqual([
+      { id: "p2", from: "2º", to: "3º" },
+      { id: "p3", from: "3º", to: "2º" },
+    ]);
+  });
+
+  it("renumera os parágrafos ao transferir um para outro artigo, incluindo parágrafo único", () => {
+    const tree: WorkbenchMoveNode[] = [{
+      id: "cap", type: "capitulo", children: [
+        { ...article(1), children: [
+          { id: "p1", type: "paragrafo", children: [] },
+          { id: "p2", type: "paragrafo", children: [] },
+        ] },
+        { ...article(2), children: [
+          { id: "p3", type: "paragrafo", children: [] },
+        ] },
+      ],
+    }];
+    const byId = new Map(simulateArticleMove(tree, "p2", "art-2", "p3").map((x) => [x.id, x]));
+    expect(byId.get("p1")).toEqual({ id: "p1", from: "1º", to: "único" });
+    expect(byId.get("p2")).toEqual({ id: "p2", from: "2º", to: "2º" });
+    expect(byId.get("p3")).toEqual({ id: "p3", from: "único", to: "1º" });
+  });
+
+  it("renumera incisos e alíneas dentro de cada pai", () => {
+    const tree: WorkbenchMoveNode[] = [{
+      id: "cap", type: "capitulo", children: [{
+        ...article(1), children: [
+          { id: "i1", type: "inciso", children: [
+            { id: "a1", type: "alinea", children: [] },
+            { id: "a2", type: "alinea", children: [] },
+            { id: "a3", type: "alinea", children: [] },
+          ] },
+          { id: "i2", type: "inciso", children: [] },
+        ],
+      }],
+    }];
+    expect(simulateArticleMove(tree, "i1", "art-1", "i2")).toEqual([
+      { id: "i1", from: "I", to: "II" },
+      { id: "i2", from: "II", to: "I" },
+    ]);
+    expect(simulateArticleMove(tree, "a2", "i1", "a3")).toEqual([
+      { id: "a2", from: "b", to: "c" },
+      { id: "a3", from: "c", to: "b" },
+    ]);
+  });
+
 });
