@@ -1,6 +1,7 @@
 import { get, all } from "./db";
 import type { DocumentVersion, Provision, ProvisionPlacement, ProvisionStatus, VersaoTrabalho } from "./types";
 import { ordenarIrmaos } from "./tree-order";
+import { numerarSubordinados } from "./numeracao";
 export { provisionLabel } from "./provision-label";
 
 export interface TreeNode extends Provision {
@@ -65,7 +66,16 @@ export async function getProposalTree(): Promise<TreeNode[]> {
       ON pp.provision_id = p.id AND pp.version_key = 'proposta'
     ORDER BY COALESCE(pp.ordem_pai, p.ordem_pai), p.ordem
   `);
-  return buildTree(rows);
+  const tree = buildTree(rows);
+  const subordinados = numerarSubordinados(tree);
+  const aplicar = (nodes: TreeNode[]) => {
+    for (const node of nodes) {
+      node.numero = subordinados.get(node.id) ?? node.numero;
+      aplicar(node.children);
+    }
+  };
+  aplicar(tree);
+  return tree;
 }
 
 /** Árvore histórica do Estatuto vigente, congelada no momento da importação. */
