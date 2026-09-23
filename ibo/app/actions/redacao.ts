@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { get, run, transaction, now } from "@/lib/db";
-import { requireRole } from "@/lib/auth";
+import { requireRole, requireUser } from "@/lib/auth";
 import { ALTERACAO_TYPE_LABELS } from "@/lib/labels";
 import { sanitizeHtml, htmlToText } from "@/lib/rich-text";
 import { rolesCom } from "@/lib/permissions";
@@ -154,4 +154,69 @@ export async function setAlteracaoTipo(provisionId: string, tipo: string): Promi
   revalidatePath("/revisao");
   await publishRealtime({ entity: "provision", id: provisionId, action: "classificacao" });
   return { ok: true, message: `Classificação: ${ALTERACAO_TYPE_LABELS[tipo] || tipo}.` };
+}
+
+export interface RedacaoVersion {
+  version: number;
+  content: string;
+  reason: string | null;
+  author_name: string | null;
+  created_at: string;
+}
+
+/** Consulta sob demanda; não expõe histórico a visitantes sem sessão. */
+export async function getRedacaoVersions(provisionId: string): Promise<RedacaoVersion[]> {
+  await requireUser();
+  const provision = await get<{ id: string }>("SELECT id FROM provisions WHERE id = ?", [provisionId]);
+  if (!provision) return [];
+  return all<RedacaoVersion>(
+    `SELECT v.version, v.content, v.reason, u.name AS author_name, v.created_at
+     FROM provision_versions v LEFT JOIN users u ON u.id = v.author_id
+     WHERE v.provision_id = ? ORDER BY v.version DESC`,
+    [provisionId],
+  );
+}
+
+/** Restaurar é uma nova edição auditável, nunca um rollback destrutivo. */
+export async function restoreRedacaoVersion(
+  provisionId: string,
+  sourceVersion: number,
+  expectedVersion: number,
+): Promise<ActionState> {
+  const user = await requireRole(...rolesCom("editar_redacao"));
+  if (!Number.isSafeInteger(sourceVersion) || sourceVersion < 1) return { error: "Versão inválida." };
+  const ts = now();
+  const result = await transaction(async (): Promise<ActionState> => {
+    const prov = await get<{ version: number; status: string }>(
+      "SELECT version, status FROM provisions WHERE id = ? FOR UPDATE", [provisionId],
+    );
+    if (!prov) return { error: "Dispositivo não encontrado." };
+    if (prov.status === "aprovado") return { error: "Reabra o dispositivo antes de restaurar uma versão." };
+    const conflito = avaliarConflito(expectedVersion, prov.version);
+    if (conflito.conflito) return { conflict: true, error: conflito.mensagem || "Conflito de versão. Recarregue o artigo." };
+    const previous = await get<{ content: string }>(
+      "SELECT content FROM provision_versions WHERE provision_id = ? AND version = ?",
+      [provisionId, sourceVersion],
+    );
+    if (!previous || !htmlToText(previous.content).trim()) return { error: "Versão anterior não encontrada ou vazia." };
+    const nextVersion = prov.version + 1;
+    const reason = `Restauração da versão ${sourceVersion}`;
+    await run(
+      "INSERT INTO provision_versions (provision_id, version, content, reason, author_id, created_at) VALUES (?, ?, ?, ?, ?, ?)",
+      [provisionId, nextVersion, previous.content, reason, user.id, ts],
+    );
+    await run(
+      "UPDATE provisions SET redacao_trabalho = ?, version = ?, updated_at = ?, updated_by = ?, status = CASE WHEN status = 'nao_iniciado' THEN 'em_analise' ELSE status END WHERE id = ?",
+      [previous.content, nextVersion, ts, user.id, provisionId],
+    );
+    await audit(user.id, user.name, reason, "provision", provisionId, `v${sourceVersion} → v${nextVersion}`);
+    return { ok: true, message: `Versão ${sourceVersion} restaurada como versão ${nextVersion}.` };
+  });
+  if (result.ok) {
+    revalidatePath(`/dispositivo/${provisionId}`);
+    revalidatePath("/mesa-trabalho");
+    revalidatePath("/consolidado");
+    await publishRealtime({ entity: "provision", id: provisionId, action: "redacao" });
+  }
+  return result;
 }
