@@ -1,6 +1,7 @@
 import { describe, it, expect } from "vitest";
 import {
   numerarArvore,
+  numerarSubordinados,
   formatarNumeroArtigo,
   numeracaoDesatualizada,
   aplicarNumeracao,
@@ -107,4 +108,39 @@ describe("numeração derivada", () => {
     expect(contarTipo(arvore, "artigo")).toBe(1);
     expect(contarTipo(arvore, "capitulo")).toBe(1);
   });
+  it("numera parágrafos pela posição e usa parágrafo único quando há apenas um", () => {
+    const arvore: NoNumeravel[] = [
+      no({ id: "art-1", type: "artigo", children: [
+        no({ id: "p3", type: "paragrafo", numero: "3º" }),
+        no({ id: "p2", type: "paragrafo", numero: "2º" }),
+        no({ id: "p1", type: "paragrafo", numero: "1º" }),
+      ] }),
+      no({ id: "art-2", type: "artigo", children: [no({ id: "unico", type: "paragrafo", numero: "1º" })] }),
+    ];
+    const numeros = numerarSubordinados(arvore);
+    expect(numeros.get("p3")).toBe("1º");
+    expect(numeros.get("p2")).toBe("2º");
+    expect(numeros.get("p1")).toBe("3º");
+    expect(numeros.get("unico")).toBe("único");
+  });
+
+  it("incisos e alíneas são sequenciais por pai e não incluem revogados", () => {
+    const arvore: NoNumeravel[] = [no({ id: "art", type: "artigo", children: [
+      no({ id: "i1", type: "inciso", children: [
+        no({ id: "a1", type: "alinea" }),
+        no({ id: "a-rev", type: "alinea", alteracao_tipo: "revogado" }),
+        no({ id: "a2", type: "alinea" }),
+      ] }),
+      no({ id: "i-rev", type: "inciso", alteracao_tipo: "revogado" }),
+      no({ id: "i2", type: "inciso" }),
+    ] })];
+    const numeros = numerarSubordinados(arvore);
+    expect(numeros.get("i1")).toBe("I");
+    expect(numeros.get("i2")).toBe("II");
+    expect(numeros.has("i-rev")).toBe(false);
+    expect(numeros.get("a1")).toBe("a");
+    expect(numeros.get("a2")).toBe("b");
+    expect(numeros.has("a-rev")).toBe(false);
+  });
+
 });
