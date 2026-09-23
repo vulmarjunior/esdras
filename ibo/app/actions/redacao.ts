@@ -1,7 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { get, run, transaction, now } from "@/lib/db";
+import { all, get, run, transaction, now } from "@/lib/db";
 import { requireRole, requireUser } from "@/lib/auth";
 import { ALTERACAO_TYPE_LABELS } from "@/lib/labels";
 import { sanitizeHtml, htmlToText } from "@/lib/rich-text";
