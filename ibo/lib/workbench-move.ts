@@ -1,4 +1,4 @@
-import { formatarNumeroArtigo, numerarSubordinados } from "./numeracao";
+import { formatarNumeroArtigo, numerarSubordinados, type NoNumeravel } from "./numeracao";
 
 export interface WorkbenchMoveNode {
   id: string;
@@ -52,7 +52,7 @@ function articleNumbers(nodes: WorkbenchMoveNode[]): Map<string, string> {
 
 /** Numeração local projetada para prévia de todos os dispositivos subordinados. */
 function subordinateNumbers(nodes: WorkbenchMoveNode[]): Map<string, string> {
-  const convert = (list: WorkbenchMoveNode[]) => list.map((node) => ({
+  const convert = (list: WorkbenchMoveNode[]): NoNumeravel[] => list.map((node) => ({
     id: node.id,
     type: node.type,
     alteracao_tipo: node.alteracaoTipo,
