@@ -2,6 +2,8 @@ export type { ActionState } from "./state";
 
 export {
   updateRedacao,
+  getRedacaoVersions,
+  restoreRedacaoVersion,
   updateJustificativa,
   updateHistoricalText,
   setStatus,
