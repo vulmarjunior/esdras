@@ -9,6 +9,7 @@ import { sanitizeHtml } from "@/lib/rich-text";
 import { inserirApos, validarMovimento, type NoEstrutural } from "@/lib/reorder-core";
 import { rolesCom } from "@/lib/permissions";
 import { publishRealtime } from "@/lib/realtime";
+import { numerarSubordinados } from "@/lib/numeracao";
 import type { ActionState } from "./state";
 
 async function audit(userId: number, user_name: string, action: string, entity: string, entity_id: string, detail?: string) {
@@ -296,6 +297,44 @@ export async function moveProvision(
   return { ok: true, message: `${provisionLabel(prov)} movido para ${paiNovo}.` };
 }
 
+/** Recalcula apenas os números subordinados no pai afetado, preservando o vigente. */
+async function atualizarNumerosSubordinados(
+  parentId: string | null,
+  userId: number,
+  ts: string,
+): Promise<void> {
+  const where = parentId === null ? "pp.parent_id IS NULL" : "pp.parent_id = ?";
+  const rows = await all<{
+    id: string; type: Provision["type"]; alteracao_tipo: string;
+    numero: string | null; status: string;
+  }>(`
+    SELECT pp.provision_id AS id, p.type, p.alteracao_tipo, pp.numero, p.status
+    FROM provision_placements pp JOIN provisions p ON p.id = pp.provision_id
+    WHERE pp.version_key = 'proposta' AND ${where}
+    ORDER BY pp.ordem_pai, p.ordem, p.id
+  `, parentId === null ? [] : [parentId]);
+  const novos = numerarSubordinados(rows.map((r) => ({ ...r, children: [] })));
+  for (const row of rows) {
+    const novo = novos.get(row.id);
+    if (!novo || novo === row.numero) continue;
+    await run(
+      "UPDATE provision_placements SET numero = ?, updated_at = ?, updated_by = ? WHERE version_key = 'proposta' AND provision_id = ?",
+      [novo, ts, userId, row.id],
+    );
+    if (row.status === "aprovado") {
+      const descricao = `Revisar referências: ${row.type} da proposta renumerado de ${row.numero || "(sem número)"} para ${novo}`;
+      const existente = await get<{ id: number }>(
+        "SELECT id FROM pending_issues WHERE provision_id = ? AND categoria = 'referencia_cruzada' AND descricao = ? AND status = 'aberta'",
+        [row.id, descricao],
+      );
+      if (!existente) await run(
+        "INSERT INTO pending_issues (provision_id, author_id, categoria, descricao, status) VALUES (?, ?, 'referencia_cruzada', ?, 'aberta')",
+        [row.id, userId, descricao],
+      );
+    }
+  }
+}
+
 /** Move um dispositivo apenas na estrutura da proposta, preservando a árvore vigente. */
 export async function moveProposalProvision(
   provisionId: string,
@@ -371,6 +410,8 @@ export async function moveProposalProvision(
         [ordem_pai, ts, user.id, id]
       );
     }
+    await atualizarNumerosSubordinados(mapa.get(provisionId)!.parent_id, user.id, ts);
+    if (!sameParent) await atualizarNumerosSubordinados(newParentId, user.id, ts);
     await audit(
       user.id,
       user.name,
