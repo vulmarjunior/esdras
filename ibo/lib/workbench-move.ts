@@ -1,4 +1,4 @@
-import { formatarNumeroArtigo } from "./numeracao";
+import { formatarNumeroArtigo, numerarSubordinados } from "./numeracao";
 
 export interface WorkbenchMoveNode {
   id: string;
@@ -48,6 +48,21 @@ function articleNumbers(nodes: WorkbenchMoveNode[]): Map<string, string> {
   };
   visit(nodes);
   return result;
+}
+
+/** Numeração local projetada para prévia de todos os dispositivos subordinados. */
+function subordinateNumbers(nodes: WorkbenchMoveNode[]): Map<string, string> {
+  const convert = (list: WorkbenchMoveNode[]) => list.map((node) => ({
+    id: node.id,
+    type: node.type,
+    alteracao_tipo: node.alteracaoTipo,
+    children: convert(node.children),
+  }));
+  return numerarSubordinados(convert(nodes));
+}
+
+function moveNumbers(nodes: WorkbenchMoveNode[]): Map<string, string> {
+  return new Map([...articleNumbers(nodes), ...subordinateNumbers(nodes)]);
 }
 
 function removeNode(
@@ -105,11 +120,11 @@ export function simulateArticleMove(
   newParentId: string | null,
   afterId: string | null,
 ): ArticleMoveEffect[] {
-  const before = articleNumbers(nodes);
+  const before = moveNumbers(nodes);
   const removed = removeNode(nodes, movedId);
   if (!removed.moved) return [];
   const simulated = insertNode(removed.nodes, newParentId, removed.moved, afterId);
-  const after = articleNumbers(simulated);
+  const after = moveNumbers(simulated);
   const effects: ArticleMoveEffect[] = [];
   for (const [id, from] of before) {
     const to = after.get(id);
