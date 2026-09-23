@@ -67,7 +67,7 @@ describe("prévia de movimentação da Mesa de Trabalho", () => {
     }];
     const byId = new Map(simulateArticleMove(tree, "p2", "art-2", "p3").map((x) => [x.id, x]));
     expect(byId.get("p1")).toEqual({ id: "p1", from: "1º", to: "único" });
-    expect(byId.get("p2")).toEqual({ id: "p2", from: "2º", to: "2º" });
+    expect(byId.has("p2")).toBe(false);
     expect(byId.get("p3")).toEqual({ id: "p3", from: "único", to: "1º" });
   });
 
