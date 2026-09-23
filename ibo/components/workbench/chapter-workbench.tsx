@@ -37,6 +37,7 @@ import { normalizarNumero } from "@/lib/numeracao";
 import { PROVISION_TYPE_LABELS } from "@/lib/labels";
 import { escolherSelecaoAposExclusao, simulateArticleMove } from "@/lib/workbench-move";
 import { ConfirmDialog, type ConfirmDialogState } from "@/components/confirm-dialog";
+import { WorkbenchVersionHistory } from "@/components/workbench/version-history";
 import type { Comment, PendingIssue, Suggestion } from "@/lib/types";
 import { RichTextContent } from "@/components/rich-text-content";
 import { NovoBadge, StatusBadge, StatusDot } from "@/components/status-badge";
@@ -835,6 +836,7 @@ export function ChapterWorkbench({
                   canEdit={canEdit}
                   hasWorkingText={Boolean(selected.redacaoTrabalho.trim())}
                 />
+                <WorkbenchVersionHistory key={`${selected.id}:${selected.version}`} provisionId={selected.id} version={selected.version} canEdit={canEdit && selected.status !== "aprovado"} open={editingOpen} />
                 <div className="flex justify-end">
                   <Link href={`/dispositivo/${selected.id}?aba=historico&${returnQuery}`} className={buttonVariants({ variant: "outline", size: "sm" })}>
                     Abrir tela clássica: histórico e referências
