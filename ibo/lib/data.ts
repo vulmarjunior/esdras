@@ -121,10 +121,16 @@ export async function getNumerosArmazenados(versao: VersaoTrabalho): Promise<Map
     const rows = await all<{ id: string; numero: string | null }>("SELECT id, numero FROM provisions");
     return new Map(rows.filter((r) => r.numero).map((r) => [r.id, r.numero!]));
   }
-  const rows = await all<{ provision_id: string; numero: string | null }>(
-    "SELECT provision_id, numero FROM provision_placements WHERE version_key = 'proposta'"
-  );
-  return new Map(rows.filter((r) => r.numero).map((r) => [r.provision_id, r.numero!]));
+  const tree = await getProposalTree();
+  const numeros = new Map<string, string>();
+  const visitar = (nodes: TreeNode[]) => {
+    for (const node of nodes) {
+      if (node.numero) numeros.set(node.id, node.numero);
+      visitar(node.children);
+    }
+  };
+  visitar(tree);
+  return numeros;
 }
 
 export async function getProvisionPlacement(
