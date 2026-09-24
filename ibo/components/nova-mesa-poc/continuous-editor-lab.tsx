@@ -289,8 +289,8 @@ export default function ContinuousEditorLab({canEdit}:{canEdit:boolean}){
     selectedLabel={selected?names[findNode(live.current.nodes,selected.id)?.type??"free"]:null}>
     <main className="min-w-0">
 
-    <p className="mb-2 font-semibold text-amber-700">Minuta em elaboração · Salve as alterações no servidor antes de sair desta página.</p>
-    <div className="mb-3 flex flex-wrap items-center gap-2 rounded border p-3 text-sm">
+
+    <div className="mb-2 flex flex-wrap items-center gap-2 rounded-lg border bg-card px-3 py-2 text-sm">
       <span role="status">{loading?"Carregando minuta…":loadingError?"Carregamento indisponível":conflict?"Conflito de versões":dirty?"Alterações não salvas":"Minuta sincronizada"}{!loading&&!loadingError?" · versão "+version:""}</span>
       <button type="button" disabled={!editable||!dirty||saving} className="rounded border px-3 py-2 disabled:opacity-50" onClick={()=>{void save();}}>{saving?"Salvando…":"Salvar no servidor"}</button>
       <button type="button" disabled={loading||dirty||saving} className="rounded border px-3 py-2 disabled:opacity-50" onClick={()=>{void load();}}>Recarregar</button>
@@ -325,12 +325,11 @@ export default function ContinuousEditorLab({canEdit}:{canEdit:boolean}){
         {(dirty||conflict)&&<p className="mt-2 text-xs text-amber-700">Para restaurar, resolva as alterações locais ou o conflito de versões. Exporte uma cópia JSON antes de descartar qualquer redação.</p>}
       </div>}
     </section>}
-    <h2 className="mb-2 text-lg font-semibold">Minuta · Editor de redação</h2>
-    <p className="mb-4 text-sm text-muted-foreground">Documento de seleção contínua, com regiões de edição independentes para proteger os limites normativos. O salvamento é manual e versionado. Confira o indicador de alterações pendentes antes de sair.</p>
-    <div className="mb-3 flex flex-wrap gap-2">
+
+    <div className="mb-2 flex flex-wrap gap-1.5">
       {(["bold","italic","underline"] as Mark[]).map(mark=>
         <button type="button" key={mark} title={mark} disabled={!editable} onMouseDown={event=>event.preventDefault()} onClick={()=>format(mark)}
-          className="rounded border px-3 py-2 text-sm">{mark==="bold"?<strong>B</strong>:mark==="italic"?<em>I</em>:<u>U</u>}</button>)}
+          className="rounded border px-2.5 py-1.5 text-sm">{mark==="bold"?<strong>B</strong>:mark==="italic"?<em>I</em>:<u>U</u>}</button>)}
       {(["left","center","right","justify"] as Alignment[]).map(alignment=>
         <button type="button" key={alignment} title={alignment} disabled={!editable} onMouseDown={event=>event.preventDefault()} onClick={()=>align(alignment)}
           className="rounded border px-3 py-2 text-sm">{alignment==="left"?"Esquerda":alignment==="center"?"Centro":alignment==="right"?"Direita":"Justificar"}</button>)}
@@ -339,7 +338,7 @@ export default function ContinuousEditorLab({canEdit}:{canEdit:boolean}){
       {(["chapter","section","subsection","article","paragraph","inciso","alinea","free"] as NodeType[]).map(type=>
         <button type="button" key={type} disabled={!editable} className="rounded border px-3 py-2 text-sm" onClick={()=>add(type)}>+ {names[type]}</button>)}
     </div>
-    <div className="mb-4 flex flex-wrap items-center gap-2">
+    <div className="mb-2 flex flex-wrap items-center gap-1.5">
       <button type="button" className="rounded border px-3 py-1" onClick={download}>Exportar cópia (JSON)</button>
       <span className="text-xs text-amber-700">{savedLocal?"Cópia JSON exportada; alterações posteriores requerem nova exportação.":dirty?"Alterações locais pendentes: salve antes de sair.":"Use Exportar JSON para criar uma cópia independente."}</span>
       <button type="button" className="rounded border px-3 py-1" disabled={!editable||!selected} onClick={()=>move(-1)}>↑ Mover</button>
@@ -359,7 +358,7 @@ export default function ContinuousEditorLab({canEdit}:{canEdit:boolean}){
         const row=rows.find(entry=>entry.node.id===id);if(row)choose({id:row.node.id,parentId:row.parentId});}}
       onMouseUp={()=>{const selection=window.getSelection();const id=bodyFrom(selection?.anchorNode??null)?.dataset.bodyId;
         const row=rows.find(entry=>entry.node.id===id);if(row)choose({id:row.node.id,parentId:row.parentId});}}
-      aria-label="Documento experimental editável" className="min-h-[450px] min-w-0 overflow-x-auto rounded-lg border bg-white p-4 text-zinc-900 shadow-sm outline-offset-2 sm:p-6">
+      aria-label="Minuta do Estatuto editável" className="min-h-[70vh] min-w-0 overflow-x-auto rounded-xl border bg-white px-5 py-7 text-zinc-900 shadow-sm outline-offset-2 sm:px-10 sm:py-9 lg:px-12">
       <h2 contentEditable={false} className="mb-6 select-none text-center text-xl font-bold">NOVO ESTATUTO · MINUTA EM ELABORAÇÃO</h2>
       {rows.length===0&&<p contentEditable={false} className="text-sm text-zinc-500">Insira um capítulo ou artigo para começar.</p>}
       {rows.map(row=><div key={row.node.id} data-node-id={row.node.id}
