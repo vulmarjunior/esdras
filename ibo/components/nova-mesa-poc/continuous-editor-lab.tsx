@@ -348,8 +348,18 @@ export default function ContinuousEditorLab({canEdit}:{canEdit:boolean}){
       <span className="text-xs text-muted-foreground">Autosave preserva o rascunho; «Salvar versão» cria um marco no histórico.</span>
       {saveError&&<p role="alert" className="w-full text-red-700">{saveError}</p>}
       {!canEdit&&<p className="w-full text-amber-700">Acesso somente leitura: seu perfil não pode alterar a nova minuta.</p>}
+      <div className="w-full">
+    <div role="toolbar" aria-label="Formatação do dispositivo ativo" className="flex flex-wrap items-center gap-1.5 border-t pt-2">
+      {(["bold","italic","underline"] as Mark[]).map(mark=>
+        <button type="button" key={mark} title={mark} disabled={!editable} onMouseDown={event=>event.preventDefault()} onClick={()=>format(mark)}
+          className="rounded border px-2.5 py-1.5 text-sm">{mark==="bold"?<strong>B</strong>:mark==="italic"?<em>I</em>:<u>U</u>}</button>)}
+      {(["left","center","right","justify"] as Alignment[]).map(alignment=>
+        <button type="button" key={alignment} title={alignment} disabled={!editable} onMouseDown={event=>event.preventDefault()} onClick={()=>align(alignment)}
+          className="rounded border px-3 py-2 text-sm">{alignment==="left"?"Esquerda":alignment==="center"?"Centro":alignment==="right"?"Direita":"Justificar"}</button>)}
     </div>
-    {insertOpen&&<div className="sticky top-[62px] z-30 mb-2 flex flex-wrap gap-2 rounded-lg border bg-background p-2 shadow-lg" role="group" aria-label="Inserir dispositivo"><span className="w-full text-xs text-muted-foreground">Sugestão estrutural: {names[suggested]}. Escolha o tipo; a redação continua no novo dispositivo.</span>{contextualTypes.map(type=><button type="button" key={type} disabled={!editable} className={"rounded border px-3 py-2 text-sm "+(type===suggested?"border-blue-500 bg-blue-50 font-semibold text-blue-900":"")} onClick={()=>add(type)}>+ {names[type]}{type===suggested?" · sugerido":""}</button>)}</div>}
+      </div>
+    </div>
+    {insertOpen&&<div className="sticky top-[130px] z-30 mb-2 flex flex-wrap gap-2 rounded-lg border bg-background p-2 shadow-lg" role="group" aria-label="Inserir dispositivo"><span className="w-full text-xs text-muted-foreground">Sugestão estrutural: {names[suggested]}. Escolha o tipo; a redação continua no novo dispositivo.</span>{contextualTypes.map(type=><button type="button" key={type} disabled={!editable} className={"rounded border px-3 py-2 text-sm "+(type===suggested?"border-blue-500 bg-blue-50 font-semibold text-blue-900":"")} onClick={()=>add(type)}>+ {names[type]}{type===suggested?" · sugerido":""}</button>)}</div>}
     {historyOpen&&<section aria-label="Histórico de versões da nova minuta" className="mb-4 min-w-0 rounded-lg border p-4">
       <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
         <h2 className="font-semibold">Histórico da minuta · Somente leitura</h2>
@@ -377,14 +387,6 @@ export default function ContinuousEditorLab({canEdit}:{canEdit:boolean}){
       </div>}
     </section>}
 
-    <div className="mb-2 flex flex-wrap gap-1.5">
-      {(["bold","italic","underline"] as Mark[]).map(mark=>
-        <button type="button" key={mark} title={mark} disabled={!editable} onMouseDown={event=>event.preventDefault()} onClick={()=>format(mark)}
-          className="rounded border px-2.5 py-1.5 text-sm">{mark==="bold"?<strong>B</strong>:mark==="italic"?<em>I</em>:<u>U</u>}</button>)}
-      {(["left","center","right","justify"] as Alignment[]).map(alignment=>
-        <button type="button" key={alignment} title={alignment} disabled={!editable} onMouseDown={event=>event.preventDefault()} onClick={()=>align(alignment)}
-          className="rounded border px-3 py-2 text-sm">{alignment==="left"?"Esquerda":alignment==="center"?"Centro":alignment==="right"?"Direita":"Justificar"}</button>)}
-    </div>
     <div className="mb-3 flex flex-wrap gap-2">
       {(["chapter","section","subsection","article","paragraph","inciso","alinea","free"] as NodeType[]).map(type=>
         <button type="button" key={type} disabled={!editable} className="rounded border px-3 py-2 text-sm" onClick={()=>add(type)}>+ {names[type]}</button>)}
