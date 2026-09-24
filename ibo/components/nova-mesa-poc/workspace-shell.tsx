@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { listConsultationDocuments, readConsultationDocument, type ConsultationItem } from "@/app/actions/nova-mesa-consulta";
+import { ConsultaForm } from "@/components/documentos/consulta-form";
 
 type OutlineEntry = { id:string; label:string; title:string; depth:number };
 type Reference = { name:string; kind:"text"|"pdf"; text?:string; url?:string };
@@ -12,6 +13,7 @@ export default function WorkspaceShell({children,outline,onNavigate,selectedLabe
   const [outlineOpen,setOutlineOpen]=useState(true);
   const [supportOpen,setSupportOpen]=useState(true);
   const [consultOpen,setConsultOpen]=useState(false);
+  const [aiOpen,setAiOpen]=useState(false);
   const [reference,setReference]=useState<Reference|null>(null);
   const [query,setQuery]=useState("");
   const [sideBySide,setSideBySide]=useState(false);
@@ -21,11 +23,13 @@ export default function WorkspaceShell({children,outline,onNavigate,selectedLabe
   const [openingId,setOpeningId]=useState<string|null>(null);
   const fileRef=useRef<HTMLInputElement>(null);
   const dialogRef=useRef<HTMLDialogElement>(null);
+  const aiDialogRef=useRef<HTMLDialogElement>(null);
   const previousFocus=useRef<HTMLElement|null>(null);
   useEffect(()=>()=>{if(reference?.url)URL.revokeObjectURL(reference.url);},[reference?.url]);
   useEffect(()=>{if(!consultOpen)return;previousFocus.current=document.activeElement as HTMLElement|null;dialogRef.current?.showModal();
     return()=>{dialogRef.current?.close();previousFocus.current?.focus();};
   },[consultOpen]);
+  useEffect(()=>{if(!aiOpen)return;aiDialogRef.current?.showModal();return()=>aiDialogRef.current?.close();},[aiOpen]);
   const loadCatalog=async()=>{
     setCatalogLoading(true);setCatalogError("");
     try{setCatalog(await listConsultationDocuments());}
@@ -65,6 +69,7 @@ export default function WorkspaceShell({children,outline,onNavigate,selectedLabe
         <button type="button" className="rounded border px-3 py-2 text-sm" aria-expanded={outlineOpen} onClick={()=>setOutlineOpen(v=>!v)}>{outlineOpen?"Ocultar sumário":"Mostrar sumário"}</button>
         <button type="button" className="rounded border px-3 py-2 text-sm" aria-expanded={supportOpen} onClick={()=>setSupportOpen(v=>!v)}>{supportOpen?"Ocultar apoio":"Mostrar apoio"}</button>
         <button type="button" className="rounded border px-3 py-2 text-sm" onClick={()=>fileRef.current?.click()}>Consultar documento</button>
+        <button type="button" className="rounded border px-3 py-2 text-sm" onClick={()=>{setConsultOpen(false);setAiOpen(true);}}>Consultar com IA · Groq</button>
         <input ref={fileRef} type="file" accept=".txt,.md,.pdf,text/plain,application/pdf" className="hidden" aria-label="Selecionar documento local de consulta"
           onChange={event=>{void openFile(event.target.files?.[0]);event.target.value="";}}/>
       </div>
@@ -93,6 +98,7 @@ export default function WorkspaceShell({children,outline,onNavigate,selectedLabe
         </section>
         <section className="min-w-0 space-y-2 pt-4">
           <h3 className="text-sm font-medium">Documentos de consulta</h3>
+          <button type="button" className="w-full rounded border px-3 py-2 text-sm" onClick={()=>{setConsultOpen(false);setAiOpen(true);}}>Perguntar à IA · Groq</button>
           <button type="button" disabled={catalogLoading} className="w-full rounded border px-3 py-2 text-sm disabled:opacity-60"
             onClick={()=>{void loadCatalog();}}>{catalogLoading?"Carregando biblioteca…":"Documentos do Esdras"}</button>
           {catalogError&&<p role="alert" className="break-words text-xs text-red-700">{catalogError}</p>}
@@ -112,6 +118,16 @@ export default function WorkspaceShell({children,outline,onNavigate,selectedLabe
         </section>
       </aside>}
     </div>
+    {aiOpen&&<dialog ref={aiDialogRef} onClose={()=>setAiOpen(false)} aria-label="Consulta doutrinária com IA Groq"
+      className="fixed inset-0 m-auto h-[min(92vh,960px)] w-[min(94vw,1050px)] max-w-none overflow-y-auto rounded-xl border bg-background p-3 text-foreground shadow-2xl backdrop:bg-black/60">
+      <div className="mb-3 flex items-center justify-between gap-3">
+        <h2 className="text-lg font-semibold">Consulta com IA · Groq</h2>
+        <button type="button" className="rounded border px-3 py-2 text-sm" onClick={()=>setAiOpen(false)}>Fechar</button>
+      </div>
+      <p className="mb-3 text-sm text-muted-foreground">Consulta à biblioteca doutrinária e de literatura já utilizada pelo Esdras. A fonte é escolhida abaixo. Esta ferramenta não consulta automaticamente o arquivo local, o estatuto aberto ou a seleção do editor; confira as citações diretamente nos documentos originais.</p>
+      <ConsultaForm titulo="Perguntar aos documentos de fé e à biblioteca" fontePadrao="documentos" comFonte
+        placeholder="Ex.: o que os documentos de fé dizem sobre a membresia e a disciplina eclesiástica?"/>
+    </dialog>}
     {consultOpen&&<dialog ref={dialogRef} onClose={()=>setConsultOpen(false)} aria-label="Leitura ampliada de documento de consulta"
       className="fixed inset-0 m-auto h-[min(92vh,980px)] w-[min(94vw,1150px)] max-w-none overflow-hidden rounded-xl border bg-background p-3 text-foreground shadow-2xl backdrop:bg-black/60">
       <div className="flex h-full min-h-0 flex-col gap-2">
