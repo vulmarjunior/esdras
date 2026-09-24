@@ -87,11 +87,11 @@ export default function ContinuousEditorLab(){
     try{commit(moveNode(live.current,current.id,current.parentId,after),current.id);}
     catch(error){setNotice(error instanceof Error?error.message:"Movimento inválido.");}
   };
-  const onInput=(event:React.FormEvent<HTMLDivElement>)=>{
+  const onInput=(event:React.FormEvent<HTMLSpanElement>)=>{
     const body=bodyFrom(event.target as Node);
     const id=body?.dataset.bodyId;
     if(!id)return;
-    live.current=changeText(live.current,id,body?.textContent??"");
+    live.current=changeText(live.current,id,body?.innerText??"");
     setNotice("Redação em memória (não salva no servidor).");
   };
   const onBeforeInput=(event:InputEvent)=>{
@@ -121,12 +121,12 @@ export default function ContinuousEditorLab(){
     range.deleteContents();const text=document.createTextNode(value);range.insertNode(text);
     range.setStartAfter(text);range.collapse(true);selection.removeAllRanges();selection.addRange(range);
     const body=bodyFrom(text);const id=body?.dataset.bodyId;
-    if(id)live.current=changeText(live.current,id,body?.textContent??"");
+    if(id)live.current=changeText(live.current,id,body?.innerText??"");
   };
   return <main className="mx-auto max-w-5xl p-5">
     <p className="mb-2 font-semibold text-amber-700">Laboratório isolado — conteúdo não persistente; não usar para o estatuto real.</p>
     <h1 className="mb-2 text-2xl font-bold">Nova Mesa · Editor documental experimental</h1>
-    <p className="mb-4 text-sm text-muted-foreground">Área editável única: seleção e cópia entre dispositivos; alterações estruturais pelos comandos explícitos. Sem colaboração, servidor ou histórico permanente.</p>
+    <p className="mb-4 text-sm text-muted-foreground">Documento de seleção contínua, com regiões de edição independentes para proteger os limites normativos. Sem colaboração, servidor ou histórico permanente.</p>
     <div className="mb-3 flex flex-wrap gap-2">
       {(["chapter","article","paragraph","inciso","alinea","free"] as NodeType[]).map(type=>
         <button type="button" key={type} className="rounded border px-3 py-2 text-sm" onClick={()=>add(type)}>+ {names[type]}</button>)}
@@ -144,8 +144,7 @@ export default function ContinuousEditorLab(){
       <span className="text-sm">{selected?names[findNode(live.current.nodes,selected.id)?.type??"free"]+" selecionado":""}</span>
     </div>
     {notice&&<p role="status" className="mb-3 text-sm text-amber-700">{notice}</p>}
-    <div ref={root} contentEditable suppressContentEditableWarning
-      onInput={onInput} onBeforeInput={event=>onBeforeInput(event.nativeEvent as InputEvent)} onPaste={onPaste}
+    <div ref={root}
       onFocus={event=>{const id=bodyFrom(event.target as Node)?.dataset.bodyId;
         const row=rows.find(entry=>entry.node.id===id);if(row)choose({id:row.node.id,parentId:row.parentId});}}
       onMouseUp={()=>{const selection=window.getSelection();const id=bodyFrom(selection?.anchorNode??null)?.dataset.bodyId;
@@ -157,11 +156,11 @@ export default function ContinuousEditorLab(){
         className={"my-3 rounded border-l-2 pl-3 "+(selected?.id===row.node.id?"border-blue-500":"border-transparent")}
         style={{marginLeft:Math.min(row.depth,4)*16}}>
         <span contentEditable={false} className="select-none font-semibold">{labelFor(row.node,row.siblings,row.articleNumber,row.chapterNumber)}</span>
-        <span data-body-id={row.node.id} data-poc-body="true" className={"inline-block min-w-[55%] whitespace-pre-wrap align-top outline-offset-2 "+(row.node.type==="chapter"?"font-bold":"")}
+        <span contentEditable suppressContentEditableWarning onInput={onInput} onBeforeInput={event=>onBeforeInput(event.nativeEvent as InputEvent)} onPaste={onPaste} data-body-id={row.node.id} data-poc-body="true" className={"inline-block min-w-[55%] whitespace-pre-wrap align-top outline-offset-2 "+(row.node.type==="chapter"?"font-bold":"")}
           data-placeholder={row.node.type==="free"?"Texto livre reservado":"Redação pendente"}>{row.node.text}</span>
         {row.node.type==="free"&&<span contentEditable={false} className="ml-2 select-none text-xs text-amber-700">Provisório · reservado</span>}
       </div>)}
     </div>
-    <p className="mt-3 text-xs text-muted-foreground">Prova de conceito não validada em navegadores: sem persistência, histórico de texto, edição rica, tratamento completo de seleção/IME ou proteção contra todas as mutações nativas. Não usar com dados reais.</p>
+    <p className="mt-3 text-xs text-muted-foreground">Prova de conceito não validada em navegadores: edição limitada a uma região por vez, sem persistência, histórico de texto, edição rica ou tratamento completo de seleção e IME. Não usar com dados reais.</p>
   </main>;
 }
