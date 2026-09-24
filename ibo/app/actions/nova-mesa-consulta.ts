@@ -5,6 +5,7 @@ import { getProposalTree, getVigenteTree, type TreeNode } from "@/lib/data";
 import { provisionLabel } from "@/lib/provision-label";
 import { CONFISSOES } from "@/lib/confissoes";
 import { all } from "@/lib/db";
+import { htmlToText, isHtml } from "@/lib/rich-text";
 
 export type ConsultationItem = { id:string; title:string; group:"Estatutos"|"Documentos doutrinários"|"Biblioteca de literatura" };
 export type ConsultationResult = { title:string; text:string };
@@ -28,10 +29,10 @@ function asReadableText(nodes:TreeNode[],version:"current"|"proposal"):string {
       const label=provisionLabel(node);
       const text=version==="current"?node.texto_vigente:
         node.redacao_trabalho||node.proposta_inicial||node.redacao_consolidada||"";
-      // Referência somente leitura. HTML legado permanece texto literal, sem execução.
+      // Referência somente leitura. HTML legado é convertido em texto sem execução.
       const heading=[label,node.titulo].filter(Boolean).join(" — ");
       lines.push("  ".repeat(Math.min(depth,5))+heading);
-      if(text.trim())lines.push(text.trim(),"");
+      if(text.trim())lines.push((isHtml(text)?htmlToText(text):text).trim(),"");
       visit(node.children,depth+1);
     }
   };
