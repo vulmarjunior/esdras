@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
-import {loadNovaMesaDraft,saveNovaMesaDraft,listNovaMesaVersions,readNovaMesaVersion,restoreNovaMesaVersion} from "@/app/actions/nova-mesa-draft";
+import {loadNovaMesaDraft,saveNovaMesaDraft,checkpointNovaMesaVersion,listNovaMesaVersions,readNovaMesaVersion,restoreNovaMesaVersion} from "@/app/actions/nova-mesa-draft";
 import {
   canContain, Draft, DraftNode, findNode, formatSelection, insertAfter,
   labelFor, moveNode, newNode, NodeType, removeNode, setAlignment, setRichText,
@@ -73,6 +73,8 @@ export default function ContinuousEditorLab({canEdit}:{canEdit:boolean}){
   const [loading,setLoading]=useState(true);
   const [loadingError,setLoadingError]=useState("");
   const [saving,setSaving]=useState(false);
+  const [marking,setMarking]=useState(false);
+  const markingRef=useRef(false);
   const [saveError,setSaveError]=useState("");
   const [conflict,setConflict]=useState(false);
   const [dirty,setDirty]=useState(false);
@@ -89,7 +91,7 @@ export default function ContinuousEditorLab({canEdit}:{canEdit:boolean}){
   const autoTimer=useRef<ReturnType<typeof setTimeout>|null>(null);
   const saveRef=useRef<()=>Promise<void>>(async()=>{});
   const autoEnabled=useRef(false);
-  const editable=canEdit&&!loading&&!loadingError&&!conflict&&!saving;
+  const editable=canEdit&&!loading&&!loadingError&&!conflict&&!saving&&!marking;
   const markDirty=()=>{editCount.current++;dirtyRef.current=true;setDirty(true);setSaveError("");
     if(autoTimer.current)clearTimeout(autoTimer.current);
     if(autoEnabled.current)autoTimer.current=setTimeout(()=>{autoTimer.current=null;void saveRef.current();},2500);
@@ -111,8 +113,8 @@ export default function ContinuousEditorLab({canEdit}:{canEdit:boolean}){
     window.addEventListener("beforeunload",warn);
     return()=>window.removeEventListener("beforeunload",warn);
   },[]);
-  const save=async()=>{
-    if(!canEdit||loading||loadingError||conflict||savingRef.current||!dirtyRef.current)return;
+  const save=async():Promise<boolean>=>{
+    if(!canEdit||loading||loadingError||conflict||savingRef.current||!dirtyRef.current)return false;
     savingRef.current=true;setSaving(true);setSaveError("");
     const snapshot=live.current,sequence=editCount.current;
     try{
@@ -120,16 +122,35 @@ export default function ContinuousEditorLab({canEdit}:{canEdit:boolean}){
       if(result.ok){
         versionRef.current=result.version;setVersion(result.version);
         if(sequence!==editCount.current&&autoEnabled.current){if(autoTimer.current)clearTimeout(autoTimer.current);autoTimer.current=setTimeout(()=>{autoTimer.current=null;void saveRef.current();},2500);}
-        if(sequence===editCount.current){dirtyRef.current=false;setDirty(false);setNotice("Versão "+result.version+" salva no servidor.");}
+        if(sequence===editCount.current){dirtyRef.current=false;setDirty(false);setNotice("Redação salva no servidor · revisão "+result.version+".");return true;}
         else setNotice("Uma versão foi salva, mas há alterações posteriores pendentes.");
       }else if("conflict" in result){
         setConflict(true);setSaveError("Conflito: outra sessão salvou alterações. Exporte uma cópia JSON antes de recarregar. Nenhum texto foi sobrescrito.");
       }else setSaveError(result.error);
     }catch{setSaveError("Falha ao salvar. Preserve uma cópia JSON e tente novamente.");}
     finally{savingRef.current=false;setSaving(false);}
-
+    return false;
   };
   saveRef.current=save;
+  const saveVersion=async()=>{
+    if(!canEdit||loading||loadingError||conflict||savingRef.current||markingRef.current)return;
+    markingRef.current=true;setMarking(true);setSaveError("");
+    if(autoTimer.current){clearTimeout(autoTimer.current);autoTimer.current=null;}
+    try{
+      if(dirtyRef.current&&!await save()){
+        setSaveError("Não foi possível registrar o marco. Confira o salvamento da redação e tente novamente.");
+        return;
+      }
+      const result=await checkpointNovaMesaVersion(versionRef.current);
+      if(result.ok){
+        setNotice("Marco histórico registrado · revisão "+result.version+".");
+        if(historyOpen)setVersions(await listNovaMesaVersions());
+      }else if("conflict" in result){
+        setConflict(true);setSaveError("Outra sessão alterou a minuta. O marco não foi criado; preserve sua cópia antes de recarregar.");
+      }else setSaveError(result.error);
+    }catch{setSaveError("Não foi possível registrar a versão. A redação salva permanece preservada.");}
+    finally{markingRef.current=false;setMarking(false);}
+  };
   const showHistory=async()=>{
     setHistoryOpen(true);setHistoryLoading(true);setHistoryError("");setPreview(null);
     try{setVersions(await listNovaMesaVersions());}
@@ -316,13 +337,15 @@ export default function ContinuousEditorLab({canEdit}:{canEdit:boolean}){
 
 
     <div className="sticky top-0 z-30 mb-2 md:top-12 flex flex-wrap items-center gap-2 rounded-lg border bg-background/95 px-3 py-2 text-sm shadow-md backdrop-blur">
-      <span role="status">{loading?"Carregando minuta…":loadingError?"Carregamento indisponível":conflict?"Conflito de versões":saving?"Salvando automaticamente…":dirty?"Alterações pendentes · autosave em 2,5 s":"Minuta salva"}{!loading&&!loadingError?" · versão "+version:""}</span>
-      <button type="button" disabled={!canEdit||loading||!!loadingError||conflict||saving} className="rounded border border-primary/40 bg-primary/10 px-3 py-2 font-semibold text-foreground disabled:opacity-50" onClick={()=>{if(dirtyRef.current){if(autoTimer.current){clearTimeout(autoTimer.current);autoTimer.current=null;}void save();}else setNotice("Todas as alterações já estão salvas no servidor · versão "+versionRef.current+".");}}>{saving?"Salvando…":"Salvar agora"}</button>
+      <span role="status">{loading?"Carregando minuta…":loadingError?"Carregamento indisponível":conflict?"Conflito de versões":saving?"Salvando…":marking?"Registrando marco histórico…":dirty?"Alterações pendentes · autosave em 2,5 s":"Minuta salva"}{!loading&&!loadingError?" · versão "+version:""}</span>
+      <button type="button" disabled={!canEdit||loading||!!loadingError||conflict||saving||marking} className="rounded border border-primary/40 bg-primary/10 px-3 py-2 font-semibold text-foreground disabled:opacity-50" onClick={()=>{if(dirtyRef.current){if(autoTimer.current){clearTimeout(autoTimer.current);autoTimer.current=null;}void save();}else setNotice("Todas as alterações já estão salvas no servidor · versão "+versionRef.current+".");}}>{saving?"Salvando…":"Salvar agora"}</button>
+      <button type="button" disabled={!canEdit||loading||!!loadingError||conflict||saving||marking} className="rounded border px-3 py-2 font-semibold disabled:opacity-50" onClick={()=>{void saveVersion();}}>{marking?"Registrando versão…":"Salvar versão"}</button>
       <button type="button" disabled={!editable} aria-expanded={insertOpen} className="rounded border border-blue-500 bg-blue-50 px-3 py-2 font-semibold text-blue-900 disabled:opacity-50" onClick={()=>setInsertOpen(v=>!v)}>+ Inserir dispositivo</button>
       <span className="rounded bg-muted px-2 py-1 font-medium">{activeRow?labelFor(activeRow.node,activeRow.siblings,activeRow.articleNumber,activeRow.chapterNumber).trim()+" · "+names[activeRow.node.type]+" ativo":"Nenhum dispositivo ativo"}</span>
-      <button type="button" disabled={loading||dirty||saving} className="rounded border px-3 py-2 disabled:opacity-50" onClick={()=>{void load();}}>Recarregar</button>
+      <button type="button" disabled={loading||dirty||saving||marking} className="rounded border px-3 py-2 disabled:opacity-50" onClick={()=>{void load();}}>Recarregar</button>
       <button type="button" disabled={loading||!!loadingError} className="rounded border px-3 py-2 disabled:opacity-50" onClick={()=>{void showHistory();}}>Histórico de versões</button>
       {loadingError&&<p role="alert" className="w-full text-red-700">{loadingError}</p>}
+      <span className="text-xs text-muted-foreground">Autosave preserva o rascunho; «Salvar versão» cria um marco no histórico.</span>
       {saveError&&<p role="alert" className="w-full text-red-700">{saveError}</p>}
       {!canEdit&&<p className="w-full text-amber-700">Acesso somente leitura: seu perfil não pode alterar a nova minuta.</p>}
     </div>
@@ -348,7 +371,7 @@ export default function ContinuousEditorLab({canEdit}:{canEdit:boolean}){
           </p>)}
         </div>
         <button type="button" className="mt-3 rounded border px-3 py-2 text-sm disabled:opacity-50"
-          disabled={!canEdit||dirty||saving||historyLoading||conflict}
+          disabled={!canEdit||dirty||saving||marking||historyLoading||conflict}
           onClick={()=>{void restore();}}>Restaurar como nova versão</button>
         {(dirty||conflict)&&<p className="mt-2 text-xs text-amber-700">Para restaurar, resolva as alterações locais ou o conflito de versões. Exporte uma cópia JSON antes de descartar qualquer redação.</p>}
       </div>}
