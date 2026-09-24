@@ -42,4 +42,25 @@ describe("modelo experimental da minuta independente",()=>{
   expect(draft.nodes[0].children[0].children.map(n=>n.type)).toEqual(["paragraph","free"]);
   expect(labelFor(draft.nodes[0].children[0].children[0],draft.nodes[0].children[0].children,1,1)).toBe("Parágrafo único. ");
  });
+ it("numera seções por capítulo e subseções por seção, sem reiniciar artigos",()=>{
+  const first=node("c1","chapter",[
+    node("s1","section",[node("ss1","subsection",[node("art1","article")]),node("ss2","subsection",[node("art2","article")])]),
+    node("s2","section",[node("art3","article")])
+  ]);
+  const second=node("c2","chapter",[node("s3","section",[node("ss3","subsection",[node("art4","article")])])]);
+  const draft:Draft={id:"nova",nodes:[first,second]};
+  expect(labelFor(first.children[0],first.children,0,1)).toBe("Seção I");
+  expect(labelFor(first.children[1],first.children,0,1)).toBe("Seção II");
+  expect(labelFor(first.children[0].children[0],first.children[0].children,0,1)).toBe("Subseção I");
+  expect(labelFor(first.children[0].children[1],first.children[0].children,0,1)).toBe("Subseção II");
+  expect(labelFor(second.children[0],second.children,0,2)).toBe("Seção I");
+  expect(findNode(draft.nodes,"art4")?.id).toBe("art4");
+ });
+ it("admite artigos em seção e subseção, mas não subseção diretamente no capítulo",()=>{
+  const draft=insertAfter(base(),"cap",null,node("sec","section"));
+  const withSub=insertAfter(draft,"sec",null,node("sub","subsection"));
+  expect(insertAfter(withSub,"sub",null,node("art","article")).nodes[0].children[0].children[0].children[0].id).toBe("art");
+  expect(()=>insertAfter(draft,"cap",null,node("invalid","subsection"))).toThrow("Hierarquia");
+  expect(()=>moveNode(withSub,"sub","cap",null)).toThrow("Hierarquia");
+ });
 });
