@@ -64,9 +64,12 @@ const NAV_TEMAS: NavTema[] = [
     label: "Reforma",
     icon: Layers,
     itens: [
-      { href: "/mesa-trabalho", label: "Mesa de Trabalho", icon: PanelsTopLeft, editorOnly: true },
-      { href: "/comparativo", label: "Acompanhamento", icon: ArrowLeftRight },
-      { href: "/consolidado", label: "Proposta em construção", icon: ScrollText },
+      { href: "/mesa-trabalho", label: "Nova Mesa · Redação", icon: PanelsTopLeft, editorOnly: true },
+      { href: "/mesa-trabalho/visualizar", label: "Visualizar nova minuta", icon: ScrollText },
+      { href: "/comparativo", label: "Acompanhamento · Legado", icon: ArrowLeftRight, sectionLabel: "Ambiente anterior · Legado" },
+      { href: "/legado/mesa-atual", label: "Mesa anterior", icon: PanelsTopLeft, editorOnly: true },
+      { href: "/", label: "Mesa clássica · Painel histórico", icon: History },
+      { href: "/consolidado", label: "Proposta anterior em construção", icon: ScrollText },
       { href: "/pendentes", label: "Pendências", icon: CircleAlert, editorOnly: true, sectionLabel: "Ferramentas da reforma" },
       { href: "/conferencia", label: "Conferência", icon: ClipboardCheck, editorOnly: true },
       { href: "/renumeracao", label: "Renumeração", icon: ListOrdered, editorOnly: true },
@@ -107,7 +110,7 @@ const NAV_TEMAS: NavTema[] = [
 ];
 
 function isActive(pathname: string, href: string): boolean {
-  return href === "/" ? pathname === "/" : pathname.startsWith(href);
+  return href === "/" ? pathname === "/" : href === "/mesa-trabalho" ? pathname === href : pathname.startsWith(href);
 }
 
 function visibleItems(tema: NavTema, role: Role): NavItem[] {
