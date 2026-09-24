@@ -55,7 +55,7 @@ interface NavTema {
 }
 
 /** Item principal fixo (home). */
-const NAV_PRINCIPAL: NavItem = { href: "/", label: "Painel", icon: LayoutDashboard };
+const NAV_PRINCIPAL: NavItem = { href: "/mesa-trabalho", label: "Nova Mesa", icon: PanelsTopLeft };
 
 /** Navegação organizada por temas. */
 const NAV_TEMAS: NavTema[] = [
@@ -110,7 +110,7 @@ const NAV_TEMAS: NavTema[] = [
 ];
 
 function isActive(pathname: string, href: string): boolean {
-  return href === "/" ? pathname === "/" : href === "/mesa-trabalho" ? pathname === href : pathname.startsWith(href);
+  return href === "/" ? pathname === "/" : pathname === href || pathname.startsWith(href + "/");
 }
 
 function visibleItems(tema: NavTema, role: Role): NavItem[] {
