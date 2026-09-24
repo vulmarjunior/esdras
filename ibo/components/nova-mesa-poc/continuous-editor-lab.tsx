@@ -63,6 +63,8 @@ export default function ContinuousEditorLab({canEdit}:{canEdit:boolean}){
   const [draft,setDraft]=useState<Draft>(initial);
   const live=useRef<Draft>(draft);
   const [selected,setSelected]=useState<Location|null>(null);
+  const [hovered,setHovered]=useState<string|null>(null);
+  const [insertOpen,setInsertOpen]=useState(false);
   const selectedRef=useRef<Location|null>(null);
   const [notice,setNotice]=useState("");
   const [revision,setRevision]=useState(0);
@@ -84,8 +86,14 @@ export default function ContinuousEditorLab({canEdit}:{canEdit:boolean}){
   const editCount=useRef(0);
   const dirtyRef=useRef(false);
   const savingRef=useRef(false);
+  const autoTimer=useRef<ReturnType<typeof setTimeout>|null>(null);
+  const saveRef=useRef<()=>Promise<void>>(async()=>{});
+  const autoEnabled=useRef(false);
   const editable=canEdit&&!loading&&!loadingError&&!conflict&&!saving;
-  const markDirty=()=>{editCount.current++;dirtyRef.current=true;setDirty(true);setSaveError("");};
+  const markDirty=()=>{editCount.current++;dirtyRef.current=true;setDirty(true);setSaveError("");
+    if(autoTimer.current)clearTimeout(autoTimer.current);
+    if(autoEnabled.current)autoTimer.current=setTimeout(()=>{autoTimer.current=null;void saveRef.current();},2500);
+  };
   const load=async()=>{
     if(dirtyRef.current)return;
     setLoading(true);setLoadingError("");
@@ -97,14 +105,14 @@ export default function ContinuousEditorLab({canEdit}:{canEdit:boolean}){
     }catch{setLoadingError("Falha ao carregar. Verifique se a migração isolada foi aplicada ao banco. Edição bloqueada para evitar perda de dados.");}
     finally{setLoading(false);}
   };
-  useEffect(()=>{void load();},[]);
+  useEffect(()=>{void load().finally(()=>{autoEnabled.current=true;});return()=>{autoEnabled.current=false;if(autoTimer.current)clearTimeout(autoTimer.current);};},[]);
   useEffect(()=>{
     const warn=(event:BeforeUnloadEvent)=>{if(dirtyRef.current){event.preventDefault();event.returnValue="";}};
     window.addEventListener("beforeunload",warn);
     return()=>window.removeEventListener("beforeunload",warn);
   },[]);
   const save=async()=>{
-    if(!editable||savingRef.current||!dirtyRef.current)return;
+    if(!canEdit||loading||loadingError||conflict||savingRef.current||!dirtyRef.current)return;
     savingRef.current=true;setSaving(true);setSaveError("");
     const snapshot=live.current,sequence=editCount.current;
     try{
@@ -117,8 +125,11 @@ export default function ContinuousEditorLab({canEdit}:{canEdit:boolean}){
         setConflict(true);setSaveError("Conflito: outra sessão salvou alterações. Exporte uma cópia JSON antes de recarregar. Nenhum texto foi sobrescrito.");
       }else setSaveError(result.error);
     }catch{setSaveError("Falha ao salvar. Preserve uma cópia JSON e tente novamente.");}
-    finally{savingRef.current=false;setSaving(false);}
+    finally{savingRef.current=false;setSaving(false);
+      if(dirtyRef.current&&!conflict&&autoEnabled.current&&!autoTimer.current)autoTimer.current=setTimeout(()=>{autoTimer.current=null;void saveRef.current();},2500);
+    }
   };
+  saveRef.current=save;
   const showHistory=async()=>{
     setHistoryOpen(true);setHistoryLoading(true);setHistoryError("");setPreview(null);
     try{setVersions(await listNovaMesaVersions());}
@@ -173,6 +184,7 @@ export default function ContinuousEditorLab({canEdit}:{canEdit:boolean}){
   },[revision]);
 
   const add=(type:NodeType)=>{
+    setInsertOpen(false);
     if(!editable)return;
     const current=selectedRef.current;
     const existing=current?findNode(live.current.nodes,current.id):undefined;
@@ -199,6 +211,19 @@ export default function ContinuousEditorLab({canEdit}:{canEdit:boolean}){
       choose({id:node.id,parentId});commit(next,node.id);
     }catch(error){setNotice(error instanceof Error?error.message:"Não foi possível inserir.");}
   };
+  const activeRow=selected?rows.find(row=>row.node.id===selected.id):undefined;
+  const suggested:NodeType=activeRow?.node.type==="inciso"?"inciso":activeRow?.node.type==="alinea"?"alinea":activeRow?.node.type==="paragraph"?"paragraph":activeRow?.node.type==="article"?(activeRow.node.children.some(n=>n.type==="inciso")?"inciso":activeRow.node.children.some(n=>n.type==="paragraph")?"paragraph":"article"):activeRow?.node.type==="chapter"?"article":activeRow?.node.type==="section"?"article":activeRow?.node.type==="subsection"?"article":"chapter";
+  const contextualTypes=([suggested,"article","paragraph","inciso","alinea","chapter","section","subsection","free"] as NodeType[]).filter((type,index,array)=>array.indexOf(type)===index);
+  useEffect(()=>{
+    const keydown=(event:KeyboardEvent)=>{
+      if(event.defaultPrevented||event.repeat||event.isComposing||!event.ctrlKey||!event.altKey||event.shiftKey)return;
+      const mapping:Record<string,NodeType>={a:"article",p:"paragraph",i:"inciso",l:"alinea"};
+      const type=mapping[event.key.toLowerCase()];
+      if(!type||!canEdit||loading||loadingError||conflict||savingRef.current)return;
+      event.preventDefault();add(type);
+    };
+    window.addEventListener("keydown",keydown);return()=>window.removeEventListener("keydown",keydown);
+  });
   const move=(direction:-1|1)=>{
     if(!editable)return;
     const current=selectedRef.current;if(!current)return;
@@ -290,15 +315,18 @@ export default function ContinuousEditorLab({canEdit}:{canEdit:boolean}){
     <main className="min-w-0">
 
 
-    <div className="mb-2 flex flex-wrap items-center gap-2 rounded-lg border bg-card px-3 py-2 text-sm">
-      <span role="status">{loading?"Carregando minuta…":loadingError?"Carregamento indisponível":conflict?"Conflito de versões":dirty?"Alterações não salvas":"Minuta sincronizada"}{!loading&&!loadingError?" · versão "+version:""}</span>
-      <button type="button" disabled={!editable||!dirty||saving} className="rounded border px-3 py-2 disabled:opacity-50" onClick={()=>{void save();}}>{saving?"Salvando…":"Salvar no servidor"}</button>
+    <div className="sticky top-0 z-30 mb-2 flex flex-wrap items-center gap-2 rounded-lg border bg-background/95 px-3 py-2 text-sm shadow-md backdrop-blur">
+      <span role="status">{loading?"Carregando minuta…":loadingError?"Carregamento indisponível":conflict?"Conflito de versões":saving?"Salvando automaticamente…":dirty?"Alterações pendentes · autosave em 2,5 s":"Minuta salva"}{!loading&&!loadingError?" · versão "+version:""}</span>
+      <button type="button" disabled={!editable||!dirty||saving} className="rounded border px-3 py-2 disabled:opacity-50" onClick={()=>{void save();}}>{saving?"Salvando…":"Salvar agora"}</button>
+      <button type="button" disabled={!editable} aria-expanded={insertOpen} className="rounded border border-blue-500 bg-blue-50 px-3 py-2 font-semibold text-blue-900 disabled:opacity-50" onClick={()=>setInsertOpen(v=>!v)}>+ Inserir dispositivo</button>
+      <span className="rounded bg-muted px-2 py-1 font-medium">{activeRow?labelFor(activeRow.node,activeRow.siblings,activeRow.articleNumber,activeRow.chapterNumber).trim()+" · "+names[activeRow.node.type]+" ativo":"Nenhum dispositivo ativo"}</span>
       <button type="button" disabled={loading||dirty||saving} className="rounded border px-3 py-2 disabled:opacity-50" onClick={()=>{void load();}}>Recarregar</button>
       <button type="button" disabled={loading||!!loadingError} className="rounded border px-3 py-2 disabled:opacity-50" onClick={()=>{void showHistory();}}>Histórico de versões</button>
       {loadingError&&<p role="alert" className="w-full text-red-700">{loadingError}</p>}
       {saveError&&<p role="alert" className="w-full text-red-700">{saveError}</p>}
       {!canEdit&&<p className="w-full text-amber-700">Acesso somente leitura: seu perfil não pode alterar a nova minuta.</p>}
     </div>
+    {insertOpen&&<div className="sticky top-[62px] z-30 mb-2 flex flex-wrap gap-2 rounded-lg border bg-background p-2 shadow-lg" role="group" aria-label="Inserir dispositivo"><span className="w-full text-xs text-muted-foreground">Sugestão estrutural: {names[suggested]}. Escolha o tipo; a redação continua no novo dispositivo.</span>{contextualTypes.map(type=><button type="button" key={type} disabled={!editable} className={"rounded border px-3 py-2 text-sm "+(type===suggested?"border-blue-500 bg-blue-50 font-semibold text-blue-900":"")} onClick={()=>add(type)}>+ {names[type]}{type===suggested?" · sugerido":""}</button>)}</div>}
     {historyOpen&&<section aria-label="Histórico de versões da nova minuta" className="mb-4 min-w-0 rounded-lg border p-4">
       <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
         <h2 className="font-semibold">Histórico da minuta · Somente leitura</h2>
@@ -350,7 +378,7 @@ export default function ContinuousEditorLab({canEdit}:{canEdit:boolean}){
         const prior=undo.at(-1);if(!prior)return;live.current=prior;setDraft(prior);setRevision(n=>n+1);
         setUndo(history=>history.slice(0,-1));selectedRef.current=null;setSelected(null);markDirty();
       }}>Desfazer estrutura</button>
-      <span className="text-sm">{selected?names[findNode(live.current.nodes,selected.id)?.type??"free"]+" selecionado":""}</span>
+
     </div>
     {notice&&<p role="status" className="mb-3 text-sm text-amber-700">{notice}</p>}
     <div ref={root}
@@ -361,15 +389,16 @@ export default function ContinuousEditorLab({canEdit}:{canEdit:boolean}){
       aria-label="Minuta do Estatuto editável" className="min-h-[70vh] min-w-0 overflow-x-auto rounded-xl border bg-white px-5 py-7 text-zinc-900 shadow-sm outline-offset-2 sm:px-10 sm:py-9 lg:px-12">
       <h2 contentEditable={false} className="mb-6 select-none text-center text-xl font-bold">NOVO ESTATUTO · MINUTA EM ELABORAÇÃO</h2>
       {rows.length===0&&<p contentEditable={false} className="text-sm text-zinc-500">Insira um capítulo ou artigo para começar.</p>}
-      {rows.map(row=><div key={row.node.id} data-node-id={row.node.id}
-        className={"my-3 rounded border-l-2 pl-3 "+(selected?.id===row.node.id?"border-blue-500":"border-transparent")}
+      {rows.map(row=><div key={row.node.id} data-node-id={row.node.id} onMouseEnter={()=>setHovered(row.node.id)} onMouseLeave={()=>setHovered(current=>current===row.node.id?null:current)}
+        className={"group relative my-3 rounded-md border-l-4 py-2 pl-3 pr-1 transition-colors "+(selected?.id===row.node.id?"border-blue-600 bg-blue-50/70 ring-1 ring-blue-200":hovered===row.node.id?"border-slate-300 bg-slate-50":"border-transparent")}
         style={{marginLeft:Math.min(row.depth,4)*16}}>
+        {selected?.id===row.node.id&&<div contentEditable={false} className="mb-1 flex flex-wrap items-center gap-2 text-xs text-blue-800"><strong>{names[row.node.type]} ativo</strong><button type="button" disabled={!editable} className="rounded border border-blue-400 bg-white px-2 py-1 font-semibold disabled:opacity-50" onMouseDown={event=>event.preventDefault()} onClick={()=>{setInsertOpen(v=>!v);}}>+ Inserir após / dentro</button><button type="button" disabled={!editable} className="rounded border bg-white px-2 py-1 disabled:opacity-50" onMouseDown={event=>event.preventDefault()} onClick={()=>add(suggested)}>+ {names[suggested]} sugerido</button></div>}
         <span contentEditable={false} className="select-none font-semibold">{labelFor(row.node,row.siblings,row.articleNumber,row.chapterNumber)}</span>
         <span contentEditable={editable} suppressContentEditableWarning onInput={onInput} onBeforeInput={event=>onBeforeInput(event.nativeEvent as InputEvent)} onPaste={onPaste} data-body-id={row.node.id} data-poc-body="true" className={"inline-block min-w-[55%] whitespace-pre-wrap align-top outline-offset-2 "+(["chapter","section","subsection"].includes(row.node.type)?"font-bold":"")}
           style={{textAlign:row.node.alignment??(["chapter","section","subsection"].includes(row.node.type)?"center":"justify")}} data-placeholder={row.node.type==="free"?"Texto livre reservado":"Redação pendente"}></span>
         {row.node.type==="free"&&<span contentEditable={false} className="ml-2 select-none text-xs text-amber-700">Provisório · reservado</span>}
       </div>)}
     </div>
-    <p className="mt-3 text-xs text-muted-foreground">Editor de minuta em elaboração: edite um dispositivo por vez, salve manualmente antes de sair e confira as alterações após reorganizações.</p>
+    <p className="mt-3 text-xs text-muted-foreground">Editor de minuta em elaboração: edite um dispositivo por vez, confira o indicador de salvamento antes de sair e confira as alterações após reorganizações.</p>
   </main></WorkspaceShell>;
 }
