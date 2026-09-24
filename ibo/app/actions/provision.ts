@@ -14,6 +14,8 @@ export {
   createProvision,
   updateProvision,
   updateProvisionTitle,
+  setTagNovo,
+  setOrigemReferencia,
   moveProvision,
   moveProposalProvision,
   deleteProvision,

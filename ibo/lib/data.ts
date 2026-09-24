@@ -1,8 +1,9 @@
 import { get, all } from "./db";
 import type { DocumentVersion, Provision, ProvisionPlacement, ProvisionStatus, VersaoTrabalho } from "./types";
 import { ordenarIrmaos } from "./tree-order";
-import { numerarSubordinados } from "./numeracao";
-export { provisionLabel } from "./provision-label";
+import { numerarSubordinados, resolverEra } from "./numeracao";
+import { provisionLabel } from "./provision-label";
+export { provisionLabel };
 
 export interface TreeNode extends Provision {
   children: TreeNode[];
@@ -50,6 +51,8 @@ export async function getProposalTree(): Promise<TreeNode[]> {
       p.ordem,
       CASE WHEN pp.id IS NULL THEN p.ordem_pai ELSE pp.ordem_pai END AS ordem_pai,
       p.origem,
+      p.origem_ref_id,
+      p.sem_origem,
       p.alteracao_tipo,
       p.status,
       p.texto_vigente,
@@ -91,6 +94,8 @@ export async function getVigenteTree(): Promise<TreeNode[]> {
       p.ordem,
       vp.ordem_pai,
       p.origem,
+      p.origem_ref_id,
+      p.sem_origem,
       p.alteracao_tipo,
       p.status,
       p.texto_vigente,
@@ -115,11 +120,31 @@ export async function getArvoreDaVersao(versao: VersaoTrabalho): Promise<TreeNod
   return versao === "proposta" ? getProposalTree() : getTree();
 }
 
-/** Números armazenados por dispositivo: vigente (`provisions.numero`) × proposta (placements). */
+/**
+ * Números da contraparte por dispositivo. Na versão vigente devolve a **era
+ * efetiva**: referência manual de origem → número do dispositivo referenciado;
+ * `sem_origem` → sem número; sem anotação → o próprio `provisions.numero`.
+ * Na proposta, devolve os números armazenados nas placements.
+ */
 export async function getNumerosArmazenados(versao: VersaoTrabalho): Promise<Map<string, string>> {
   if (versao === "vigente") {
-    const rows = await all<{ id: string; numero: string | null }>("SELECT id, numero FROM provisions");
-    return new Map(rows.filter((r) => r.numero).map((r) => [r.id, r.numero!]));
+    const rows = await all<{
+      id: string;
+      numero: string | null;
+      origem_ref_id: string | null;
+      sem_origem: number;
+      numero_referenciado: string | null;
+    }>(`
+      SELECT p.id, p.numero, p.origem_ref_id, p.sem_origem, r.numero AS numero_referenciado
+        FROM provisions p
+        LEFT JOIN provisions r ON r.id = p.origem_ref_id
+    `);
+    const numeros = new Map<string, string>();
+    for (const row of rows) {
+      const era = resolverEra(row, row.numero_referenciado);
+      if (era) numeros.set(row.id, era);
+    }
+    return numeros;
   }
   const tree = await getProposalTree();
   const numeros = new Map<string, string>();
@@ -131,6 +156,15 @@ export async function getNumerosArmazenados(versao: VersaoTrabalho): Promise<Map
   };
   visitar(tree);
   return numeros;
+}
+
+/**
+ * Números registrados no Estatuto vigente (`provisions.numero`), sem as
+ * anotações de trabalho (referência de origem/sem correspondente).
+ */
+export async function getNumerosVigentesRegistrados(): Promise<Map<string, string>> {
+  const rows = await all<{ id: string; numero: string | null }>("SELECT id, numero FROM provisions");
+  return new Map(rows.filter((r) => r.numero).map((r) => [r.id, r.numero!]));
 }
 
 export async function getProvisionPlacement(
@@ -149,6 +183,44 @@ export async function getFlatProvisions(): Promise<Provision[]> {
 
 export async function getProvision(id: string): Promise<Provision | undefined> {
   return get<Provision>("SELECT * FROM provisions WHERE id = ?", [id]);
+}
+
+export interface DispositivoOption {
+  id: string;
+  label: string;
+  chapter: string;
+}
+
+/** Lista plana de dispositivos (rótulo + capítulo) para seletores de vínculo/origem. */
+export function listarDispositivos(nodes: TreeNode[]): DispositivoOption[] {
+  const byId = new Map<string, TreeNode>();
+  const visitAll = (list: TreeNode[]) => {
+    for (const node of list) {
+      byId.set(node.id, node);
+      visitAll(node.children);
+    }
+  };
+  visitAll(nodes);
+  const chapterOf = (node: TreeNode): string => {
+    let cur = node;
+    const seen = new Set<string>();
+    while (cur.parent_id && !seen.has(cur.id)) {
+      seen.add(cur.id);
+      const parent = byId.get(cur.parent_id);
+      if (!parent) break;
+      cur = parent;
+    }
+    return cur.type === "capitulo" ? provisionLabel(cur) : "";
+  };
+  const out: DispositivoOption[] = [];
+  const visit = (list: TreeNode[]) => {
+    for (const node of list) {
+      out.push({ id: node.id, label: provisionLabel(node), chapter: chapterOf(node) });
+      visit(node.children);
+    }
+  };
+  visit(nodes);
+  return out;
 }
 
 export async function getStatusCounts() {

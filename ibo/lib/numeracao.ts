@@ -53,6 +53,23 @@ export function normalizarNumero(valor: string | null | undefined): string {
   return (valor ?? "").replace(/[º°.\s]/g, "").toUpperCase();
 }
 
+export interface NoComOrigem {
+  numero?: string | null;
+  origem_ref_id?: string | null;
+  sem_origem?: number | boolean | null;
+}
+
+/**
+ * Era efetiva (número no Estatuto registrado) exibida no chip "era N".
+ * A referência manual ao dispositivo de origem prevalece; `sem_origem` declara
+ * que não há correspondência; sem anotação, vale o próprio número (automático).
+ */
+export function resolverEra(dispositivo: NoComOrigem, numeroReferenciado: string | null): string | null {
+  if (dispositivo.origem_ref_id) return numeroReferenciado ?? null;
+  if (dispositivo.sem_origem) return null;
+  return dispositivo.numero ?? null;
+}
+
 /** IDs cujo número armazenado difere do derivado (numeração desatualizada). */
 export function numeracaoDesatualizada(
   armazenados: Map<string, string | null | undefined>,

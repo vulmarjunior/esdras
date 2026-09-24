@@ -84,7 +84,7 @@ A página inicial mostra o andamento da reforma:
 - **Na Proposta** — o número exibido é o **do documento original da proposta** (ex.: art. 5º aparece como **Art. 26º**, com o selo **era 5º**). Quando a ordem no sistema sugerir outro número, aparece um aviso vermelho **ordem: X** — resolva em Renumeração (Ordenar pela numeração do documento e Aplicar numeração).
 - **Progresso geral** — artigos analisados, porcentagem concluída e contadores por status e pendências. No modo Proposta, a contagem exclui dispositivos **revogados** e inclui os **novos**.
 - **Estrutura do Estatuto** — capítulos com seus dispositivos. Clique em qualquer dispositivo para abrir a tela de análise. Revogados aparecem riscados.
-- **Badges** — cada dispositivo exibe o status (ponto + etiqueta). Dispositivos novos mostram o selo **NOVO**; dispositivos em que **você** tem anotação pessoal mostram o selo **nota**.
+- **Badges** — cada dispositivo exibe o status (ponto + etiqueta). Dispositivos marcados como **novos** mostram o selo **NOVO** (marcação de trabalho, ajustável na Mesa); dispositivos em que **você** tem anotação pessoal mostram o selo **nota**.
 - **Filtros** — "Somente com minhas anotações" e "Somente com pendências".
 - **Continuar de onde parou** — atalho para o primeiro artigo ainda não iniciado na versão exibida.
 - **Incluir capítulo** (coordenador/relator) — adiciona novos capítulos à proposta.
@@ -111,6 +111,10 @@ Capítulos e seções são identificados pelo **título** (o texto de corpo pert
 
 No painel contextual é possível comparar o texto vigente com a redação atual da comissão, consultar a proposta preliminar e a justificativa, acompanhar sugestões, comentários e pendências e acrescentar dispositivos subordinados.
 
+A aba **Origem** apresenta o dispositivo do Estatuto registrado de onde o item selecionado veio, com o texto vigente e um link para abri-lo. Coordenadores e administradores podem definir essa origem manualmente no seletor: **Automático** (usa o próprio número vigente), **Sem correspondente no Estatuto vigente** ou um dispositivo específico. A escolha define o chip **era N** exibido no documento e nas listas — é uma anotação de trabalho e não altera o Estatuto registrado.
+
+Na aba **Situação**, a marcação **Dispositivo novo** liga/desliga o selo NOVO do item. É uma anotação de trabalho do operador: não muda o histórico nem as regras de exclusão/revogação.
+
 Os comandos **Redigir**, **Editar título** e **Colaboração** abrem dentro da própria Mesa:
 
 - **Redigir** (artigos, parágrafos, incisos e alíneas) — editor da redação de trabalho, histórico por versão, ferramentas de apoio por IA, justificativa e o comando explícito **Concluir redação**. A conclusão copia a redação de trabalho para a redação consolidada e bloqueia novas edições até que o dispositivo seja reaberto.
@@ -121,7 +125,7 @@ A tela clássica do dispositivo permanece disponível como consulta e contingên
 
 O botão **Reorganizar** move o dispositivo diretamente na estrutura da proposta. Primeiro escolha o destino e a posição; a Mesa mostra uma prévia de todos os artigos cuja numeração será alterada. Por exemplo, ao colocar o antigo art. 5 depois do art. 26, a prévia mostra o art. 5 passando a 26 e os antigos arts. 6 a 26 recuando uma posição. Os filhos acompanham o dispositivo, a identidade e o histórico são preservados e as referências internas ficam sinalizadas para revisão humana.
 
-Coordenadores e administradores podem **Excluir** dispositivos acrescentados por engano (origem nova; a confirmação avisa quando há filhos em cascata) e **Revogar** dispositivos originais do Estatuto (reversível por **Desfazer revogação**). Dispositivos originais não podem ser excluídos: a revogação os retira do texto final preservando o histórico. Depois de excluir, a Mesa seleciona automaticamente o item anterior.
+Coordenadores e administradores podem **Excluir** dispositivos que não existem no Estatuto registrado (a confirmação avisa quando há filhos em cascata) e **Revogar** dispositivos do Estatuto registrado (reversível por **Desfazer revogação**). Dispositivos do Estatuto registrado não podem ser excluídos: a revogação os retira do texto final preservando o histórico. A distinção é histórica — a tag "novo" é apenas uma anotação de trabalho e não libera a exclusão. Depois de excluir, a Mesa seleciona automaticamente o item anterior.
 
 Selecionar ou editar um dispositivo na Mesa não conclui sua redação automaticamente. A aprovação formal da proposta acontece fora do sistema, pela assinatura da comissão no documento final.
 `,

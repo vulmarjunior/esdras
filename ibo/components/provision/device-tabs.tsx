@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { FieldHelper } from "@/components/field-helper";
 import { RichTextContent } from "@/components/rich-text-content";
 import { REFERENCE_TYPE_LABELS } from "@/lib/labels";
+import type { DispositivoOption } from "@/lib/data";
 import { DraftComparison } from "@/components/provision/draft-comparison";
 import { PersonalNoteForm } from "@/components/provision/personal-note-form";
 import { ReferenceFixer, type ReferenciaAfetadaItem } from "@/components/provision/reference-fixer";
@@ -46,6 +47,8 @@ interface Props {
     numero: string | null;
     titulo: string | null;
     origem: string;
+    origem_ref_id: string | null;
+    sem_origem: number;
     alteracao_tipo: string;
     status: string;
     texto_vigente: string;
@@ -58,6 +61,8 @@ interface Props {
   canEditWork: boolean;
   canManage: boolean;
   canFixExtraction: boolean;
+  temVigente: boolean;
+  origemOptions: DispositivoOption[];
   directChildren: number;
   parentType: string | null;
   suggestions: Suggestion[];
@@ -98,12 +103,16 @@ export function DeviceTabs(props: Props) {
             Administração
           </summary>
           <div className="space-y-4 border-t p-4">
-            <NewProvisionForm parentId={id} parentType={prov.type} canEdit={canManage} />
+            <NewProvisionForm parentId={id} parentType={prov.type} canEdit={canManage} origemOptions={props.origemOptions} />
             <ProvisionAdminActions
               provisionId={id}
               numero={prov.numero}
               titulo={prov.titulo}
               origem={prov.origem}
+              origemRefId={prov.origem_ref_id}
+              semOrigem={Boolean(prov.sem_origem)}
+              temVigente={props.temVigente}
+              origemOptions={props.origemOptions}
               childCount={props.directChildren}
               canEdit={canManage}
               alteracaoTipo={prov.alteracao_tipo}

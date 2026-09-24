@@ -13,6 +13,8 @@ function node(partial: Partial<TreeNode>): TreeNode {
     ordem: 0,
     ordem_pai: 0,
     origem: "original",
+    origem_ref_id: null,
+    sem_origem: 0,
     alteracao_tipo: "sem_alteracao",
     status: "nao_iniciado",
     texto_vigente: "",

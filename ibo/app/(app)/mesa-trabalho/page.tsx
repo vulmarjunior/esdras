@@ -4,6 +4,8 @@ import {
   getActiveMeeting,
   getNumerosArmazenados,
   getProposalTree,
+  getVigenteTree,
+  listarDispositivos,
   type TreeNode,
 } from "@/lib/data";
 import { all } from "@/lib/db";
@@ -36,6 +38,7 @@ function mapNode(
   suggestions: Map<string, Suggestion[]>,
   comments: Map<string, Comment[]>,
   pendings: Map<string, PendingIssue[]>,
+  dispositivosVigentes: Set<string>,
 ): WorkbenchNode {
   const nodeSuggestions = suggestions.get(node.id) ?? [];
   const nodeComments = comments.get(node.id) ?? [];
@@ -49,6 +52,9 @@ function mapNode(
     numeroSugerido: numerosSugeridos.get(node.id) ?? null,
     titulo: node.titulo,
     origem: node.origem,
+    origemRefId: node.origem_ref_id,
+    semOrigem: Boolean(node.sem_origem),
+    temVigente: dispositivosVigentes.has(node.id) || node.texto_vigente.trim() !== "",
     alteracaoTipo: node.alteracao_tipo,
     status: node.status,
     textoVigente: node.texto_vigente,
@@ -77,6 +83,7 @@ function mapNode(
         suggestions,
         comments,
         pendings,
+        dispositivosVigentes,
       ),
     ),
   };
@@ -92,6 +99,7 @@ export default async function WorkbenchPage({
 
   const [
     tree,
+    vigenteTree,
     numerosProposta,
     numerosVigentes,
     suggestionRows,
@@ -101,6 +109,7 @@ export default async function WorkbenchPage({
     activeMeeting,
   ] = await Promise.all([
     getProposalTree(),
+    getVigenteTree(),
     getNumerosArmazenados("proposta"),
     getNumerosArmazenados("vigente"),
     all<Suggestion>(`SELECT s.*, u.name AS author_name FROM suggestions s
@@ -121,6 +130,15 @@ export default async function WorkbenchPage({
   const suggestions = groupByProvision(suggestionRows);
   const comments = groupByProvision(commentRows);
   const pendings = groupByProvision(pendingRows);
+  const dispositivosVigentes = new Set<string>();
+  const visitarVigentes = (nodes: TreeNode[]) => {
+    for (const node of nodes) {
+      dispositivosVigentes.add(node.id);
+      visitarVigentes(node.children);
+    }
+  };
+  visitarVigentes(vigenteTree);
+  const vigenteOptions = listarDispositivos(vigenteTree);
   const documentTree = tree.map((node) =>
     mapNode(
       node,
@@ -131,6 +149,7 @@ export default async function WorkbenchPage({
       suggestions,
       comments,
       pendings,
+      dispositivosVigentes,
     ),
   );
   const chapters = documentTree.filter(
@@ -143,6 +162,7 @@ export default async function WorkbenchPage({
       documentTree={documentTree}
       canEdit={user.role === "admin" || user.role === "coordenador"}
       activeMeetingId={activeMeeting?.id ?? null}
+      vigenteOptions={vigenteOptions}
       initialChapterId={query.capitulo}
       initialSelectedId={query.dispositivo}
     />

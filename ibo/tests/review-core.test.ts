@@ -3,7 +3,7 @@ import { buildReview, diffWords, normalizeText, type ReviewNode } from "../lib/r
 import { originalPositions } from "../lib/review-original";
 
 function node(overrides: Partial<ReviewNode> = {}): ReviewNode {
-  return { id: "art-1", parent_id: "cap-1", project_id: "ibo", type: "artigo", numero: "1º", titulo: null, ordem: 0, ordem_pai: 0, origem: "original", alteracao_tipo: "nao_avaliado", status: "nao_iniciado", texto_vigente: "Texto original.", proposta_inicial: "", redacao_trabalho: "", justificativa: "", redacao_consolidada: "", posicao_sugerida: null, version: 0, updated_at: "", updated_by: null, children: [], ...overrides };
+  return { id: "art-1", parent_id: "cap-1", project_id: "ibo", type: "artigo", numero: "1º", titulo: null, ordem: 0, ordem_pai: 0, origem: "original", origem_ref_id: null, sem_origem: 0, alteracao_tipo: "nao_avaliado", status: "nao_iniciado", texto_vigente: "Texto original.", proposta_inicial: "", redacao_trabalho: "", justificativa: "", redacao_consolidada: "", posicao_sugerida: null, version: 0, updated_at: "", updated_by: null, children: [], ...overrides };
 }
 describe("leitura comparativa", () => {
   it("ignora formatação e espaços, mas preserva diferenças de conteúdo", () => {
@@ -19,11 +19,17 @@ describe("leitura comparativa", () => {
     expect(buildReview([node()], originalPositions)[0].after).toBe("Texto original.");
   });
   it("identifica novos e revogados sem ocultar descendentes", () => {
-    expect(buildReview([node({ origem: "novo", id: "novo-1" })], originalPositions)[0].change).toBe("Novo");
+    expect(buildReview([node({ origem: "novo", id: "novo-1", texto_vigente: "" })], originalPositions)[0].change).toBe("Novo");
     const rows = buildReview([node({ alteracao_tipo: "revogado", children: [node({ id: "filho" })] })], originalPositions);
     expect(rows[0].after).toBe("");
     expect(rows[0].before).toBe("Texto original.");
     expect(rows).toHaveLength(2);
+  });
+  it("tag 'novo' do operador não esconde o texto vigente nem muda a classificação histórica", () => {
+    const row = buildReview([node({ origem: "novo" })], originalPositions)[0];
+    expect(row.before).toBe("Texto original.");
+    expect(row.change).toBe("Não alterado");
+    expect(row.originalLabel).toBe("Art. 1º");
   });
   it("preserva número original por identidade e detecta mudança de capítulo", () => {
     const row = buildReview([node({ numero: "9º", parent_id: "cap-2" })], originalPositions)[0];

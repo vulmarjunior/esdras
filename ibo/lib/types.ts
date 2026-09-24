@@ -27,6 +27,10 @@ export interface Provision {
   ordem: number;
   ordem_pai: number;
   origem: "original" | "novo";
+  /** Referência manual ao dispositivo de origem no Estatuto registrado (anotação de trabalho). */
+  origem_ref_id: string | null;
+  /** Anotação de trabalho: dispositivo declarado sem correspondente no Estatuto registrado. */
+  sem_origem: number;
   alteracao_tipo: string;
   status: ProvisionStatus;
   texto_vigente: string;

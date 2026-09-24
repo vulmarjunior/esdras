@@ -3,12 +3,15 @@ import { getSessionUser } from "@/lib/auth";
 import {
   getArvoreDaVersao,
   getNumerosArmazenados,
+  getNumerosVigentesRegistrados,
   getStatusCounts,
   getStatusCountsProposta,
   getArticleCount,
   getArticleCountProposta,
   getPersonalNoteIds,
   getIdsComPendenciasAbertas,
+  getVigenteTree,
+  listarDispositivos,
   type TreeNode,
 } from "@/lib/data";
 import { all } from "@/lib/db";
@@ -58,11 +61,14 @@ export default async function DashboardPage() {
 
   // Na proposta, o número principal é o do documento original (placements);
   // a numeração derivada da ordem entra como sugestão quando divergir.
+  // A "era" (getNumerosArmazenados("vigente")) pode ter referência manual do
+  // operador; no modo Vigente exibimos os números registrados do Estatuto.
   const numerosProposta = await getNumerosArmazenados("proposta");
-  const numerosVigentes = await getNumerosArmazenados("vigente");
+  const erasVigentes = await getNumerosArmazenados("vigente");
+  const numerosRegistrados = await getNumerosVigentesRegistrados();
   const derivados = numerarArvore(tree);
-  const numeros = versao === "proposta" ? numerosProposta : numerosVigentes;
-  const contraparte = versao === "proposta" ? numerosVigentes : numerosProposta;
+  const numeros = versao === "proposta" ? numerosProposta : numerosRegistrados;
+  const contraparte = versao === "proposta" ? erasVigentes : numerosProposta;
   const sugeridos = versao === "proposta" ? derivados : new Map<string, string>();
 
   const counts = versao === "proposta" ? await getStatusCountsProposta() : await getStatusCounts();
@@ -72,6 +78,7 @@ export default async function DashboardPage() {
   const pendingCount = (await all<{ c: number }>("SELECT COUNT(*) c FROM pending_issues WHERE status = 'aberta'"))[0]?.c ?? 0;
   const capitulos = tree.filter((n) => n.type === "capitulo" && n.alteracao_tipo !== "revogado").length;
   const proximo = proximoNaoIniciado(tree);
+  const origemOptions = listarDispositivos(await getVigenteTree());
 
   return (
     <div className="space-y-6">
@@ -145,7 +152,7 @@ export default async function DashboardPage() {
 
       {(user.role === "coordenador" || user.role === "admin") && (
         <div className="flex flex-wrap items-center gap-2">
-          <NewProvisionForm parentId={null} parentType="root" canEdit={true} types={["capitulo"]} label="Incluir capítulo" />
+          <NewProvisionForm parentId={null} parentType="root" canEdit={true} types={["capitulo"]} label="Incluir capítulo" origemOptions={origemOptions} />
           <span className="text-xs text-muted-foreground">
             Capítulos e dispositivos novos entram como &quot;NOVO&quot;, com numeração definida na consolidação.
           </span>

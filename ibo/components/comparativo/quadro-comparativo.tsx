@@ -19,7 +19,7 @@ const changeColors: Record<string, string> = {
 
 function classeMudanca(linha: LinhaComparativo): keyof typeof changeColors {
   if (linha.revogado) return "Revogado";
-  if (linha.origem === "novo" && !linha.labelVigente) return "Novo";
+  if (!linha.labelVigente) return "Novo";
   if (!linha.alterado) return "Não alterado";
   return "Alterado";
 }

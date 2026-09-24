@@ -8,6 +8,7 @@ import { toast } from "sonner";
 import {
   AlertTriangle,
   ArrowLeftRight,
+  ArrowUpRight,
   Ban,
   BookOpenText,
   ChevronRight,
@@ -30,6 +31,8 @@ import {
   deleteProvision,
   moveProposalProvision,
   setAlteracaoTipo,
+  setOrigemReferencia,
+  setTagNovo,
   updateProvisionTitle,
 } from "@/app/actions/provision";
 import { cn } from "@/lib/utils";
@@ -39,6 +42,7 @@ import { escolherSelecaoAposExclusao, simulateArticleMove } from "@/lib/workbenc
 import { ConfirmDialog, type ConfirmDialogState } from "@/components/confirm-dialog";
 import { WorkbenchVersionHistory } from "@/components/workbench/version-history";
 import type { Comment, PendingIssue, Suggestion } from "@/lib/types";
+import type { DispositivoOption } from "@/lib/data";
 import { RichTextContent } from "@/components/rich-text-content";
 import { NovoBadge, StatusBadge, StatusDot } from "@/components/status-badge";
 import { NewProvisionForm, StatusControl } from "@/components/provision/provision-forms";
@@ -75,6 +79,9 @@ export interface WorkbenchNode {
   numeroSugerido: string | null;
   titulo: string | null;
   origem: string;
+  origemRefId: string | null;
+  semOrigem: boolean;
+  temVigente: boolean;
   alteracaoTipo: string;
   status: string;
   textoVigente: string;
@@ -176,6 +183,7 @@ export function ChapterWorkbench({
   documentTree,
   canEdit,
   activeMeetingId,
+  vigenteOptions,
   initialChapterId,
   initialSelectedId,
 }: {
@@ -183,6 +191,7 @@ export function ChapterWorkbench({
   documentTree: WorkbenchNode[];
   canEdit: boolean;
   activeMeetingId: number | null;
+  vigenteOptions: DispositivoOption[];
   initialChapterId?: string;
   initialSelectedId?: string;
 }) {
@@ -211,6 +220,8 @@ export function ChapterWorkbench({
   const [removeConfirm, setRemoveConfirm] = useState<ConfirmDialogState | null>(null);
   const [removePending, setRemovePending] = useState(false);
   const [revokePending, setRevokePending] = useState(false);
+  const [tagNovoPending, setTagNovoPending] = useState(false);
+  const [origemPending, setOrigemPending] = useState(false);
   const effectiveSelectedId = selectedId === chapter?.id || items.some((item) => item.id === selectedId)
     ? selectedId
     : chapter?.children[0]?.id ?? chapter?.id ?? "";
@@ -236,6 +247,21 @@ export function ChapterWorkbench({
     ? simulateArticleMove(documentTree, selected.id, moveParentId, moveAfterId)
     : [];
   const nodesById = new Map(allNodes.map((node) => [node.id, node]));
+  const origemAtual = selected?.origemRefId ?? (selected?.semOrigem ? "__nenhuma__" : "__auto__");
+  const origemNode = selected?.origemRefId ? nodesById.get(selected.origemRefId) : undefined;
+  const origemOption = selected?.origemRefId
+    ? vigenteOptions.find((option) => option.id === selected.origemRefId)
+    : undefined;
+  const origemGroups = useMemo(() => {
+    const mapa = new Map<string, DispositivoOption[]>();
+    for (const option of vigenteOptions) {
+      if (option.id === selected?.id) continue;
+      const lista = mapa.get(option.chapter) ?? [];
+      lista.push(option);
+      mapa.set(option.chapter, lista);
+    }
+    return [...mapa.entries()];
+  }, [vigenteOptions, selected?.id]);
   const returnQuery = new URLSearchParams({
     origem: "mesa",
     capitulo: chapter?.id ?? "",
@@ -348,6 +374,26 @@ export function ChapterWorkbench({
     router.refresh();
   }
 
+  async function toggleTagNovo() {
+    if (!selected) return;
+    setTagNovoPending(true);
+    const result = await setTagNovo(selected.id, selected.origem !== "novo");
+    setTagNovoPending(false);
+    if (result.error) return toast.error(result.error);
+    toast.success(result.message || "Marcação atualizada.");
+    router.refresh();
+  }
+
+  async function changeOrigem(destino: string) {
+    if (!selected) return;
+    setOrigemPending(true);
+    const result = await setOrigemReferencia(selected.id, destino);
+    setOrigemPending(false);
+    if (result.error) return toast.error(result.error);
+    toast.success(result.message || "Origem atualizada.");
+    router.refresh();
+  }
+
   useEffect(() => {
     selectedRef.current?.scrollIntoView({ block: "nearest", behavior: "smooth" });
   }, [effectiveSelectedId]);
@@ -400,6 +446,7 @@ export function ChapterWorkbench({
               canEdit={canEdit}
               types={["capitulo"]}
               label="Novo capítulo"
+              origemOptions={vigenteOptions}
               onCreated={(id) => focusCreated(id, id)}
             />
           </div>
@@ -414,6 +461,7 @@ export function ChapterWorkbench({
               canEdit={canEdit}
               types={["secao"]}
               label="Nova seção neste capítulo"
+              origemOptions={vigenteOptions}
               onCreated={(id) => focusCreated(id, chapter.id)}
             />
           </div>
@@ -599,7 +647,7 @@ export function ChapterWorkbench({
                   >
                     <Users /> Colaborar
                   </Link>
-                  {canEdit && selected.origem !== "original" && (
+                  {canEdit && !selected.temVigente && (
                     <Button
                       type="button"
                       variant="outline"
@@ -611,7 +659,7 @@ export function ChapterWorkbench({
                       {removePending ? <Loader2 className="animate-spin" /> : <Trash2 />} Excluir
                     </Button>
                   )}
-                  {canEdit && selected.origem === "original" && (
+                  {canEdit && selected.temVigente && (
                     <Button
                       type="button"
                       variant={selected.alteracaoTipo === "revogado" ? "default" : "outline"}
@@ -646,14 +694,16 @@ export function ChapterWorkbench({
                       canEdit={canEdit}
                       types={allowedChildren(selected.type)}
                       label="Adicionar dispositivo subordinado"
+                      origemOptions={vigenteOptions}
                       onCreated={(id) => focusCreated(id, chapter.id)}
                     />
                   </div>
                 )}
 
                 <Tabs defaultValue="comparacao">
-                  <TabsList className="grid w-full grid-cols-3">
+                  <TabsList className="grid h-auto w-full grid-cols-2">
                     <TabsTrigger value="comparacao">Comparação</TabsTrigger>
+                    <TabsTrigger value="origem">Origem</TabsTrigger>
                     <TabsTrigger value="subsidios">Apoio à redação</TabsTrigger>
                     <TabsTrigger value="situacao">Situação</TabsTrigger>
                   </TabsList>
@@ -668,6 +718,77 @@ export function ChapterWorkbench({
                       text={isStructural(selected.type) ? selected.titulo ?? "" : currentText(selected)}
                       accent
                     />
+                  </TabsContent>
+                  <TabsContent value="origem" className="space-y-3 pt-2">
+                    {canEdit && (
+                      <label className="block space-y-1.5 text-xs font-medium">
+                        Referência ao dispositivo de origem
+                        <select
+                          value={origemAtual}
+                          disabled={origemPending}
+                          onChange={(event) => changeOrigem(event.target.value)}
+                          className="h-9 w-full rounded-lg border border-input bg-background px-2.5 text-sm font-normal disabled:opacity-60"
+                        >
+                          <option value="__auto__">Automático (próprio número vigente)</option>
+                          <option value="__nenhuma__">Sem correspondente no Estatuto vigente</option>
+                          {origemGroups.map(([capitulo, options]) => (
+                            <optgroup key={capitulo || "__sem_capitulo__"} label={capitulo || "Sem capítulo"}>
+                              {options.map((option) => (
+                                <option key={option.id} value={option.id}>{option.label}</option>
+                              ))}
+                            </optgroup>
+                          ))}
+                        </select>
+                        <span className="block text-[11px] font-normal text-muted-foreground">
+                          A referência define o chip &quot;era N&quot; e o texto apresentado abaixo. Não altera o Estatuto registrado.
+                        </span>
+                      </label>
+                    )}
+                    {selected.origemRefId ? (
+                      origemNode ? (
+                        <section className="space-y-2 rounded-lg border border-primary/30 bg-primary/5 p-3">
+                          <div className="flex items-start justify-between gap-2">
+                            <div className="min-w-0">
+                              <h4 className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Dispositivo de origem</h4>
+                              <p className="truncate text-sm font-medium">
+                                {origemOption?.label ?? label(origemNode)}
+                                {origemNode.titulo ? ` — ${origemNode.titulo}` : ""}
+                              </p>
+                            </div>
+                            {selected.numeroVigente && (
+                              <span className="shrink-0 rounded-full border px-1.5 py-0.5 text-[10px] text-muted-foreground">
+                                era {selected.numeroVigente}
+                              </span>
+                            )}
+                          </div>
+                          {origemNode.textoVigente.trim() ? (
+                            <RichTextContent text={origemNode.textoVigente} className="text-sm leading-6" />
+                          ) : (
+                            <p className="text-xs italic text-muted-foreground">O dispositivo de origem não possui texto vigente registrado.</p>
+                          )}
+                          <Link
+                            href={`/dispositivo/${origemNode.id}?aba=analise&${returnQuery}`}
+                            className="inline-flex items-center gap-1 text-xs font-medium text-primary hover:underline"
+                          >
+                            Abrir dispositivo de origem <ArrowUpRight className="h-3 w-3" />
+                          </Link>
+                        </section>
+                      ) : (
+                        <p className="rounded-lg border p-3 text-xs text-muted-foreground">
+                          O dispositivo de origem referenciado não está disponível nesta visualização.
+                        </p>
+                      )
+                    ) : selected.semOrigem ? (
+                      <p className="rounded-lg border p-3 text-sm italic text-muted-foreground">
+                        Sem correspondente no Estatuto vigente (definido pelo operador).
+                      </p>
+                    ) : (
+                      <TextBlock title="Estatuto vigente (correspondência automática)" text={selected.textoVigente} />
+                    )}
+                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                      <ArrowLeftRight className="h-3.5 w-3.5" />
+                      <span>{selected.numeroVigente ? `Era: ${selected.numeroVigente}` : "Sem correspondente no vigente"}</span>
+                    </div>
                   </TabsContent>
                   <TabsContent value="subsidios" className="space-y-3 pt-2">
                     <TextBlock title="Proposta preliminar" text={selected.propostaInicial} />
@@ -685,11 +806,30 @@ export function ChapterWorkbench({
                   </TabsContent>
                   <TabsContent value="situacao" className="space-y-4 pt-2">
                     <StatusControl provisionId={selected.id} status={selected.status} canEdit={canEdit} />
+                    <label className="flex items-start gap-2 rounded-lg border p-3 text-sm">
+                      <input
+                        type="checkbox"
+                        className="mt-0.5"
+                        checked={selected.origem === "novo"}
+                        disabled={!canEdit || tagNovoPending}
+                        onChange={toggleTagNovo}
+                      />
+                      <span>
+                        <span className="font-medium">Dispositivo novo</span>
+                        <span className="mt-0.5 block text-xs text-muted-foreground">
+                          Marca o selo &quot;novo&quot; nos documentos. Não altera o histórico nem as regras de exclusão/revogação.
+                        </span>
+                      </span>
+                    </label>
                     <dl className="space-y-2 text-xs">
                       <InfoRow label="Versão" value={`v${selected.version}`} />
                       <InfoRow label="Alteração" value={selected.alteracaoTipo.replaceAll("_", " ")} />
                       <InfoRow label="Numeração atual" value={selected.numero || "provisória"} />
                       <InfoRow label="Numeração vigente" value={selected.numeroVigente || "sem correspondente"} />
+                      <InfoRow
+                        label="Correspondência"
+                        value={selected.origemRefId ? "referência manual" : selected.semOrigem ? "sem correspondente" : "automática"}
+                      />
                       {selected.numeroSugerido && selected.numero && normalizarNumero(selected.numeroSugerido) !== normalizarNumero(selected.numero) && (
                         <InfoRow label="Ordem sugeriria" value={selected.numeroSugerido} warning />
                       )}

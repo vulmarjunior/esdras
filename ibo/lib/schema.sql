@@ -23,6 +23,11 @@ CREATE TABLE IF NOT EXISTS provisions (
   ordem INTEGER NOT NULL DEFAULT 0,
   ordem_pai INTEGER NOT NULL DEFAULT 0,
   origem TEXT NOT NULL DEFAULT 'original' CHECK (origem IN ('original','novo')),
+  -- Anotação de trabalho: referência manual ao dispositivo de origem no Estatuto
+  -- registrado (define o chip "era N" e o texto apresentado na aba Origem).
+  -- Vazio + sem_origem = 0 → correspondência automática (próprio número).
+  origem_ref_id TEXT REFERENCES provisions(id) ON DELETE SET NULL,
+  sem_origem INTEGER NOT NULL DEFAULT 0 CHECK (sem_origem IN (0,1)),
   alteracao_tipo TEXT NOT NULL DEFAULT 'nao_avaliado' CHECK (alteracao_tipo IN ('nao_avaliado','mantido','alteracao_redacional','alteracao_material','novo','revogado','desmembrado','incorporado','reorganizado')),
   status TEXT NOT NULL DEFAULT 'nao_iniciado' CHECK (status IN ('nao_iniciado','em_analise','em_discussao','redacao_definida','aprovado','reaberto')),
   texto_vigente TEXT NOT NULL DEFAULT '',

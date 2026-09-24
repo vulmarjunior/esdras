@@ -2,7 +2,7 @@
 import { jwtVerify } from "jose";
 import { cookies } from "next/headers";
 import { getDb, all } from "@/lib/db";
-import { provisionLabel, getProposalTree, type TreeNode } from "@/lib/data";
+import { provisionLabel, getProposalTree, getNumerosArmazenados, type TreeNode } from "@/lib/data";
 import { ALTERACAO_TYPE_LABELS, PENDING_CATEGORY_LABELS, REFERENCE_TYPE_LABELS } from "@/lib/labels";
 import { htmlToText } from "@/lib/rich-text";
 
@@ -90,9 +90,7 @@ export async function GET(req: NextRequest) {
 
   if (type === "comparativo") {
     const tree = await getProposalTree();
-    const vigentes = new Map(
-      (await all<{ id: string; numero: string | null }>("SELECT id, numero FROM provisions")).map((p) => [p.id, p.numero])
-    );
+    const vigentes = await getNumerosArmazenados("vigente");
     const textos = new Map(
       (await all<{ id: string; texto_vigente: string; proposta_inicial: string; redacao_trabalho: string; redacao_consolidada: string }>(
         "SELECT id, texto_vigente, proposta_inicial, redacao_trabalho, redacao_consolidada FROM provisions"

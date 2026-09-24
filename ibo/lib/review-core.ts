@@ -52,20 +52,21 @@ export function buildReview(tree: ReviewNode[], originals: ReadonlyMap<string, O
   function walk(nodes: ReviewNode[], depth: number, chapterId: string, chapterLabel: string, context: string) {
     const ordered = ordenarIrmaos(nodes);
     // Compare relative order of surviving original siblings; additions do not mark others as moved.
-    const siblings = ordered.filter(n => n.origem === "original" && originals.get(n.id)?.parentId === n.parent_id);
+    // A identidade histórica vem da importação (`originals`), não da tag "novo" do operador.
+    const siblings = ordered.filter(n => originals.get(n.id)?.parentId === n.parent_id);
     const historical = [...siblings].sort((a, b) => originals.get(a.id)!.order - originals.get(b.id)!.order);
     for (const node of ordered) {
-      const original = node.origem === "original" ? originals.get(node.id) : undefined;
+      const original = originals.get(node.id);
       const label = provisionLabel(node);
       const groupId = depth === 0 || node.type === "capitulo" ? node.id : chapterId;
       const groupLabel = depth === 0 || node.type === "capitulo" ? label : chapterLabel;
-      const before = node.origem === "novo" ? "" : normalizeText(node.texto_vigente);
+      const before = normalizeText(node.texto_vigente);
       const working = normalizeText(node.redacao_trabalho);
       const proposal = normalizeText(node.proposta_inicial);
       const revoked = node.alteracao_tipo === "revogado";
       const after = revoked ? "" : working || proposal || before;
       const titleChanged = original ? normalizeText(original.titulo ?? "") !== normalizeText(node.titulo ?? "") : false;
-      const change: ReviewChange = revoked ? "Revogado" : node.origem === "novo" ? "Novo" : before === after && !titleChanged ? "Não alterado" : "Alterado";
+      const change: ReviewChange = revoked ? "Revogado" : !original && !before ? "Novo" : before === after && !titleChanged ? "Não alterado" : "Alterado";
       const [beforeParts, afterParts] = diffWords(before, after);
       rows.push({
         id: node.id, label, originalLabel: original ? provisionLabel({ ...node, numero: original.numero }) : null,

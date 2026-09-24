@@ -27,13 +27,20 @@ export function WorkbenchVersionHistory({ provisionId, version, canEdit, open }:
   useEffect(() => {
     if (!open) return;
     let active = true;
-    setVersions([]);
-    setSelected(null);
-    setLoading(true);
-    getRedacaoVersions(provisionId)
-      .then((rows) => { if (active) setVersions(rows); })
-      .catch(() => { if (active) toast.error("Não foi possível consultar as versões."); })
-      .finally(() => { if (active) setLoading(false); });
+    async function load() {
+      setVersions([]);
+      setSelected(null);
+      setLoading(true);
+      try {
+        const rows = await getRedacaoVersions(provisionId);
+        if (active) setVersions(rows);
+      } catch {
+        if (active) toast.error("Não foi possível consultar as versões.");
+      } finally {
+        if (active) setLoading(false);
+      }
+    }
+    void load();
     return () => { active = false; };
   }, [provisionId, version, open]);
 

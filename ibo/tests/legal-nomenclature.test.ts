@@ -15,7 +15,7 @@ describe("nomenclatura jurídica", () => {
   });
 
   it("exibe rótulos legais na árvore", () => {
-    const base = { id: "x", parent_id: null, project_id: "p", titulo: null, ordem: 0, ordem_pai: 0, origem: "original" as const, alteracao_tipo: "nao_avaliado", status: "nao_iniciado" as const, texto_vigente: "", proposta_inicial: "", redacao_trabalho: "", justificativa: "", redacao_consolidada: "", posicao_sugerida: null, version: 0, updated_at: "", updated_by: null };
+    const base = { id: "x", parent_id: null, project_id: "p", titulo: null, ordem: 0, ordem_pai: 0, origem: "original" as const, origem_ref_id: null, sem_origem: 0, alteracao_tipo: "nao_avaliado", status: "nao_iniciado" as const, texto_vigente: "", proposta_inicial: "", redacao_trabalho: "", justificativa: "", redacao_consolidada: "", posicao_sugerida: null, version: 0, updated_at: "", updated_by: null };
     expect(provisionLabel({ ...base, type: "artigo", numero: "5" })).toBe("Art. 5º");
     expect(provisionLabel({ ...base, type: "paragrafo", numero: "1º" })).toBe("§ 1º");
     expect(provisionLabel({ ...base, type: "paragrafo", numero: "Único" })).toBe("Parágrafo único");

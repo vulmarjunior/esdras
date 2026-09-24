@@ -177,6 +177,12 @@
 
 ## 🔄 Correções de Registro
 
+#### Tags de trabalho da Mesa: "novo" e "era" controláveis pelo operador
+- **Antes**: `provisions.origem` ("novo") era imutável — definida na importação/criação — e governava também exclusão/revogação e a classificação "Novo" na revisão; o chip "era N" vinha sempre de `provisions.numero`.
+- **Depois**: `origem` e a nova **origem referenciada** (`origem_ref_id` + `sem_origem`) são anotações de trabalho editáveis (Mesa, aba Origem; tela clássica). O chip "era" segue a referência — ou Automático/Sem correspondente (`resolverEra` em `lib/numeracao.ts`, consumido por `getNumerosArmazenados("vigente")`). Exclusão/revogação e a leitura comparativa passaram a usar o histórico (placement vigente, `texto_vigente`, metadados de importação).
+- **Data da correção**: 2026-09-23
+- **Motivo**: pedido do usuário — durante o desenvolvimento, o operador precisa marcar/desmarcar dispositivos novos e referenciar manualmente o artigo de origem; a comparação final fica para a IA.
+
 #### Groq 413 (TPM 8000) nas consultas com contexto grande
 - **Antes**: a consulta doutrinária montava até 6 trechos × 4000 chars por fonte (e 6×4000 + 6×4000 no modo "tudo"), estourando o limite de tokens por minuto do plano gratuito (`Request too large ... Limit 8000, Requested 9924`); a rota falhava sem tentar reduzir e o assistente de ajuda enviava o manual inteiro (~20 mil chars).
 - **Depois**: `lib/ai-budget.ts` (estimativa ~3,5 chars/token, `limitarTexto` preservando início e fim) + orçamento na rota (`GROQ_MAX_INPUT_TOKENS` 4600, `GROQ_MAX_OUTPUT_TOKENS` 2048) + retry com contexto reduzido (100% → 60% → 35%) e fallback de modelo; `reasoning_effort: "low"` nos `gpt-oss`; trechos reduzidos (5×2500; 3×2200 em "tudo") e `formarContextoAjuda(pergunta)` seleciona as seções relevantes do manual. Erros de limite devolvem mensagem orientando a refinar a pergunta.
@@ -282,6 +288,11 @@
 - **Escolha**: "Aplicar numeração" grava `numero` + auditoria conforme a ordem atual da árvore; reordenação física (`parent_id`) fica para feature dedicada.
 - **Alternativas rejeitadas**: aplicar reordenação global de artigos entre capítulos automaticamente (ambíguo e arriscado).
 - **Data**: 2026-09-01
+
+#### "Novo" e "era" como anotações de trabalho (não histórico)
+- **Escolha**: `provisions.origem` e `provisions.origem_ref_id`/`sem_origem` editáveis pelo operador; regras de integridade (excluir × revogar, comparação com o vigente) presas ao histórico (`provision_placements` vigente, `texto_vigente`, JSONs de importação). A referência de origem é uma única por dispositivo e só aponta para o Estatuto registrado (com bloqueio de ciclo).
+- **Alternativas rejeitadas**: campo novo separado só para o selo (migração + dois conceitos de "novo" em paralelo); deixar a tag comandar exclusão/revisão (marcar como novo liberaria excluir dispositivo histórico); número "era" digitado livremente (a referência ao dispositivo dá número e texto sem digitação).
+- **Data**: 2026-09-23
 
 #### Biblioteca de literatura no banco (não em arquivos estáticos)
 - **Escolha**: livros em `library_books`/`library_sections` (Postgres) com importação pelo Admin (MD/TXT/EPUB) — em produção (Vercel) não há filesystem persistente nem rebuild para novos livros; a prévia revisável no navegador cobre a qualidade de OCR/conversão.

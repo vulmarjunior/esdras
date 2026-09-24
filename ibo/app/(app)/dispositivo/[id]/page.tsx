@@ -7,6 +7,8 @@ import {
   getTree,
   getVigenteTree,
   getProvisionPlacement,
+  getNumerosArmazenados,
+  listarDispositivos,
   provisionLabel,
   parentChain,
   getPersonalNoteIds,
@@ -72,10 +74,15 @@ export default async function DevicePage({
   ).length > 0;
   const navTree = versao === "proposta" ? proposalTree : tree;
   const numerosVigentes = numerosDaArvore(vigenteTree);
+  const erasVigentes = await getNumerosArmazenados("vigente");
   const navNumeros = versao === "proposta" ? numerosPropostaDocumento : numerosVigentes;
-  const navContraparte = versao === "proposta" ? numerosVigentes : numerosPropostaDocumento;
+  const navContraparte = versao === "proposta" ? erasVigentes : numerosPropostaDocumento;
   const navSugeridos = versao === "proposta" ? numerosPropostaDerivados : new Map<string, string>();
   const devices = flattenDevices(tree);
+  const origemOptions = listarDispositivos(vigenteTree);
+  const origemReferenciada = prov.origem_ref_id
+    ? origemOptions.find((option) => option.id === prov.origem_ref_id)
+    : undefined;
   const notedIds = await getPersonalNoteIds(user.id);
   const referenciasAfetadas = (await getReferenciasDoDispositivo(id)).map((r) => ({
     campo: r.campo,
@@ -265,6 +272,23 @@ export default async function DevicePage({
                   </Badge>
                 )}
               </div>
+              {(prov.origem_ref_id || prov.sem_origem) && (
+                <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
+                  <span className="w-28 shrink-0 text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                    Origem
+                  </span>
+                  {prov.origem_ref_id ? (
+                    <span>
+                      Referência manual:{" "}
+                      <Link href={`/dispositivo/${prov.origem_ref_id}`} className="text-primary hover:underline">
+                        {origemReferenciada?.label ?? prov.origem_ref_id}
+                      </Link>
+                    </span>
+                  ) : (
+                    <span className="text-muted-foreground">Sem correspondente no Estatuto vigente (definido pelo operador)</span>
+                  )}
+                </div>
+              )}
               <p className="text-xs text-muted-foreground">
                 O número da proposta vem do documento original importado; a &quot;ordem atual&quot; mostra o número sugerido
                 pela posição no sistema (divergências indicam que a ordem ainda não reflete o documento). O identificador
@@ -282,6 +306,8 @@ export default async function DevicePage({
             numero: prov.numero,
             titulo: prov.titulo,
             origem: prov.origem,
+            origem_ref_id: prov.origem_ref_id,
+            sem_origem: prov.sem_origem,
             alteracao_tipo: prov.alteracao_tipo,
             status: prov.status,
             texto_vigente: prov.texto_vigente,
@@ -294,6 +320,8 @@ export default async function DevicePage({
           canEditWork={canEditWork}
           canManage={canManage}
           canFixExtraction={canFixExtraction}
+          temVigente={Boolean(vigenteNode) || prov.texto_vigente.trim() !== ""}
+          origemOptions={origemOptions}
           directChildren={directChildren}
           parentType={parentType}
           suggestions={suggestions}

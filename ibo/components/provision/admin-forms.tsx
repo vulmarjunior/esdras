@@ -5,14 +5,27 @@ import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { PROVISION_TYPE_LABELS } from "@/lib/labels";
+import type { DispositivoOption } from "@/lib/data";
 import {
   createProvision,
   updateProvision,
   deleteProvision,
   setAlteracaoTipo,
+  setOrigemReferencia,
+  setTagNovo,
 } from "@/app/actions/provision";
 import { ConfirmDialog, type ConfirmDialogState } from "@/components/confirm-dialog";
 import { SubmitBtn } from "@/components/provision/submit-btn";
+
+function agruparPorCapitulo(options: DispositivoOption[]): [string, DispositivoOption[]][] {
+  const mapa = new Map<string, DispositivoOption[]>();
+  for (const option of options) {
+    const lista = mapa.get(option.chapter) ?? [];
+    lista.push(option);
+    mapa.set(option.chapter, lista);
+  }
+  return [...mapa.entries()];
+}
 
 export function NewProvisionForm({
   parentId,
@@ -20,6 +33,7 @@ export function NewProvisionForm({
   canEdit,
   types,
   label = "Incluir dispositivo",
+  origemOptions,
   onCreated,
 }: {
   parentId: string | null;
@@ -27,13 +41,15 @@ export function NewProvisionForm({
   canEdit: boolean;
   types?: string[];
   label?: string;
+  origemOptions?: DispositivoOption[];
   onCreated?: (id: string) => void;
 }) {
   const [open, setOpen] = useState(false);
   const onlyType = types?.length === 1 ? types[0] : "";
-  const [form, setForm] = useState({ tipo: onlyType, numero: "", titulo: "", texto: "", justificativa: "" });
+  const [form, setForm] = useState({ tipo: onlyType, numero: "", titulo: "", texto: "", justificativa: "", origemRefId: "" });
   const [pending, setPending] = useState(false);
   const router = useRouter();
+  const origemGroups = useMemo(() => agruparPorCapitulo(origemOptions ?? []), [origemOptions]);
 
   const allowed: Record<string, string[]> = {
     capitulo: ["secao", "artigo"],
@@ -51,11 +67,11 @@ export function NewProvisionForm({
 
   async function submit() {
     setPending(true);
-    const res = await createProvision(parentId, form.tipo, form.texto, form.justificativa, form.titulo, form.numero);
+    const res = await createProvision(parentId, form.tipo, form.texto, form.justificativa, form.titulo, form.numero, form.origemRefId || undefined);
     setPending(false);
     if (res.error) return toast.error(res.error);
     toast.success(res.message || "Dispositivo criado.");
-    setForm({ tipo: onlyType, numero: "", titulo: "", texto: "", justificativa: "" });
+    setForm({ tipo: onlyType, numero: "", titulo: "", texto: "", justificativa: "", origemRefId: "" });
     setOpen(false);
     if (res.id && onCreated) {
       onCreated(res.id);
@@ -128,6 +144,25 @@ export function NewProvisionForm({
         placeholder="Justificativa (opcional)"
         className="w-full rounded-md border bg-background px-3 py-2 text-sm"
       />
+      {origemGroups.length > 0 && (
+        <label className="block space-y-1 text-xs font-medium">
+          Origem (opcional — dispositivo do Estatuto registrado)
+          <select
+            value={form.origemRefId}
+            onChange={(e) => setForm({ ...form, origemRefId: e.target.value })}
+            className="h-9 w-full rounded-md border bg-background px-2 text-sm font-normal"
+          >
+            <option value="">Automático / sem referência</option>
+            {origemGroups.map(([capitulo, options]) => (
+              <optgroup key={capitulo || "__sem_capitulo__"} label={capitulo || "Sem capítulo"}>
+                {options.map((option) => (
+                  <option key={option.id} value={option.id}>{option.label}</option>
+                ))}
+              </optgroup>
+            ))}
+          </select>
+        </label>
+      )}
       <div className="flex flex-wrap items-center gap-2">
         <SubmitBtn label="Criar dispositivo" pending={pending} onClick={submit} />
         <Button size="sm" variant="ghost" onClick={() => setOpen(false)}>Cancelar</Button>
@@ -144,6 +179,10 @@ export function ProvisionAdminActions({
   numero,
   titulo,
   origem,
+  origemRefId,
+  semOrigem,
+  temVigente,
+  origemOptions,
   childCount,
   canEdit,
   alteracaoTipo,
@@ -154,6 +193,10 @@ export function ProvisionAdminActions({
   numero?: string | null;
   titulo?: string | null;
   origem: string;
+  origemRefId: string | null;
+  semOrigem: boolean;
+  temVigente: boolean;
+  origemOptions: DispositivoOption[];
   childCount: number;
   canEdit: boolean;
   alteracaoTipo: string;
@@ -162,9 +205,16 @@ export function ProvisionAdminActions({
 }) {
   const [editing, setEditing] = useState(false);
   const [pending, setPending] = useState(false);
+  const [tagNovoPending, setTagNovoPending] = useState(false);
+  const [origemPending, setOrigemPending] = useState(false);
   const [confirmState, setConfirmState] = useState<ConfirmDialogState | null>(null);
   const [form, setForm] = useState({ numero: numero ?? "", titulo: titulo ?? "", posicaoSugerida: "", type: "" });
   const router = useRouter();
+  const origemAtual = origemRefId ?? (semOrigem ? "__nenhuma__" : "__auto__");
+  const origemGroups = useMemo(
+    () => agruparPorCapitulo(origemOptions.filter((option) => option.id !== provisionId)),
+    [origemOptions, provisionId]
+  );
 
   const tiposValidos = useMemo(() => {
     const HIERARQUIA: Record<string, string[]> = {
@@ -225,6 +275,24 @@ export function ProvisionAdminActions({
     router.refresh();
   }
 
+  async function toggleTagNovo() {
+    setTagNovoPending(true);
+    const res = await setTagNovo(provisionId, origem !== "novo");
+    setTagNovoPending(false);
+    if (res.error) return toast.error(res.error);
+    toast.success(res.message || "Marcação atualizada.");
+    router.refresh();
+  }
+
+  async function changeOrigem(destino: string) {
+    setOrigemPending(true);
+    const res = await setOrigemReferencia(provisionId, destino);
+    setOrigemPending(false);
+    if (res.error) return toast.error(res.error);
+    toast.success(res.message || "Origem atualizada.");
+    router.refresh();
+  }
+
   return (
     <div className="space-y-2">
       {editing && (
@@ -264,7 +332,7 @@ export function ProvisionAdminActions({
         <Button size="sm" variant="outline" onClick={() => { setForm({ numero: numero ?? "", titulo: titulo ?? "", posicaoSugerida: "", type: "" }); setEditing(!editing); }}>
           {editing ? "Fechar edição" : "Editar dispositivo"}
         </Button>
-        {origem !== "original" && (
+        {!temVigente && (
           <Button
             size="sm"
             variant="outline"
@@ -274,9 +342,9 @@ export function ProvisionAdminActions({
             Excluir dispositivo
           </Button>
         )}
-        {origem === "original" && (
+        {temVigente && (
           <span className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
-            <span>Dispositivo original: para removê-lo do texto final, marque-o como revogado.</span>
+            <span>Dispositivo do Estatuto registrado: para removê-lo do texto final, marque-o como revogado.</span>
             <Button
               size="sm"
               variant={alteracaoTipo === "revogado" ? "default" : "outline"}
@@ -292,6 +360,42 @@ export function ProvisionAdminActions({
             </Button>
           </span>
         )}
+      </div>
+      <div className="grid gap-3 rounded-xl border bg-muted/25 p-3 sm:grid-cols-2">
+        <label className="flex items-start gap-2 text-sm">
+          <input
+            type="checkbox"
+            className="mt-0.5"
+            checked={origem === "novo"}
+            disabled={tagNovoPending}
+            onChange={toggleTagNovo}
+          />
+          <span>
+            <span className="font-medium">Dispositivo novo</span>
+            <span className="mt-0.5 block text-xs text-muted-foreground">
+              Marca o selo &quot;novo&quot; nos documentos; não altera o histórico nem as regras de exclusão/revogação.
+            </span>
+          </span>
+        </label>
+        <label className="block space-y-1 text-xs font-medium">
+          Origem no Estatuto registrado
+          <select
+            value={origemAtual}
+            disabled={origemPending}
+            onChange={(event) => changeOrigem(event.target.value)}
+            className="h-9 w-full rounded-md border bg-background px-2 text-sm font-normal disabled:opacity-60"
+          >
+            <option value="__auto__">Automático (próprio número vigente)</option>
+            <option value="__nenhuma__">Sem correspondente no Estatuto vigente</option>
+            {origemGroups.map(([capitulo, options]) => (
+              <optgroup key={capitulo || "__sem_capitulo__"} label={capitulo || "Sem capítulo"}>
+                {options.map((option) => (
+                  <option key={option.id} value={option.id}>{option.label}</option>
+                ))}
+              </optgroup>
+            ))}
+          </select>
+        </label>
       </div>
       <ConfirmDialog state={confirmState} pending={pending} onConfirm={remove} onClose={() => setConfirmState(null)} />
     </div>

@@ -7,6 +7,7 @@ import {
   aplicarNumeracao,
   numerosDaArvore,
   contarTipo,
+  resolverEra,
   type NoNumeravel,
 } from "../lib/numeracao";
 
@@ -143,4 +144,23 @@ describe("numeração derivada", () => {
     expect(numeros.has("a-rev")).toBe(false);
   });
 
+});
+
+describe("era efetiva (referência de origem)", () => {
+  it("sem anotação usa o próprio número vigente (automático)", () => {
+    expect(resolverEra({ numero: "5º" }, null)).toBe("5º");
+    expect(resolverEra({ numero: null }, null)).toBeNull();
+    expect(resolverEra({ numero: "5º", sem_origem: 0 }, null)).toBe("5º");
+  });
+
+  it("referência manual prevalece e usa o número do dispositivo referenciado", () => {
+    expect(resolverEra({ numero: null, origem_ref_id: "art-5" }, "12º")).toBe("12º");
+    expect(resolverEra({ numero: "5º", origem_ref_id: "art-5" }, "12º")).toBe("12º");
+    expect(resolverEra({ numero: "5º", origem_ref_id: "art-5" }, null)).toBeNull();
+  });
+
+  it("sem_origem oculta a correspondência mesmo com número armazenado", () => {
+    expect(resolverEra({ numero: "5º", sem_origem: 1 }, null)).toBeNull();
+    expect(resolverEra({ numero: "5º", sem_origem: true }, null)).toBeNull();
+  });
 });

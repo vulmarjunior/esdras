@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { get, all, run, transaction, now } from "@/lib/db";
 import { provisionLabel } from "@/lib/data";
 import type { Provision } from "@/lib/types";
+import { ORIGIN_LABELS } from "@/lib/labels";
 import { requireRole } from "@/lib/auth";
 import { sanitizeHtml } from "@/lib/rich-text";
 import { inserirApos, validarMovimento, type NoEstrutural } from "@/lib/reorder-core";
@@ -19,13 +20,32 @@ async function audit(userId: number, user_name: string, action: string, entity: 
   );
 }
 
+/**
+ * O dispositivo pertence ao Estatuto registrado (histórico)? Critério usado pela
+ * exclusão e pela referência de origem: placement vigente ou texto vigente.
+ * Não depende da tag `origem`, que é anotação de trabalho do operador.
+ */
+async function pertenceAoEstatutoRegistrado(provisionId: string): Promise<boolean> {
+  const placement = await get<{ id: number }>(
+    "SELECT id FROM provision_placements WHERE provision_id = ? AND version_key = 'vigente'",
+    [provisionId]
+  );
+  if (placement) return true;
+  const prov = await get<{ texto_vigente: string }>(
+    "SELECT texto_vigente FROM provisions WHERE id = ?",
+    [provisionId]
+  );
+  return Boolean(prov?.texto_vigente.trim());
+}
+
 export async function createProvision(
   parentId: string | null,
   tipo: string,
   texto: string,
   justificativa: string,
   titulo?: string,
-  numero?: string
+  numero?: string,
+  origemRefId?: string
 ): Promise<ActionState & { id?: string }> {
   const user = await requireRole(...rolesCom("gerenciar_dispositivos"));
   const tipos = ["capitulo", "secao", "artigo", "paragrafo", "inciso", "alinea"];
@@ -62,6 +82,14 @@ export async function createProvision(
   const id = `novo-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`;
   const posicao = pai ? `Após o atual ${provisionLabel(pai)}` : "Ao final do documento";
   const cleanTexto = sanitizeHtml(texto);
+  const refId = origemRefId?.trim() || null;
+  if (refId) {
+    const ref = await get<Provision>("SELECT * FROM provisions WHERE id = ?", [refId]);
+    if (!ref) return { error: "Dispositivo de origem não encontrado." };
+    if (!(await pertenceAoEstatutoRegistrado(refId))) {
+      return { error: "A origem deve ser um dispositivo do Estatuto registrado." };
+    }
+  }
 
   await transaction(async () => {
     const maxOrdem = (await get<{ m: number }>("SELECT COALESCE(MAX(ordem), 0) m FROM provisions"))?.m ?? 0;
@@ -70,10 +98,10 @@ export async function createProvision(
       : (await get<{ m: number }>("SELECT COALESCE(MAX(ordem_pai), -1) m FROM provision_placements WHERE version_key = 'proposta' AND parent_id IS NULL"))?.m ?? -1;
     await run(
       `INSERT INTO provisions
-       (id, parent_id, type, numero, titulo, ordem, ordem_pai, origem, alteracao_tipo, status,
+       (id, parent_id, type, numero, titulo, ordem, ordem_pai, origem, origem_ref_id, alteracao_tipo, status,
         proposta_inicial, redacao_trabalho, justificativa, posicao_sugerida, version, updated_at, updated_by)
-       VALUES (?, ?, ?, ?, ?, ?, ?, 'novo', 'novo', 'nao_iniciado', ?, ?, ?, ?, 0, ?, ?)`,
-      [id, parentId, tipo, numero?.trim() || null, titulo?.trim() || null, maxOrdem + 1, maxOrdemPai + 1, cleanTexto, cleanTexto, sanitizeHtml(justificativa || ""), posicao, ts, user.id]
+       VALUES (?, ?, ?, ?, ?, ?, ?, 'novo', ?, 'novo', 'nao_iniciado', ?, ?, ?, ?, 0, ?, ?)`,
+      [id, parentId, tipo, numero?.trim() || null, titulo?.trim() || null, maxOrdem + 1, maxOrdemPai + 1, refId, cleanTexto, cleanTexto, sanitizeHtml(justificativa || ""), posicao, ts, user.id]
     );
     await run(
       `INSERT INTO provision_placements
@@ -88,7 +116,7 @@ export async function createProvision(
          updated_by = EXCLUDED.updated_by`,
       [id, parentId, numero?.trim() || null, titulo?.trim() || null, maxOrdemPai + 1, ts, user.id]
     );
-    await audit(user.id, user.name, `Criou novo ${tipo}`, "provision", id, `Posição: ${posicao}`);
+    await audit(user.id, user.name, `Criou novo ${tipo}`, "provision", id, `Posição: ${posicao}${refId ? `; origem: ${refId}` : ""}`);
   });
 
   revalidatePath("/");
@@ -200,6 +228,122 @@ export async function updateProvisionTitle(provisionId: string, titulo: string):
   revalidatePath("/comparativo");
   await publishRealtime({ entity: "provision_placement", id: provisionId, action: "titulo_editado" });
   return { ok: true, message: "Título atualizado." };
+}
+
+/**
+ * Anotação de trabalho: liga/desliga o selo "novo". Não altera o histórico, os
+ * placements nem as regras de exclusão/revogação (que seguem o Estatuto registrado).
+ */
+export async function setTagNovo(provisionId: string, novo: boolean): Promise<ActionState> {
+  const user = await requireRole(...rolesCom("classificar_alteracao"));
+  const prov = await get<Provision>("SELECT * FROM provisions WHERE id = ?", [provisionId]);
+  if (!prov) return { error: "Dispositivo não encontrado." };
+  const destino: Provision["origem"] = novo ? "novo" : "original";
+  if (prov.origem === destino) {
+    return {
+      ok: true,
+      message: novo ? "O dispositivo já está marcado como novo." : "O dispositivo já está marcado como original.",
+    };
+  }
+  const ts = now();
+  await transaction(async () => {
+    await run("UPDATE provisions SET origem = ?, updated_at = ?, updated_by = ? WHERE id = ?", [
+      destino,
+      ts,
+      user.id,
+      provisionId,
+    ]);
+    await audit(
+      user.id,
+      user.name,
+      novo ? "Marcou dispositivo como novo" : "Desmarcou dispositivo novo",
+      "provision",
+      provisionId,
+      `${provisionLabel(prov)}: ${ORIGIN_LABELS[prov.origem]} → ${ORIGIN_LABELS[destino]}`
+    );
+  });
+  revalidatePath("/");
+  revalidatePath("/mesa-trabalho");
+  revalidatePath(`/dispositivo/${provisionId}`);
+  revalidatePath("/consolidado");
+  revalidatePath("/comparativo");
+  revalidatePath("/revisao");
+  revalidatePath("/renumeracao");
+  await publishRealtime({ entity: "provision", id: provisionId, action: "tag_novo" });
+  return { ok: true, message: novo ? "Dispositivo marcado como novo." : "Marcação de novo removida." };
+}
+
+/**
+ * Anotação de trabalho: define a origem no Estatuto registrado.
+ * `__auto__` volta ao próprio número vigente; `__nenhuma__` declara que não há
+ * correspondente; um id aponta o dispositivo de origem (define o chip "era N"
+ * e o texto apresentado na aba Origem da Mesa).
+ */
+export async function setOrigemReferencia(
+  provisionId: string,
+  destino: "__auto__" | "__nenhuma__" | string
+): Promise<ActionState> {
+  const user = await requireRole(...rolesCom("gerenciar_dispositivos"));
+  const prov = await get<Provision>("SELECT * FROM provisions WHERE id = ?", [provisionId]);
+  if (!prov) return { error: "Dispositivo não encontrado." };
+
+  let refId: string | null = null;
+  let semOrigem = 0;
+  let mensagem = "Correspondência automática restaurada.";
+
+  if (destino === "__auto__") {
+    refId = null;
+    semOrigem = 0;
+  } else if (destino === "__nenhuma__") {
+    refId = null;
+    semOrigem = 1;
+    mensagem = "Dispositivo marcado como sem correspondente no Estatuto vigente.";
+  } else {
+    refId = destino.trim();
+    if (!refId) return { error: "Dispositivo de origem inválido." };
+    if (refId === provisionId) return { error: "O dispositivo não pode ter a si mesmo como origem." };
+    const ref = await get<Provision>("SELECT * FROM provisions WHERE id = ?", [refId]);
+    if (!ref) return { error: "Dispositivo de origem não encontrado." };
+    if (!(await pertenceAoEstatutoRegistrado(refId))) {
+      return { error: "A origem deve ser um dispositivo do Estatuto registrado." };
+    }
+    let atual: string | null = refId;
+    for (let i = 0; i < 20 && atual; i++) {
+      const linha: { origem_ref_id: string | null } | undefined = await get(
+        "SELECT origem_ref_id FROM provisions WHERE id = ?",
+        [atual]
+      );
+      atual = linha?.origem_ref_id ?? null;
+      if (atual === provisionId) return { error: "Referência circular de origem não é permitida." };
+    }
+    mensagem = `Origem definida: ${provisionLabel(ref)}.`;
+  }
+
+  const ts = now();
+  const anterior = prov.origem_ref_id ?? (prov.sem_origem ? "sem correspondente" : "automático");
+  const novo = refId ?? (semOrigem ? "sem correspondente" : "automático");
+  await transaction(async () => {
+    await run(
+      "UPDATE provisions SET origem_ref_id = ?, sem_origem = ?, updated_at = ?, updated_by = ? WHERE id = ?",
+      [refId, semOrigem, ts, user.id, provisionId]
+    );
+    await audit(
+      user.id,
+      user.name,
+      "Definiu origem referenciada",
+      "provision",
+      provisionId,
+      `${provisionLabel(prov)}: ${anterior} → ${novo}`
+    );
+  });
+  revalidatePath("/");
+  revalidatePath("/mesa-trabalho");
+  revalidatePath(`/dispositivo/${provisionId}`);
+  revalidatePath("/consolidado");
+  revalidatePath("/comparativo");
+  revalidatePath("/renumeracao");
+  await publishRealtime({ entity: "provision", id: provisionId, action: "origem_referencia" });
+  return { ok: true, message: mensagem };
 }
 
 /**
@@ -448,10 +592,10 @@ export async function deleteProvision(provisionId: string): Promise<ActionState>
   const user = await requireRole(...rolesCom("gerenciar_dispositivos"));
   const prov = await get<Provision>("SELECT * FROM provisions WHERE id = ?", [provisionId]);
   if (!prov) return { error: "Dispositivo não encontrado." };
-  if (prov.origem === "original") {
+  if (await pertenceAoEstatutoRegistrado(provisionId)) {
     return {
       error:
-        "Dispositivo original do Estatuto registrado não pode ser excluído (documento histórico). Para removê-lo do texto final, altere o status para 'revogado'.",
+        "Dispositivo do Estatuto registrado não pode ser excluído (documento histórico). Para removê-lo do texto final, altere o status para 'revogado'.",
     };
   }
   const descendentes = (await get<{ c: number }>(
