@@ -30,7 +30,7 @@ export default async function VisualizarNovaMesa(){
   return <div className="mx-auto max-w-5xl space-y-4">
     <header className="flex flex-wrap items-center justify-between gap-3">
       <div><h1 className="text-2xl font-semibold">Nova minuta do Estatuto</h1>
-        <p className="text-sm text-muted-foreground">Visualização somente leitura · Versão {snapshot.version} · Texto em elaboração, não aprovado.</p></div>
+        <p className="text-sm text-muted-foreground">Visualização somente leitura · Versão {snapshot.version} · Minuta em elaboração · consulte a aprovação de cada dispositivo.</p></div>
       {canEdit&&<Link href="/mesa-trabalho" className="rounded border px-3 py-2 text-sm">Abrir editor</Link>}
     </header>
     <article aria-label="Minuta em elaboração" className="min-w-0 rounded-xl border bg-white p-5 text-zinc-900 shadow-sm sm:p-8">
@@ -38,7 +38,7 @@ export default async function VisualizarNovaMesa(){
       {rows.length===0?<p className="text-zinc-600">A minuta ainda não possui dispositivos.</p>:rows.map(row=><div key={row.node.id}
         className="my-3 min-w-0 whitespace-pre-wrap break-words leading-relaxed"
         style={{marginLeft:Math.min(row.depth,4)*16,textAlign:row.node.alignment??"left"}}>
-        <strong>{row.label}</strong>{row.node.text}
+        <strong>{row.label}</strong>{row.node.text}{row.node.approved&&<span className="ml-2 inline-block rounded-full border border-emerald-300 bg-emerald-50 px-2 py-0.5 text-xs font-semibold text-emerald-800">Aprovado pela comissão</span>}
       </div>)}
     </article>
   </div>;
