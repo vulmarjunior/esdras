@@ -2,9 +2,11 @@
 
 import { useLayoutEffect, useRef, useState } from "react";
 import {
-  canContain, changeText, Draft, DraftNode, findNode, insertAfter,
-  labelFor, moveNode, newNode, NodeType, removeNode,
+  canContain, Draft, DraftNode, findNode, formatSelection, insertAfter,
+  labelFor, moveNode, newNode, NodeType, removeNode, setAlignment, setRichText,
 } from "@/lib/nova-mesa-poc/model";
+
+import { Alignment, Mark, TextRun, toRuns } from "@/lib/nova-mesa-poc/rich-text";
 
 const names: Record<NodeType,string> = {
   chapter:"Capítulo", article:"Artigo", paragraph:"Parágrafo",
@@ -28,6 +30,32 @@ function flatten(draft:Draft):Row[]{
 function bodyFrom(target:Node|null):HTMLElement|null{
   const element=target?.nodeType===Node.ELEMENT_NODE ? target as Element : target?.parentElement;
   return element?.closest<HTMLElement>("[data-body-id]")??null;
+}
+function runsFromElement(body:HTMLElement):TextRun[]{
+  const runs:TextRun[]=[];
+  const visit=(node:Node,marks:Mark[])=>{
+    if(node.nodeType===Node.TEXT_NODE){if(node.textContent)runs.push({text:node.textContent,marks});return;}
+    if(node.nodeType!==Node.ELEMENT_NODE)return;
+    const element=node as Element,tag=element.tagName.toLowerCase();
+    const mark:Mark|undefined=tag==="strong"||tag==="b"?"bold":tag==="em"||tag==="i"?"italic":tag==="u"?"underline":undefined;
+    const next=mark&&!marks.includes(mark)?[...marks,mark]:marks;
+    if(tag==="br"){runs.push({text:"\n",marks:next});return;}
+    for(const child of Array.from(element.childNodes))visit(child,next);
+  };
+  for(const child of Array.from(body.childNodes))visit(child,[]);
+  return runs;
+}
+function renderRuns(body:HTMLElement,runs:TextRun[]){
+  const fragment=document.createDocumentFragment();
+  for(const run of runs){
+    let child:Node=document.createTextNode(run.text);
+    for(const mark of run.marks){
+      const wrapper=document.createElement(mark==="bold"?"strong":mark==="italic"?"em":"u");
+      wrapper.appendChild(child);child=wrapper;
+    }
+    fragment.appendChild(child);
+  }
+  body.replaceChildren(fragment);
 }
 export default function ContinuousEditorLab(){
   const [draft,setDraft]=useState<Draft>(initial);
@@ -56,7 +84,7 @@ export default function ContinuousEditorLab(){
     // operações estruturais, inclusive ao desfazer.
     for(const body of root.current?.querySelectorAll<HTMLElement>("[data-body-id]")??[]){
       const node=findNode(live.current.nodes,body.dataset.bodyId??"");
-      if(node && body.textContent!==node.text)body.textContent=node.text;
+      if(node)renderRuns(body,node.runs??toRuns(node.text));
     }
     const id=pendingFocus.current; if(!id)return;
     pendingFocus.current=null;
@@ -99,7 +127,7 @@ export default function ContinuousEditorLab(){
     const body=bodyFrom(event.target as Node);
     const id=body?.dataset.bodyId;
     if(!id)return;
-    live.current=changeText(live.current,id,body?.innerText??"");
+    live.current=setRichText(live.current,id,runsFromElement(body));
     setSavedLocal(false);
   };
   const onBeforeInput=(event:InputEvent)=>{
@@ -129,7 +157,7 @@ export default function ContinuousEditorLab(){
     range.deleteContents();const text=document.createTextNode(value);range.insertNode(text);
     range.setStartAfter(text);range.collapse(true);selection.removeAllRanges();selection.addRange(range);
     const body=bodyFrom(text);const id=body?.dataset.bodyId;
-    if(id){live.current=changeText(live.current,id,body?.innerText??"");setSavedLocal(false);}
+    if(id&&body){live.current=setRichText(live.current,id,runsFromElement(body));setSavedLocal(false);}
   };
   const download=()=>{
     const blob=new Blob([JSON.stringify(live.current,null,2)],{type:"application/json"});
