@@ -63,8 +63,8 @@ export default function WorkspaceShell({children,outline,onNavigate,selectedLabe
   </section>:null;
   return <div className="mx-auto w-full max-w-[1800px] min-w-0 px-3 py-4 lg:px-6">
     <header className="mb-4 flex flex-wrap items-center justify-between gap-3">
-      <div className="min-w-0"><h1 className="text-xl font-semibold">Mesa de Trabalho · Laboratório</h1>
-        <p className="text-sm text-muted-foreground">Nova minuta independente · Salvamento manual experimental, sujeito à disponibilidade do banco</p></div>
+      <div className="min-w-0"><h1 className="text-xl font-semibold">Mesa de Trabalho · Nova minuta</h1>
+        <p className="text-sm text-muted-foreground">Minuta em elaboração · Salvamento manual no servidor</p></div>
       <div className="flex flex-wrap gap-2">
         <button type="button" className="rounded border px-3 py-2 text-sm" aria-expanded={outlineOpen} onClick={()=>setOutlineOpen(v=>!v)}>{outlineOpen?"Ocultar sumário":"Mostrar sumário"}</button>
         <button type="button" className="rounded border px-3 py-2 text-sm" aria-expanded={supportOpen} onClick={()=>setSupportOpen(v=>!v)}>{supportOpen?"Ocultar apoio":"Mostrar apoio"}</button>
