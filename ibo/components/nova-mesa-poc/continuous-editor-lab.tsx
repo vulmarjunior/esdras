@@ -315,7 +315,7 @@ export default function ContinuousEditorLab({canEdit}:{canEdit:boolean}){
     <main className="min-w-0">
 
 
-    <div className="sticky top-0 z-30 mb-2 flex flex-wrap items-center gap-2 rounded-lg border bg-background/95 px-3 py-2 text-sm shadow-md backdrop-blur">
+    <div className="sticky top-0 z-30 mb-2 md:top-12 flex flex-wrap items-center gap-2 rounded-lg border bg-background/95 px-3 py-2 text-sm shadow-md backdrop-blur">
       <span role="status">{loading?"Carregando minuta…":loadingError?"Carregamento indisponível":conflict?"Conflito de versões":saving?"Salvando automaticamente…":dirty?"Alterações pendentes · autosave em 2,5 s":"Minuta salva"}{!loading&&!loadingError?" · versão "+version:""}</span>
       <button type="button" disabled={!editable||!dirty||saving} className="rounded border px-3 py-2 disabled:opacity-50" onClick={()=>{void save();}}>{saving?"Salvando…":"Salvar agora"}</button>
       <button type="button" disabled={!editable} aria-expanded={insertOpen} className="rounded border border-blue-500 bg-blue-50 px-3 py-2 font-semibold text-blue-900 disabled:opacity-50" onClick={()=>setInsertOpen(v=>!v)}>+ Inserir dispositivo</button>
