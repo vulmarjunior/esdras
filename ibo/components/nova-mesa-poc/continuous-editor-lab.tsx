@@ -356,6 +356,18 @@ export default function ContinuousEditorLab({canEdit}:{canEdit:boolean}){
       {(["left","center","right","justify"] as Alignment[]).map(alignment=>
         <button type="button" key={alignment} title={alignment} disabled={!editable} onMouseDown={event=>event.preventDefault()} onClick={()=>align(alignment)}
           className="rounded border px-3 py-2 text-sm">{alignment==="left"?"Esquerda":alignment==="center"?"Centro":alignment==="right"?"Direita":"Justificar"}</button>)}
+      <div role="toolbar" aria-label="Organização dos dispositivos" className="flex flex-wrap items-center gap-1.5 border-t pt-2">
+        <span className="mr-1 text-xs font-semibold text-muted-foreground">Organização</span>
+      <button type="button" className="rounded border px-2.5 py-1.5 text-sm disabled:opacity-50" title="Mover o dispositivo ativo para cima" disabled={!editable||!selected} onMouseDown={event=>event.preventDefault()} onClick={()=>move(-1)}>↑ Mover</button>
+      <button type="button" className="rounded border px-2.5 py-1.5 text-sm disabled:opacity-50" title="Mover o dispositivo ativo para baixo" disabled={!editable||!selected} onMouseDown={event=>event.preventDefault()} onClick={()=>move(1)}>↓ Mover</button>
+      <button type="button" className="rounded border px-2.5 py-1.5 text-sm disabled:opacity-50" title="Remover dispositivo ativo" disabled={!editable||!selected} onMouseDown={event=>event.preventDefault()} onClick={()=>{
+        const current=selectedRef.current;if(!current)return;commit(removeNode(live.current,current.id));selectedRef.current=null;setSelected(null);
+      }}>Retirar</button>
+      <button type="button" className="rounded border px-2.5 py-1.5 text-sm disabled:opacity-50" title="Desfazer a última alteração estrutural" disabled={!editable||!undo.length} onMouseDown={event=>event.preventDefault()} onClick={()=>{
+        const prior=undo.at(-1);if(!prior)return;live.current=prior;setDraft(prior);setRevision(n=>n+1);
+        setUndo(history=>history.slice(0,-1));selectedRef.current=null;setSelected(null);markDirty();
+      }}>Desfazer estrutura</button>
+      </div>
     </div>
       </div>
     </div>
@@ -394,15 +406,7 @@ export default function ContinuousEditorLab({canEdit}:{canEdit:boolean}){
     <div className="mb-2 flex flex-wrap items-center gap-1.5">
       <button type="button" className="rounded border px-3 py-1" onClick={download}>Exportar cópia (JSON)</button>
       <span className="text-xs text-amber-700">{savedLocal?"Cópia JSON exportada; alterações posteriores requerem nova exportação.":dirty?"Alterações locais pendentes: salve antes de sair.":"Use Exportar JSON para criar uma cópia independente."}</span>
-      <button type="button" className="rounded border px-3 py-1" disabled={!editable||!selected} onClick={()=>move(-1)}>↑ Mover</button>
-      <button type="button" className="rounded border px-3 py-1" disabled={!editable||!selected} onClick={()=>move(1)}>↓ Mover</button>
-      <button type="button" className="rounded border px-3 py-1" disabled={!editable||!selected} onClick={()=>{
-        const current=selectedRef.current;if(!current)return;commit(removeNode(live.current,current.id));selectedRef.current=null;setSelected(null);
-      }}>Retirar</button>
-      <button type="button" className="rounded border px-3 py-1" disabled={!editable||!undo.length} onClick={()=>{
-        const prior=undo.at(-1);if(!prior)return;live.current=prior;setDraft(prior);setRevision(n=>n+1);
-        setUndo(history=>history.slice(0,-1));selectedRef.current=null;setSelected(null);markDirty();
-      }}>Desfazer estrutura</button>
+
 
     </div>
     {notice&&<p role="status" className="mb-3 text-sm text-amber-700">{notice}</p>}
