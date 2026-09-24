@@ -4,7 +4,7 @@ import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import {loadNovaMesaDraft,saveNovaMesaDraft,checkpointNovaMesaVersion,listNovaMesaVersions,readNovaMesaVersion,restoreNovaMesaVersion} from "@/app/actions/nova-mesa-draft";
 import {
   canContain, Draft, DraftNode, findNode, formatSelection, insertAfter,
-  labelFor, moveNode, newNode, NodeType, removeNode, setAlignment, setRichText,
+  labelFor, moveNode, newNode, NodeType, removeNode, setAlignment, setApproved, setRichText,
 } from "@/lib/nova-mesa-poc/model";
 
 import { Alignment, Mark, TextRun, toRuns } from "@/lib/nova-mesa-poc/rich-text";
@@ -263,6 +263,15 @@ export default function ContinuousEditorLab({canEdit}:{canEdit:boolean}){
     };
     window.addEventListener("keydown",keydown);return()=>window.removeEventListener("keydown",keydown);
   });
+  const toggleApproved=()=>{
+    if(!editable)return;
+    const current=selectedRef.current;
+    if(!current)return;
+    const node=findNode(live.current.nodes,current.id);
+    if(!node)return;
+    commit(setApproved(live.current,current.id,!node.approved),current.id);
+    setNotice(node.approved?"Marcação de aprovação retirada.":"Dispositivo marcado como aprovado pela comissão.");
+  };
   const move=(direction:-1|1)=>{
     if(!editable)return;
     const current=selectedRef.current;if(!current)return;
@@ -395,6 +404,7 @@ export default function ContinuousEditorLab({canEdit}:{canEdit:boolean}){
           className="rounded border px-3 py-2 text-sm">{alignment==="left"?"Esquerda":alignment==="center"?"Centro":alignment==="right"?"Direita":"Justificar"}</button>)}
       <div role="toolbar" aria-label="Organização dos dispositivos" className="flex flex-wrap items-center gap-1.5 border-t pt-2">
         <span className="mr-1 text-xs font-semibold text-muted-foreground">Organização</span>
+      <button type="button" disabled={!editable||!activeRow} onMouseDown={event=>event.preventDefault()} onClick={toggleApproved} className={"rounded border px-2.5 py-1.5 text-sm font-semibold disabled:opacity-50 "+(activeRow?.node.approved?"border-emerald-500 bg-emerald-50 text-emerald-800":"")}>{activeRow?.node.approved?"✓ Retirar aprovação":"✓ Marcar aprovado"}</button>
       <button type="button" className="rounded border px-2.5 py-1.5 text-sm disabled:opacity-50" title="Mover o dispositivo ativo para cima" disabled={!editable||!selected} onMouseDown={event=>event.preventDefault()} onClick={()=>move(-1)}>↑ Mover</button>
       <button type="button" className="rounded border px-2.5 py-1.5 text-sm disabled:opacity-50" title="Mover o dispositivo ativo para baixo" disabled={!editable||!selected} onMouseDown={event=>event.preventDefault()} onClick={()=>move(1)}>↓ Mover</button>
       <button type="button" className="rounded border px-2.5 py-1.5 text-sm disabled:opacity-50" title="Transferir o artigo ativo para outro capítulo" disabled={!editable||!movingArticle||chapters.length===0} onMouseDown={event=>event.preventDefault()} onClick={()=>{if(!movingArticle)return;const initial=chapters.find(row=>row.node.id!==movingArticle.parentId)??chapters[0];setTargetChapter(initial.node.id);setTargetAfter("__end__");setTransferOpen(v=>!v);setInsertOpen(false);}}>Mover para capítulo…</button>
@@ -478,7 +488,7 @@ export default function ContinuousEditorLab({canEdit}:{canEdit:boolean}){
         className={"group relative my-3 rounded-md border-l-4 py-2 pl-3 pr-1 transition-colors "+(selected?.id===row.node.id?"border-blue-600 bg-blue-50/70 ring-1 ring-blue-200":hovered===row.node.id?"border-slate-300 bg-slate-50":"border-transparent")}
         style={{marginLeft:Math.min(row.depth,4)*16}}>
         {selected?.id===row.node.id&&<div contentEditable={false} className="mb-1 flex flex-wrap items-center gap-2 text-xs text-blue-800"><strong>{names[row.node.type]} ativo</strong><button type="button" disabled={!editable} className="rounded border border-blue-400 bg-white px-2 py-1 font-semibold disabled:opacity-50" onMouseDown={event=>event.preventDefault()} onClick={()=>{setInsertOpen(v=>!v);}}>+ Inserir após / dentro</button><button type="button" disabled={!editable} className="rounded border bg-white px-2 py-1 disabled:opacity-50" onMouseDown={event=>event.preventDefault()} onClick={()=>add(suggested)}>+ {names[suggested]} sugerido</button></div>}
-        <span contentEditable={false} className="select-none font-semibold">{labelFor(row.node,row.siblings,row.articleNumber,row.chapterNumber)}</span>
+        <span contentEditable={false} className="select-none font-semibold">{labelFor(row.node,row.siblings,row.articleNumber,row.chapterNumber)}</span>{row.node.approved&&<span contentEditable={false} className="mr-2 inline-block select-none rounded-full border border-emerald-300 bg-emerald-50 px-2 py-0.5 text-xs font-semibold text-emerald-800">✓ Aprovado pela comissão</span>}
         <span contentEditable={editable} suppressContentEditableWarning onInput={onInput} onBeforeInput={event=>onBeforeInput(event.nativeEvent as InputEvent)} onPaste={onPaste} data-body-id={row.node.id} data-poc-body="true" className={"inline-block min-w-[55%] whitespace-pre-wrap align-top outline-offset-2 "+(["chapter","section","subsection"].includes(row.node.type)?"font-bold":"")}
           style={{textAlign:row.node.alignment??(["chapter","section","subsection"].includes(row.node.type)?"center":"justify")}} data-placeholder={row.node.type==="free"?"Texto livre reservado":"Redação pendente"}></span>
         {row.node.type==="free"&&<span contentEditable={false} className="ml-2 select-none text-xs text-amber-700">Provisório · reservado</span>}
