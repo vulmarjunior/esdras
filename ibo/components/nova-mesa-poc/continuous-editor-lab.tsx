@@ -105,7 +105,7 @@ export default function ContinuousEditorLab({canEdit}:{canEdit:boolean}){
     }catch{setLoadingError("Falha ao carregar. Verifique se a migração isolada foi aplicada ao banco. Edição bloqueada para evitar perda de dados.");}
     finally{setLoading(false);}
   };
-  useEffect(()=>{void load().finally(()=>{autoEnabled.current=true;});return()=>{autoEnabled.current=false;if(autoTimer.current)clearTimeout(autoTimer.current);};},[]);
+  useEffect(()=>{autoEnabled.current=true;void load();return()=>{autoEnabled.current=false;if(autoTimer.current)clearTimeout(autoTimer.current);};},[]);
   useEffect(()=>{
     const warn=(event:BeforeUnloadEvent)=>{if(dirtyRef.current){event.preventDefault();event.returnValue="";}};
     window.addEventListener("beforeunload",warn);
@@ -119,15 +119,15 @@ export default function ContinuousEditorLab({canEdit}:{canEdit:boolean}){
       const result=await saveNovaMesaDraft(snapshot,versionRef.current);
       if(result.ok){
         versionRef.current=result.version;setVersion(result.version);
+        if(sequence!==editCount.current&&autoEnabled.current){if(autoTimer.current)clearTimeout(autoTimer.current);autoTimer.current=setTimeout(()=>{autoTimer.current=null;void saveRef.current();},2500);}
         if(sequence===editCount.current){dirtyRef.current=false;setDirty(false);setNotice("Versão "+result.version+" salva no servidor.");}
         else setNotice("Uma versão foi salva, mas há alterações posteriores pendentes.");
       }else if("conflict" in result){
         setConflict(true);setSaveError("Conflito: outra sessão salvou alterações. Exporte uma cópia JSON antes de recarregar. Nenhum texto foi sobrescrito.");
       }else setSaveError(result.error);
     }catch{setSaveError("Falha ao salvar. Preserve uma cópia JSON e tente novamente.");}
-    finally{savingRef.current=false;setSaving(false);
-      if(dirtyRef.current&&!conflict&&autoEnabled.current&&!autoTimer.current)autoTimer.current=setTimeout(()=>{autoTimer.current=null;void saveRef.current();},2500);
-    }
+    finally{savingRef.current=false;setSaving(false);}
+
   };
   saveRef.current=save;
   const showHistory=async()=>{
