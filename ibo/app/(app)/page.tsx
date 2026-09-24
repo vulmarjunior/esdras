@@ -1,182 +1,50 @@
-import { redirect } from "next/navigation";
-import { getSessionUser } from "@/lib/auth";
-import {
-  getArvoreDaVersao,
-  getNumerosArmazenados,
-  getNumerosVigentesRegistrados,
-  getStatusCounts,
-  getStatusCountsProposta,
-  getArticleCount,
-  getArticleCountProposta,
-  getPersonalNoteIds,
-  getIdsComPendenciasAbertas,
-  getVigenteTree,
-  listarDispositivos,
-  type TreeNode,
-} from "@/lib/data";
-import { all } from "@/lib/db";
-import { numerarArvore, rotuloDe } from "@/lib/numeracao";
 import Link from "next/link";
-import { getVersaoTrabalho } from "@/lib/versao";
-import { Card, CardContent } from "@/components/ui/card";
-import { Progress } from "@/components/ui/progress";
-import { StatusDot } from "@/components/status-badge";
-import { NewProvisionForm } from "@/components/provision/provision-forms";
-import { DashboardTree } from "@/components/dashboard/dashboard-tree";
-import { VersionToggle } from "@/components/version-toggle";
-import { FirstSteps } from "@/components/onboarding/first-steps";
-import { CheckCircle2, Circle, Loader2, PenLine, RotateCcw, AlertCircle, Layers } from "lucide-react";
+import {redirect} from "next/navigation";
+import {getSessionUser} from "@/lib/auth";
+import {loadNovaMesaDraft} from "@/app/actions/nova-mesa-draft";
+import type {DraftNode} from "@/lib/nova-mesa-poc/model";
+import {BookOpen,PenLine,FileText,Archive,CalendarDays,Library,ArrowRight,CheckCircle2} from "lucide-react";
 
-const ORDER = ["nao_iniciado", "em_analise", "em_discussao", "redacao_definida", "aprovado", "reaberto"];
-
-const STATUS_META: Record<string, { label: string; icon: typeof Circle }> = {
-  nao_iniciado: { label: "Não iniciados", icon: Circle },
-  em_analise: { label: "Em análise", icon: Loader2 },
-  em_discussao: { label: "Em discussão", icon: PenLine },
-  redacao_definida: { label: "Redação definida", icon: CheckCircle2 },
-  aprovado: { label: "Redações concluídas", icon: CheckCircle2 },
-  reaberto: { label: "Reabertos", icon: RotateCcw },
-};
-
-export const dynamic = "force-dynamic";
-
-function proximoNaoIniciado(nodes: TreeNode[]): TreeNode | null {
-  for (const n of nodes) {
-    if (n.alteracao_tipo === "revogado") continue;
-    if (n.type === "artigo" && n.status === "nao_iniciado") return n;
-    const sub = proximoNaoIniciado(n.children);
-    if (sub) return sub;
-  }
-  return null;
+export const dynamic="force-dynamic";
+function count(nodes:DraftNode[]){
+  const result={chapters:0,articles:0,approved:0,devices:0};
+  const visit=(items:DraftNode[])=>{for(const n of items){
+    result.devices++;if(n.type==="chapter")result.chapters++;
+    if(n.type==="article")result.articles++;
+    if(n.approved)result.approved++;
+    visit(n.children);
+  }};visit(nodes);return result;
 }
-
-export default async function DashboardPage() {
-  const user = await getSessionUser();
-  if (!user) redirect("/login");
-
-  const versao = await getVersaoTrabalho();
-  const tree = await getArvoreDaVersao(versao);
-  const notedIds = await getPersonalNoteIds(user.id);
-  const pendenciasIds = await getIdsComPendenciasAbertas();
-
-  // Na proposta, o número principal é o do documento original (placements);
-  // a numeração derivada da ordem entra como sugestão quando divergir.
-  // A "era" (getNumerosArmazenados("vigente")) pode ter referência manual do
-  // operador; no modo Vigente exibimos os números registrados do Estatuto.
-  const numerosProposta = await getNumerosArmazenados("proposta");
-  const erasVigentes = await getNumerosArmazenados("vigente");
-  const numerosRegistrados = await getNumerosVigentesRegistrados();
-  const derivados = numerarArvore(tree);
-  const numeros = versao === "proposta" ? numerosProposta : numerosRegistrados;
-  const contraparte = versao === "proposta" ? erasVigentes : numerosProposta;
-  const sugeridos = versao === "proposta" ? derivados : new Map<string, string>();
-
-  const counts = versao === "proposta" ? await getStatusCountsProposta() : await getStatusCounts();
-  const totalArtigos = versao === "proposta" ? await getArticleCountProposta() : await getArticleCount();
-  const analyzed = totalArtigos - counts.nao_iniciado;
-  const pct = totalArtigos ? Math.round((counts.aprovado / totalArtigos) * 100) : 0;
-  const pendingCount = (await all<{ c: number }>("SELECT COUNT(*) c FROM pending_issues WHERE status = 'aberta'"))[0]?.c ?? 0;
-  const capitulos = tree.filter((n) => n.type === "capitulo" && n.alteracao_tipo !== "revogado").length;
-  const proximo = proximoNaoIniciado(tree);
-  const origemOptions = listarDispositivos(await getVigenteTree());
-
-  return (
-    <div className="space-y-6">
-      <section className="relative overflow-hidden rounded-2xl border bg-card p-5 sm:p-8">
-        <div className="pointer-events-none absolute -top-24 -right-24 h-64 w-64 rounded-full bg-primary/5 blur-3xl" />
-        <div className="relative flex flex-wrap items-end justify-between gap-5">
-          <div className="min-w-0">
-            <p className="mb-1 flex items-center gap-2 text-xs font-medium uppercase tracking-wider text-muted-foreground">
-              <Layers className="h-3.5 w-3.5" /> Painel da Reforma
-            </p>
-            <h2 className="font-heading text-xl font-semibold tracking-tight sm:text-3xl">
-              Reforma do Estatuto Social da Igreja Batista Olaria
-            </h2>
-            <p className="mt-2 max-w-xl text-sm text-muted-foreground">
-              {totalArtigos} artigos organizados em {capitulos} capítulos. Analise dispositivo por
-              dispositivo, apresente sugestões de redação e acompanhe a consolidação do novo Estatuto.
-            </p>
-            <div className="mt-3 flex flex-wrap items-center gap-2">
-              <VersionToggle versao={versao} />
-              <span className="text-xs text-muted-foreground">
-                {versao === "proposta"
-                  ? "Ordem e numeração de trabalho da reforma (revogados não ocupam número)."
-                  : "Estatuto registrado, na numeração histórica."}
-              </span>
-            </div>
-          </div>
-          <div className="w-full max-w-xs">
-            <div className="mb-1.5 flex items-baseline justify-between">
-              <span className="text-sm text-muted-foreground">{analyzed} de {totalArtigos} analisados</span>
-              <span className="font-heading text-3xl font-semibold text-primary">{pct}%</span>
-            </div>
-            <Progress value={pct} className="h-2.5" />
-            <p className="mt-1.5 text-xs text-muted-foreground">
-              concluído{versao === "proposta" ? " (escopo da proposta)" : ""}
-            </p>
-          </div>
-        </div>
-      </section>
-
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-7">
-        {ORDER.map((s) => {
-          const meta = STATUS_META[s];
-          const Icon = meta.icon;
-          const isPending = s === "nao_iniciado";
-          return (
-            <Card key={s} className="transition-shadow hover:shadow-md">
-              <CardContent className="flex flex-col gap-1.5 p-3.5">
-                <span className="flex items-center gap-1.5 text-[11px] font-medium text-muted-foreground">
-                  <Icon className={`h-3.5 w-3.5 ${isPending ? "text-zinc-400" : ""}`} />
-                  {meta.label}
-                </span>
-                <span className="text-2xl font-semibold tabular-nums">{counts[s]}</span>
-                <StatusDot status={s} />
-              </CardContent>
-            </Card>
-          );
-        })}
-        <Card className="transition-shadow hover:shadow-md">
-          <CardContent className="flex flex-col gap-1.5 p-3.5">
-            <span className="flex items-center gap-1.5 text-[11px] font-medium text-muted-foreground">
-              <AlertCircle className="h-3.5 w-3.5 text-amber-500" />
-              Pendências
-            </span>
-            <span className="text-2xl font-semibold tabular-nums">{pendingCount}</span>
-            <StatusDot status="em_discussao" />
-          </CardContent>
-        </Card>
+export default async function HomePage(){
+  const user=await getSessionUser();
+  if(!user||user.must_change_password)redirect("/login");
+  const canEdit=user.role==="admin"||user.role==="coordenador";
+  let stats:ReturnType<typeof count>|null=null;
+  let updatedAt:string|null=null;
+  try{const snapshot=await loadNovaMesaDraft();stats=count(snapshot.draft.nodes);updatedAt=snapshot.updatedAt;}
+  catch{ /* Apresentação inicial permanece disponível caso a minuta esteja temporariamente indisponível. */ }
+  const primary=canEdit?"/mesa-trabalho":"/mesa-trabalho/visualizar";
+  return <div className="mx-auto max-w-5xl space-y-6">
+    <section className="rounded-2xl border bg-card p-6 shadow-sm sm:p-8">
+      <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">ESDRAS · Reforma do Estatuto Social</p>
+      <h2 className="mt-2 font-heading text-2xl font-semibold sm:text-3xl">Minuta do novo Estatuto</h2>
+      <p className="mt-2 max-w-2xl text-sm leading-relaxed text-muted-foreground">Acompanhe a redação e a apreciação do texto pela comissão. A Mesa de Trabalho é o ambiente principal da reforma.</p>
+      <div className="mt-5 flex flex-wrap gap-3">
+        <Link href={primary} className="inline-flex items-center gap-2 rounded-lg bg-primary px-5 py-3 text-sm font-semibold text-primary-foreground"><PenLine className="h-4 w-4"/>{canEdit?"Continuar na Mesa de Trabalho":"Visualizar a minuta"}<ArrowRight className="h-4 w-4"/></Link>
+        {canEdit&&<Link href="/mesa-trabalho/visualizar" className="inline-flex items-center gap-2 rounded-lg border px-4 py-3 text-sm font-medium"><FileText className="h-4 w-4"/>Visualizar a minuta</Link>}
       </div>
-
-      <FirstSteps userId={user.id} />
-
-      {(user.role === "coordenador" || user.role === "admin") && (
-        <div className="flex flex-wrap items-center gap-2">
-          <NewProvisionForm parentId={null} parentType="root" canEdit={true} types={["capitulo"]} label="Incluir capítulo" origemOptions={origemOptions} />
-          <span className="text-xs text-muted-foreground">
-            Capítulos e dispositivos novos entram como &quot;NOVO&quot;, com numeração definida na consolidação.
-          </span>
-        </div>
-      )}
-
-      {proximo && (
-        <Link
-          href={`/dispositivo/${proximo.id}`}
-          className="inline-flex items-center gap-1.5 rounded-full border border-primary/40 bg-primary/5 px-3 py-1.5 text-sm font-medium text-primary transition-colors hover:bg-primary/10"
-        >
-          Continuar de onde parou: {rotuloDe(proximo, numeros)} →
-        </Link>
-      )}
-
-      <DashboardTree
-        chapters={tree}
-        notedIds={notedIds}
-        pendenciasIds={pendenciasIds}
-        versao={versao}
-        numeros={Object.fromEntries(numeros)}
-        contraparte={Object.fromEntries(contraparte)}
-        sugeridos={Object.fromEntries(sugeridos)}
-      />
-    </div>
-  );
+    </section>
+    <section aria-label="Andamento da nova minuta" className="grid gap-3 sm:grid-cols-3">
+      <div className="rounded-xl border bg-card p-5"><span className="text-xs text-muted-foreground">Capítulos na nova minuta</span><p className="mt-2 text-3xl font-semibold tabular-nums">{stats?.chapters??"—"}</p></div>
+      <div className="rounded-xl border bg-card p-5"><span className="text-xs text-muted-foreground">Artigos na nova minuta</span><p className="mt-2 text-3xl font-semibold tabular-nums">{stats?.articles??"—"}</p></div>
+      <div className="rounded-xl border bg-card p-5"><span className="inline-flex items-center gap-1 text-xs text-muted-foreground"><CheckCircle2 className="h-3.5 w-3.5"/>Dispositivos marcados como aprovados</span><p className="mt-2 text-3xl font-semibold tabular-nums">{stats?.approved??"—"}</p><p className="mt-1 text-xs text-muted-foreground">Entre {stats?.devices??"—"} dispositivos da nova minuta</p></div>
+    </section>
+    <p className="text-xs text-muted-foreground">{updatedAt?"Última gravação da minuta: "+new Date(updatedAt).toLocaleString("pt-BR",{timeZone:"America/Porto_Velho"}):"Os dados de acompanhamento serão exibidos quando a minuta estiver disponível."} · Os indicadores acima não incluem o ambiente legado.</p>
+    <section className="grid gap-3 sm:grid-cols-2">
+      <Link href="/documentos" className="flex items-center gap-3 rounded-xl border bg-card p-5 transition-colors hover:bg-muted"><BookOpen className="h-5 w-5 text-primary"/><span><strong className="block text-sm">Documentos de consulta</strong><span className="text-xs text-muted-foreground">Estatuto e materiais de referência</span></span><ArrowRight className="ml-auto h-4 w-4"/></Link>
+      <Link href="/reunioes" className="flex items-center gap-3 rounded-xl border bg-card p-5 transition-colors hover:bg-muted"><CalendarDays className="h-5 w-5 text-primary"/><span><strong className="block text-sm">Reuniões</strong><span className="text-xs text-muted-foreground">Acompanhamento da comissão</span></span><ArrowRight className="ml-auto h-4 w-4"/></Link>
+      <Link href="/literatura" className="flex items-center gap-3 rounded-xl border bg-card p-5 transition-colors hover:bg-muted"><Library className="h-5 w-5 text-primary"/><span><strong className="block text-sm">Literatura de consulta</strong><span className="text-xs text-muted-foreground">Referências para a redação</span></span><ArrowRight className="ml-auto h-4 w-4"/></Link>
+      <Link href="/legado" className="flex items-center gap-3 rounded-xl border bg-card p-5 transition-colors hover:bg-muted"><Archive className="h-5 w-5 text-primary"/><span><strong className="block text-sm">Arquivo e legado</strong><span className="text-xs text-muted-foreground">Registros e ferramentas do ambiente anterior</span></span><ArrowRight className="ml-auto h-4 w-4"/></Link>
+    </section>
+  </div>;
 }
