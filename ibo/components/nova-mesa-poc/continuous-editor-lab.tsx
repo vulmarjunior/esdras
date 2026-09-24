@@ -65,6 +65,9 @@ export default function ContinuousEditorLab({canEdit}:{canEdit:boolean}){
   const [selected,setSelected]=useState<Location|null>(null);
   const [hovered,setHovered]=useState<string|null>(null);
   const [insertOpen,setInsertOpen]=useState(false);
+  const [transferOpen,setTransferOpen]=useState(false);
+  const [targetChapter,setTargetChapter]=useState("");
+  const [targetAfter,setTargetAfter]=useState("__end__");
   const insertMenuRef=useRef<HTMLDivElement|null>(null);
   const insertButtonRef=useRef<HTMLButtonElement|null>(null);
   const stickyBarRef=useRef<HTMLDivElement|null>(null);
@@ -271,6 +274,25 @@ export default function ContinuousEditorLab({canEdit}:{canEdit:boolean}){
     try{commit(moveNode(live.current,current.id,current.parentId,after),current.id);}
     catch(error){setNotice(error instanceof Error?error.message:"Movimento inválido.");}
   };
+  const chapters=rows.filter(row=>row.node.type==="chapter");
+  const movingArticle=activeRow?.node.type==="article"?activeRow:null;
+  const destination=chapters.find(row=>row.node.id===targetChapter);
+  const transferArticle=()=>{
+    const current=selectedRef.current;
+    const article=current?findNode(live.current.nodes,current.id):undefined;
+    if(!editable||!current||article?.type!=="article"||!destination)return;
+    const siblings=destination.node.children.filter(node=>node.id!==article.id);
+    const afterId=targetAfter==="__end__"?siblings.at(-1)?.id??null:
+      targetAfter==="__start__"?null:targetAfter;
+    if(afterId!==null&&!siblings.some(node=>node.id===afterId)){setNotice("Posição inválida. Selecione novamente o local de destino.");return;}
+    try{
+      const next=moveNode(live.current,article.id,destination.node.id,afterId);
+      choose({id:article.id,parentId:destination.node.id});
+      commit(next,article.id);
+      setTransferOpen(false);
+      setNotice("Artigo transferido. Os dispositivos subordinados foram preservados; confira a nova numeração.");
+    }catch(error){setNotice(error instanceof Error?error.message:"Não foi possível transferir o artigo.");}
+  };
   const onInput=(event:React.FormEvent<HTMLSpanElement>)=>{
     if(!editable)return;
     const body=bodyFrom(event.target as Node);
@@ -375,6 +397,7 @@ export default function ContinuousEditorLab({canEdit}:{canEdit:boolean}){
         <span className="mr-1 text-xs font-semibold text-muted-foreground">Organização</span>
       <button type="button" className="rounded border px-2.5 py-1.5 text-sm disabled:opacity-50" title="Mover o dispositivo ativo para cima" disabled={!editable||!selected} onMouseDown={event=>event.preventDefault()} onClick={()=>move(-1)}>↑ Mover</button>
       <button type="button" className="rounded border px-2.5 py-1.5 text-sm disabled:opacity-50" title="Mover o dispositivo ativo para baixo" disabled={!editable||!selected} onMouseDown={event=>event.preventDefault()} onClick={()=>move(1)}>↓ Mover</button>
+      <button type="button" className="rounded border px-2.5 py-1.5 text-sm disabled:opacity-50" title="Transferir o artigo ativo para outro capítulo" disabled={!editable||!movingArticle||chapters.length===0} onMouseDown={event=>event.preventDefault()} onClick={()=>{if(!movingArticle)return;const initial=chapters.find(row=>row.node.id!==movingArticle.parentId)??chapters[0];setTargetChapter(initial.node.id);setTargetAfter("__end__");setTransferOpen(v=>!v);setInsertOpen(false);}}>Mover para capítulo…</button>
       <button type="button" className="rounded border px-2.5 py-1.5 text-sm disabled:opacity-50" title="Remover dispositivo ativo" disabled={!editable||!selected} onMouseDown={event=>event.preventDefault()} onClick={()=>{
         const current=selectedRef.current;if(!current)return;commit(removeNode(live.current,current.id));selectedRef.current=null;setSelected(null);
       }}>Retirar</button>
@@ -385,6 +408,23 @@ export default function ContinuousEditorLab({canEdit}:{canEdit:boolean}){
       </div>
     </div>
       </div>
+      {transferOpen&&movingArticle&&<section className="absolute top-full right-2 z-50 mt-1 w-[min(420px,calc(100vw-32px))] space-y-3 rounded-lg border bg-background p-3 shadow-xl" aria-label="Transferir artigo para outro capítulo">
+        <div className="flex items-center justify-between gap-2"><strong className="text-sm">Mover artigo para outro capítulo</strong><button type="button" className="rounded border px-2 py-1 text-xs" onClick={()=>setTransferOpen(false)}>Fechar</button></div>
+        <p className="text-xs text-muted-foreground">O artigo e todos os seus parágrafos, incisos e alíneas serão movidos juntos.</p>
+        <label className="block text-xs font-medium">Capítulo de destino
+          <select className="mt-1 w-full rounded border bg-background p-2 text-sm" value={targetChapter} onChange={event=>{setTargetChapter(event.target.value);setTargetAfter("__end__");}}>
+            {chapters.map(row=><option key={row.node.id} value={row.node.id}>{labelFor(row.node,row.siblings,row.articleNumber,row.chapterNumber)} — {row.node.text||"Sem título"}</option>)}
+          </select>
+        </label>
+        <label className="block text-xs font-medium">Posição no capítulo
+          <select className="mt-1 w-full rounded border bg-background p-2 text-sm" value={targetAfter} onChange={event=>setTargetAfter(event.target.value)}>
+            <option value="__start__">No início do capítulo</option>
+            <option value="__end__">Ao final do capítulo</option>
+            {destination?.node.children.filter(node=>node.type==="article"&&node.id!==movingArticle.node.id).map(node=><option key={node.id} value={node.id}>Após o artigo: {node.text.slice(0,65)||"(sem redação)"}</option>)}
+          </select>
+        </label>
+        <button type="button" className="rounded border border-blue-500 bg-blue-50 px-3 py-2 text-sm font-semibold text-blue-900 disabled:opacity-50" disabled={!editable||!destination||targetChapter===movingArticle.parentId&&targetAfter==="__end__"} onClick={transferArticle}>Confirmar transferência</button>
+      </section>}
       {insertOpen&&<div id="nova-mesa-insert-menu" ref={insertMenuRef} style={{left:insertLeft}} className="absolute top-full z-50 mt-1 grid max-h-[min(65vh,450px)] w-[min(360px,calc(100vw-32px))] grid-cols-2 gap-1.5 overflow-y-auto rounded-lg border bg-background p-3 shadow-xl" role="group" aria-label="Inserir dispositivo"><span className="col-span-2 mb-1 text-xs text-muted-foreground">Sugestão: {names[suggested]}. Escolha o dispositivo para continuar a redação.</span>{contextualTypes.map(type=><button type="button" key={type} disabled={!editable} className={"rounded border px-2 py-2 text-left text-sm disabled:opacity-50 "+(type===suggested?"border-blue-500 bg-blue-50 font-semibold text-blue-900":"")} onClick={()=>add(type)}>+ {names[type]}{type===suggested?" · sugerido":""}</button>)}</div>}
     </div>
 
