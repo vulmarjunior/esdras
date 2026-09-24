@@ -20,6 +20,7 @@ export function validateDraft(value:unknown):Draft{
       ids.add(node.id);if(++count>10000)throw new Error("Minuta excede o limite de dispositivos.");
       if(!allowedTypes.includes(node.type)||!canContain(parent,node.type))throw new Error("Hierarquia inválida.");
       if(typeof node.text!=="string"||node.text.length>100000||!Array.isArray(node.children))throw new Error("Texto ou estrutura inválida.");
+      if(node.approved!==undefined&&typeof node.approved!=="boolean")throw new Error("Marcação de aprovação inválida.");
       if(node.alignment!==undefined&&!allowedAlignments.includes(node.alignment))throw new Error("Alinhamento inválido.");
       if(node.runs!==undefined){
         if(!Array.isArray(node.runs)||node.runs.length>10000)throw new Error("Formatação inválida.");
