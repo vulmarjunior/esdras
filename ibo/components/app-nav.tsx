@@ -28,6 +28,7 @@ import {
   CircleHelp,
   ArrowLeftRight,
   PanelsTopLeft,
+  Archive,
 } from "lucide-react";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger, SheetClose } from "@/components/ui/sheet";
 import {
@@ -55,26 +56,27 @@ interface NavTema {
 }
 
 /** Item principal fixo (home). */
-const NAV_PRINCIPAL: NavItem = { href: "/mesa-trabalho", label: "Nova Mesa", icon: PanelsTopLeft };
+const NAV_PRINCIPAL: NavItem = { href: "/", label: "Início", icon: LayoutDashboard };
 
 /** Navegação organizada por temas. */
 const NAV_TEMAS: NavTema[] = [
   {
     id: "reforma",
-    label: "Reforma",
-    icon: Layers,
+    label: "Mesa de Trabalho",
+    icon: PanelsTopLeft,
     itens: [
-      { href: "/mesa-trabalho", label: "Nova Mesa · Redação", icon: PanelsTopLeft, editorOnly: true },
+      { href: "/mesa-trabalho", label: "Redigir nova minuta", icon: PanelsTopLeft, editorOnly: true },
       { href: "/mesa-trabalho/visualizar", label: "Visualizar nova minuta", icon: ScrollText },
-      { href: "/comparativo", label: "Acompanhamento · Legado", icon: ArrowLeftRight, sectionLabel: "Ambiente anterior · Legado" },
+    ],
+  },
+  {
+    id: "legado",
+    label: "Arquivo e legado",
+    icon: Archive,
+    itens: [
+      { href: "/legado", label: "Abrir arquivo do projeto", icon: Archive },
+      { href: "/legado/painel", label: "Painel clássico", icon: History },
       { href: "/legado/mesa-atual", label: "Mesa anterior", icon: PanelsTopLeft, editorOnly: true },
-      { href: "/", label: "Mesa clássica · Painel histórico", icon: History },
-      { href: "/consolidado", label: "Proposta anterior em construção", icon: ScrollText },
-      { href: "/pendentes", label: "Pendências", icon: CircleAlert, editorOnly: true, sectionLabel: "Ferramentas da reforma" },
-      { href: "/conferencia", label: "Conferência", icon: ClipboardCheck, editorOnly: true },
-      { href: "/renumeracao", label: "Renumeração", icon: ListOrdered, editorOnly: true },
-      { href: "/coerencia", label: "Coerência", icon: ShieldAlert, editorOnly: true },
-      { href: "/marcos", label: "Marcos da minuta", icon: Camera, editorOnly: true },
     ],
   },
   {
