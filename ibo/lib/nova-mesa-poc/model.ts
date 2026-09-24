@@ -25,15 +25,38 @@ export function changeText(draft: Draft, id: string, text: string): Draft {
   const visit = (nodes: DraftNode[]): DraftNode[] => nodes.map(n=>n.id===id?{...n,text}:{...n,children:visit(n.children)});
   return {...draft,nodes:visit(draft.nodes)};
 }
+/** Validação de hierarquia no modelo, não apenas na interface. */
+export function canContain(parent: NodeType | null, child: NodeType): boolean {
+  if (child === "free") return parent === null || parent === "chapter" || parent === "article";
+  if (child === "chapter") return parent === null;
+  if (child === "article") return parent === null || parent === "chapter";
+  if (child === "paragraph" || child === "inciso") return parent === "article";
+  if (child === "alinea") return parent === "inciso";
+  return false;
+}
+function assertSubtree(node: DraftNode, seen: Set<string>): void {
+  if (!node.id || seen.has(node.id)) throw new Error("Identidade inválida ou duplicada");
+  seen.add(node.id);
+  for (const child of node.children) {
+    if (!canContain(node.type, child.type)) throw new Error("Hierarquia normativa inválida");
+    assertSubtree(child, seen);
+  }
+}
 export function insertAfter(draft: Draft, parentId: string | null, afterId: string | null, node: DraftNode): Draft {
-  if (findNode(draft.nodes,node.id)) throw new Error("ID já utilizado");
+  const parent = parentId === null ? null : findNode(draft.nodes, parentId);
+  if (parentId !== null && !parent) throw new Error("Pai não encontrado");
+  if (!canContain(parent?.type ?? null, node.type)) throw new Error("Hierarquia normativa inválida");
+  const ids = new Set<string>();
+  const collect = (nodes: DraftNode[]): void => { for (const item of nodes) { ids.add(item.id); collect(item.children); } };
+  collect(draft.nodes);
+  assertSubtree(node, ids);
   const insert = (siblings: DraftNode[]) => {
     const index = afterId === null ? -1 : siblings.findIndex(n=>n.id===afterId);
     if (afterId !== null && index < 0) throw new Error("Posição não encontrada");
     return [...siblings.slice(0,index+1),node,...siblings.slice(index+1)];
   };
   if (parentId===null) return {...draft,nodes:insert(draft.nodes)};
-  if (!findNode(draft.nodes,parentId)) throw new Error("Pai não encontrado");
+
   const visit=(nodes:DraftNode[]):DraftNode[]=>nodes.map(n=>n.id===parentId?{...n,children:insert(n.children)}:{...n,children:visit(n.children)});
   return {...draft,nodes:visit(draft.nodes)};
 }
@@ -46,6 +69,7 @@ export function moveNode(draft: Draft,id:string,parentId:string|null,afterId:str
   if (!node) throw new Error("Dispositivo não encontrado");
   if (id===parentId || (parentId && findNode(node.children,parentId))) throw new Error("Movimento circular");
   if (id===afterId) throw new Error("Não pode mover após si mesmo");
+  if (afterId && findNode(node.children,afterId)) throw new Error("Não pode mover após descendente");
   const without=removeNode(draft,id);
   return insertAfter(without,parentId,afterId,node);
 }
