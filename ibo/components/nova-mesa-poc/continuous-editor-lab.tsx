@@ -9,7 +9,7 @@ import {
 import { Alignment, Mark, TextRun, toRuns } from "@/lib/nova-mesa-poc/rich-text";
 
 const names: Record<NodeType,string> = {
-  chapter:"Capítulo", article:"Artigo", paragraph:"Parágrafo",
+  chapter:"Capítulo", section:"Seção", subsection:"Subseção", article:"Artigo", paragraph:"Parágrafo",
   inciso:"Inciso", alinea:"Alínea", free:"Texto livre",
 };
 const initial:Draft={id:"experimento",nodes:[]};
@@ -98,13 +98,21 @@ export default function ContinuousEditorLab(){
   const add=(type:NodeType)=>{
     const current=selectedRef.current;
     const existing=current?findNode(live.current.nodes,current.id):undefined;
+    const ancestry:DraftNode[]=[];
+    let cursor=current?.parentId??null;
+    while(cursor){const item=findNode(live.current.nodes,cursor);if(!item)break;ancestry.push(item);
+      cursor=rows.find(row=>row.node.id===cursor)?.parentId??null;
+    }
+    const nearest=(types:NodeType[])=>[existing,...ancestry].find(node=>node&&types.includes(node.type))?.id??null;
     const parentId=type==="chapter"?null:
-      type==="free" ? (existing?.type==="chapter"||existing?.type==="article"? existing.id:current?.parentId??null):
-      type==="article" ? (existing?.type==="chapter"?existing.id:current?.parentId??null):
-      type==="paragraph"||type==="inciso" ? (existing?.type==="article"?existing.id:current?.parentId??null):
-      existing?.type==="inciso"?existing.id:current?.parentId??null;
+      type==="section"?nearest(["chapter"]):
+      type==="subsection"?nearest(["section"]):
+      type==="article"?nearest(["subsection","section","chapter"]):
+      type==="paragraph"||type==="inciso"?nearest(["article"]):
+      type==="alinea"?nearest(["inciso"]):
+      existing&&["chapter","section","subsection","article"].includes(existing.type)?existing.id:current?.parentId??null;
     const parent=parentId?findNode(live.current.nodes,parentId):undefined;
-    if(!canContain(parent?.type??null,type)){setNotice("Selecione um artigo ou inciso compatível.");return;}
+    if(!canContain(parent?.type??null,type)){setNotice("Selecione o capítulo, seção, subseção, artigo ou inciso apropriado.");return;}
     const siblings=parent?parent.children:live.current.nodes;
     const afterId=current?.parentId===parentId ? current.id : siblings.at(-1)?.id??null;
     const node=newNode(type);
@@ -196,7 +204,7 @@ export default function ContinuousEditorLab(){
           className="rounded border px-3 py-2 text-sm">{alignment==="left"?"Esquerda":alignment==="center"?"Centro":alignment==="right"?"Direita":"Justificar"}</button>)}
     </div>
     <div className="mb-3 flex flex-wrap gap-2">
-      {(["chapter","article","paragraph","inciso","alinea","free"] as NodeType[]).map(type=>
+      {(["chapter","section","subsection","article","paragraph","inciso","alinea","free"] as NodeType[]).map(type=>
         <button type="button" key={type} className="rounded border px-3 py-2 text-sm" onClick={()=>add(type)}>+ {names[type]}</button>)}
     </div>
     <div className="mb-4 flex flex-wrap items-center gap-2">
@@ -226,8 +234,8 @@ export default function ContinuousEditorLab(){
         className={"my-3 rounded border-l-2 pl-3 "+(selected?.id===row.node.id?"border-blue-500":"border-transparent")}
         style={{marginLeft:Math.min(row.depth,4)*16}}>
         <span contentEditable={false} className="select-none font-semibold">{labelFor(row.node,row.siblings,row.articleNumber,row.chapterNumber)}</span>
-        <span contentEditable suppressContentEditableWarning onInput={onInput} onBeforeInput={event=>onBeforeInput(event.nativeEvent as InputEvent)} onPaste={onPaste} data-body-id={row.node.id} data-poc-body="true" className={"inline-block min-w-[55%] whitespace-pre-wrap align-top outline-offset-2 "+(row.node.type==="chapter"?"font-bold":"")}
-          style={{textAlign:row.node.alignment??(row.node.type==="chapter"?"center":"justify")}} data-placeholder={row.node.type==="free"?"Texto livre reservado":"Redação pendente"}></span>
+        <span contentEditable suppressContentEditableWarning onInput={onInput} onBeforeInput={event=>onBeforeInput(event.nativeEvent as InputEvent)} onPaste={onPaste} data-body-id={row.node.id} data-poc-body="true" className={"inline-block min-w-[55%] whitespace-pre-wrap align-top outline-offset-2 "+(["chapter","section","subsection"].includes(row.node.type)?"font-bold":"")}
+          style={{textAlign:row.node.alignment??(["chapter","section","subsection"].includes(row.node.type)?"center":"justify")}} data-placeholder={row.node.type==="free"?"Texto livre reservado":"Redação pendente"}></span>
         {row.node.type==="free"&&<span contentEditable={false} className="ml-2 select-none text-xs text-amber-700">Provisório · reservado</span>}
       </div>)}
     </div>
