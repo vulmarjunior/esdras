@@ -37,6 +37,7 @@ export default function ContinuousEditorLab(){
   const [notice,setNotice]=useState("");
   const [revision,setRevision]=useState(0);
   const [undo,setUndo]=useState<Draft[]>([]);
+  const [savedLocal,setSavedLocal]=useState(false);
   const root=useRef<HTMLDivElement|null>(null);
   const pendingFocus=useRef<string|null>(null);
   const rows=flatten(draft);
@@ -46,7 +47,7 @@ export default function ContinuousEditorLab(){
   const choose=(value:Location)=>{selectedRef.current=value;setSelected(value);};
   const commit=(next:Draft,focus?:string)=>{
     setUndo(history=>[...history.slice(-19),live.current]);
-    live.current=next;pendingFocus.current=focus??null;setDraft(next);setRevision(n=>n+1);
+    live.current=next;pendingFocus.current=focus??null;setDraft(next);setRevision(n=>n+1);setSavedLocal(false);
     setNotice("");
   };
   useLayoutEffect(()=>{
@@ -92,7 +93,7 @@ export default function ContinuousEditorLab(){
     const id=body?.dataset.bodyId;
     if(!id)return;
     live.current=changeText(live.current,id,body?.innerText??"");
-    setNotice("Redação em memória (não salva no servidor).");
+    setSavedLocal(false);
   };
   const onBeforeInput=(event:InputEvent)=>{
     const selection=window.getSelection();
@@ -121,7 +122,14 @@ export default function ContinuousEditorLab(){
     range.deleteContents();const text=document.createTextNode(value);range.insertNode(text);
     range.setStartAfter(text);range.collapse(true);selection.removeAllRanges();selection.addRange(range);
     const body=bodyFrom(text);const id=body?.dataset.bodyId;
-    if(id)live.current=changeText(live.current,id,body?.innerText??"");
+    if(id){live.current=changeText(live.current,id,body?.innerText??"");setSavedLocal(false);}
+  };
+  const download=()=>{
+    const blob=new Blob([JSON.stringify(live.current,null,2)],{type:"application/json"});
+    const url=URL.createObjectURL(blob);
+    const anchor=document.createElement("a");anchor.href=url;anchor.download="esdras-laboratorio-nao-oficial.json";
+    anchor.click();URL.revokeObjectURL(url);setSavedLocal(true);
+    setNotice("Cópia JSON experimental exportada. Não substitui salvamento no servidor.");
   };
   return <main className="mx-auto max-w-5xl p-5">
     <p className="mb-2 font-semibold text-amber-700">Laboratório isolado — conteúdo não persistente; não usar para o estatuto real.</p>
@@ -132,6 +140,8 @@ export default function ContinuousEditorLab(){
         <button type="button" key={type} className="rounded border px-3 py-2 text-sm" onClick={()=>add(type)}>+ {names[type]}</button>)}
     </div>
     <div className="mb-4 flex flex-wrap items-center gap-2">
+      <button type="button" className="rounded border px-3 py-1" onClick={download}>Exportar cópia experimental (JSON)</button>
+      <span className="text-xs text-amber-700">{savedLocal?"Cópia exportada; alterações posteriores requerem nova exportação.":"Alterações locais não salvas no servidor."}</span>
       <button type="button" className="rounded border px-3 py-1" disabled={!selected} onClick={()=>move(-1)}>↑ Mover</button>
       <button type="button" className="rounded border px-3 py-1" disabled={!selected} onClick={()=>move(1)}>↓ Mover</button>
       <button type="button" className="rounded border px-3 py-1" disabled={!selected} onClick={()=>{
