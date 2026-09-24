@@ -139,3 +139,5 @@
     }
   }
 }
+/* Nova Mesa: a área de redação ocupa a largura disponível, sem o limite do painel geral. */
+main:has(> [data-nova-mesa-root]) { max-width: none; padding-inline: clamp(12px, 1.8vw, 36px); padding-block: 10px 22px; }
