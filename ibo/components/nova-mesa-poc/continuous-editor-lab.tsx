@@ -7,6 +7,7 @@ import {
 } from "@/lib/nova-mesa-poc/model";
 
 import { Alignment, Mark, TextRun, toRuns } from "@/lib/nova-mesa-poc/rich-text";
+import WorkspaceShell from "./workspace-shell";
 
 const names: Record<NodeType,string> = {
   chapter:"Capítulo", section:"Seção", subsection:"Subseção", article:"Artigo", paragraph:"Parágrafo",
@@ -191,9 +192,22 @@ export default function ContinuousEditorLab(){
     anchor.click();URL.revokeObjectURL(url);setSavedLocal(true);
     setNotice("Cópia JSON experimental exportada. Não substitui salvamento no servidor.");
   };
-  return <main className="mx-auto max-w-5xl p-5">
+  const outline=rows.filter(row=>["chapter","section","subsection","article"].includes(row.node.type)).map(row=>({
+    id:row.node.id,label:labelFor(row.node,row.siblings,row.articleNumber,row.chapterNumber).trim(),
+    title:row.node.text,depth:row.depth,
+  }));
+  const navigate=(id:string)=>{
+    const row=rows.find(entry=>entry.node.id===id);if(!row)return;
+    choose({id,parentId:row.parentId});
+    Array.from(root.current?.querySelectorAll<HTMLElement>("[data-node-id]")??[])
+      .find(element=>element.dataset.nodeId===id)?.scrollIntoView({behavior:"smooth",block:"center"});
+  };
+  return <WorkspaceShell outline={outline} onNavigate={navigate}
+    selectedLabel={selected?names[findNode(live.current.nodes,selected.id)?.type??"free"]:null}>
+    <main className="min-w-0">
+
     <p className="mb-2 font-semibold text-amber-700">Laboratório isolado — conteúdo não persistente; não usar para o estatuto real.</p>
-    <h1 className="mb-2 text-2xl font-bold">Nova Mesa · Editor documental experimental</h1>
+    <h2 className="mb-2 text-lg font-semibold">Minuta · Editor experimental</h2>
     <p className="mb-4 text-sm text-muted-foreground">Documento de seleção contínua, com regiões de edição independentes para proteger os limites normativos. Sem colaboração, servidor ou histórico permanente.</p>
     <div className="mb-3 flex flex-wrap gap-2">
       {(["bold","italic","underline"] as Mark[]).map(mark=>
@@ -227,7 +241,7 @@ export default function ContinuousEditorLab(){
         const row=rows.find(entry=>entry.node.id===id);if(row)choose({id:row.node.id,parentId:row.parentId});}}
       onMouseUp={()=>{const selection=window.getSelection();const id=bodyFrom(selection?.anchorNode??null)?.dataset.bodyId;
         const row=rows.find(entry=>entry.node.id===id);if(row)choose({id:row.node.id,parentId:row.parentId});}}
-      aria-label="Documento experimental editável" className="min-h-[450px] rounded-lg border bg-white p-6 text-zinc-900 shadow-sm outline-offset-2">
+      aria-label="Documento experimental editável" className="min-h-[450px] min-w-0 overflow-x-auto rounded-lg border bg-white p-4 text-zinc-900 shadow-sm outline-offset-2 sm:p-6">
       <h2 contentEditable={false} className="mb-6 select-none text-center text-xl font-bold">NOVO ESTATUTO · MINUTA EXPERIMENTAL</h2>
       {rows.length===0&&<p contentEditable={false} className="text-sm text-zinc-500">Insira um capítulo ou artigo para começar.</p>}
       {rows.map(row=><div key={row.node.id} data-node-id={row.node.id}
@@ -240,5 +254,5 @@ export default function ContinuousEditorLab(){
       </div>)}
     </div>
     <p className="mt-3 text-xs text-muted-foreground">Prova de conceito não validada em navegadores: edição limitada a uma região por vez, sem persistência, histórico de texto ou tratamento completo de seleção, marcas e IME. A formatação ainda é experimental. Não usar com dados reais.</p>
-  </main>;
+  </main></WorkspaceShell>;
 }
