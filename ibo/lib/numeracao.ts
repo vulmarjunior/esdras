@@ -149,9 +149,11 @@ export function numerarSubordinados(nodes: NoNumeravel[]): Map<string, string> {
     const parags = ativos.filter((node) => node.type === "paragrafo");
     const incisos = ativos.filter((node) => node.type === "inciso");
     const alineas = ativos.filter((node) => node.type === "alinea");
+    const itens = ativos.filter((node) => node.type === "item");
     parags.forEach((node, i) => numeros.set(node.id, parags.length === 1 ? "único" : `${i + 1}º`));
     incisos.forEach((node, i) => numeros.set(node.id, toRoman(i + 1)));
     alineas.forEach((node, i) => numeros.set(node.id, alinea(i)));
+    itens.forEach((node, i) => numeros.set(node.id, String(i + 1)));
     for (const node of ativos) visitar(node.children);
   };
   visitar(nodes);

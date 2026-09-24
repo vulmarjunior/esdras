@@ -1,5 +1,5 @@
 import { get, all } from "./db";
-import type { DocumentVersion, Provision, ProvisionPlacement, ProvisionStatus, VersaoTrabalho } from "./types";
+import type { DocumentVersion, Provision, ProvisionPlacement, ProvisionStatus, ProvisionType, VersaoTrabalho } from "./types";
 import { ordenarIrmaos } from "./tree-order";
 import { numerarSubordinados, resolverEra } from "./numeracao";
 import { provisionLabel } from "./provision-label";
@@ -33,6 +33,13 @@ function buildTree(rows: Provision[]): TreeNode[] {
   return roots;
 }
 
+/** Remove da árvore ativa os dispositivos com tombstone e toda a sua descendência. */
+export function podarExcluidos(nodes: TreeNode[]): TreeNode[] {
+  return nodes
+    .filter((node) => !node.deleted_at)
+    .map((node) => ({ ...node, children: podarExcluidos(node.children) }));
+}
+
 export async function getTree(): Promise<TreeNode[]> {
   const rows = await all<Provision>("SELECT * FROM provisions ORDER BY ordem_pai, ordem");
   return buildTree(rows);
@@ -53,6 +60,11 @@ export async function getProposalTree(): Promise<TreeNode[]> {
       p.origem,
       p.origem_ref_id,
       p.sem_origem,
+      p.deleted_at,
+      p.deleted_by,
+      p.acordo_version,
+      p.acordo_em,
+      p.acordo_por,
       p.alteracao_tipo,
       p.status,
       p.texto_vigente,
@@ -69,7 +81,7 @@ export async function getProposalTree(): Promise<TreeNode[]> {
       ON pp.provision_id = p.id AND pp.version_key = 'proposta'
     ORDER BY COALESCE(pp.ordem_pai, p.ordem_pai), p.ordem
   `);
-  const tree = buildTree(rows);
+  const tree = podarExcluidos(buildTree(rows));
   const subordinados = numerarSubordinados(tree);
   const aplicar = (nodes: TreeNode[]) => {
     for (const node of nodes) {
@@ -96,6 +108,11 @@ export async function getVigenteTree(): Promise<TreeNode[]> {
       p.origem,
       p.origem_ref_id,
       p.sem_origem,
+      p.deleted_at,
+      p.deleted_by,
+      p.acordo_version,
+      p.acordo_em,
+      p.acordo_por,
       p.alteracao_tipo,
       p.status,
       p.texto_vigente,
@@ -181,6 +198,71 @@ export async function getFlatProvisions(): Promise<Provision[]> {
   return all<Provision>("SELECT * FROM provisions ORDER BY ordem");
 }
 
+export interface ExcluidoInfo {
+  id: string;
+  type: string;
+  numero: string | null;
+  titulo: string | null;
+  parentId: string | null;
+  parentLabel: string | null;
+  deletedAt: string;
+  deletedBy: string | null;
+  childCount: number;
+}
+
+/**
+ * Raízes de subárvores retiradas da minuta por exclusão reversível (tombstone).
+ * Os descendentes acompanham a raiz e não aparecem individualmente.
+ */
+export async function getExcluidosProposta(): Promise<ExcluidoInfo[]> {
+  const rows = await all<{
+    id: string;
+    type: string;
+    numero: string | null;
+    titulo: string | null;
+    parent_id: string | null;
+    parent_type: string | null;
+    parent_numero: string | null;
+    parent_titulo: string | null;
+    deleted_at: string;
+    deleted_by_name: string | null;
+    child_count: number;
+  }>(`
+    SELECT p.id, p.type,
+           COALESCE(pp.numero, p.numero) AS numero,
+           COALESCE(pp.titulo, p.titulo) AS titulo,
+           COALESCE(pp.parent_id, p.parent_id) AS parent_id,
+           par.type AS parent_type,
+           COALESCE(parpp.numero, par.numero) AS parent_numero,
+           COALESCE(parpp.titulo, par.titulo) AS parent_titulo,
+           p.deleted_at,
+           u.name AS deleted_by_name,
+           (SELECT COUNT(*) FROM provisions c WHERE c.parent_id = p.id)::int AS child_count
+      FROM provisions p
+      LEFT JOIN provision_placements pp
+        ON pp.provision_id = p.id AND pp.version_key = 'proposta'
+      LEFT JOIN provisions par ON par.id = COALESCE(pp.parent_id, p.parent_id)
+      LEFT JOIN provision_placements parpp
+        ON parpp.provision_id = par.id AND parpp.version_key = 'proposta'
+      LEFT JOIN users u ON u.id = p.deleted_by
+     WHERE p.deleted_at IS NOT NULL
+     ORDER BY p.deleted_at DESC, p.id
+  `);
+  return rows.map((row) => ({
+    id: row.id,
+    type: row.type,
+    numero: row.numero,
+    titulo: row.titulo,
+    parentId: row.parent_id,
+    parentLabel: row.parent_type
+      ? provisionLabel({ id: row.parent_id ?? "", type: row.parent_type as ProvisionType, numero: row.parent_numero, titulo: row.parent_titulo } as never)
+      : null,
+    deletedAt: row.deleted_at,
+    deletedBy: row.deleted_by_name,
+    childCount: row.child_count,
+  }));
+}
+
 export async function getProvision(id: string): Promise<Provision | undefined> {
   return get<Provision>("SELECT * FROM provisions WHERE id = ?", [id]);
 }
@@ -249,7 +331,7 @@ export async function getArticleCount(): Promise<number> {
  */
 export async function getStatusCountsProposta() {
   const rows = await all<{ status: ProvisionStatus; c: number }>(
-    "SELECT status, COUNT(*) c FROM provisions WHERE type = 'artigo' AND alteracao_tipo <> 'revogado' GROUP BY status"
+    "SELECT status, COUNT(*) c FROM provisions WHERE type = 'artigo' AND alteracao_tipo <> 'revogado' AND deleted_at IS NULL GROUP BY status"
   );
   const counts: Record<string, number> = {
     nao_iniciado: 0,
@@ -266,7 +348,7 @@ export async function getStatusCountsProposta() {
 export async function getArticleCountProposta(): Promise<number> {
   return (
     (await get<{ c: number }>(
-      "SELECT COUNT(*) c FROM provisions WHERE type = 'artigo' AND alteracao_tipo <> 'revogado'"
+      "SELECT COUNT(*) c FROM provisions WHERE type = 'artigo' AND alteracao_tipo <> 'revogado' AND deleted_at IS NULL"
     ))?.c ?? 0
   );
 }

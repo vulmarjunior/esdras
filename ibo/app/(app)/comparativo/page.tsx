@@ -1,7 +1,8 @@
 import { redirect } from "next/navigation";
 import { getSessionUser } from "@/lib/auth";
 import { all } from "@/lib/db";
-import { getProposalTree, getNumerosArmazenados } from "@/lib/data";
+import { getProposalTree, getNumerosArmazenados, provisionLabel, type TreeNode } from "@/lib/data";
+import { getTodasCorrespondencias } from "@/app/actions/provision";
 import { buildComparativo } from "@/lib/comparativo-core";
 import {
   Acompanhamento,
@@ -11,11 +12,27 @@ import type { Comment, PendingIssue, Suggestion } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
 
+/** Justificativas dos ancestrais (capítulo/seção), com o escopo identificado. */
+function justificativasPorEscopo(tree: TreeNode[]): Map<string, { label: string; texto: string }[]> {
+  const mapa = new Map<string, { label: string; texto: string }[]>();
+  const visitar = (nodes: TreeNode[], ancestrais: { label: string; texto: string }[]) => {
+    for (const node of nodes) {
+      mapa.set(node.id, ancestrais);
+      const proprio = node.justificativa.trim()
+        ? [...ancestrais, { label: provisionLabel(node), texto: node.justificativa }]
+        : ancestrais;
+      visitar(node.children, proprio);
+    }
+  };
+  visitar(tree, []);
+  return mapa;
+}
+
 export default async function ComparativoPage() {
   const user = await getSessionUser();
   if (!user) redirect("/login");
 
-  const [tree, vigentes, provisionRows, suggestionRows, commentRows, pendingRows, noteRows] = await Promise.all([
+  const [tree, vigentes, provisionRows, suggestionRows, commentRows, pendingRows, noteRows, correspondenciaRows] = await Promise.all([
     getProposalTree(),
     getNumerosArmazenados("vigente"),
     all<{ id: string; justificativa: string }>("SELECT id, justificativa FROM provisions"),
@@ -29,6 +46,7 @@ export default async function ComparativoPage() {
       "SELECT provision_id, content FROM personal_notes WHERE user_id = ?",
       [user.id],
     ),
+    getTodasCorrespondencias(),
   ]);
 
   const justificativas = new Map(provisionRows.map((row) => [row.id, row.justificativa]));
@@ -36,12 +54,16 @@ export default async function ComparativoPage() {
   const comments = groupByProvision(commentRows);
   const pendings = groupByProvision(pendingRows);
   const notes = new Map(noteRows.map((row) => [row.provision_id, row.content]));
+  const correspondencias = groupByProvision(correspondenciaRows);
+  const escopos = justificativasPorEscopo(tree);
   const linhas: LinhaAcompanhamento[] = buildComparativo(tree, vigentes, justificativas).map((linha) => ({
     ...linha,
     suggestions: suggestions.get(linha.id) ?? [],
     comments: comments.get(linha.id) ?? [],
     pendings: pendings.get(linha.id) ?? [],
     personalNote: notes.get(linha.id) ?? "",
+    correspondencias: correspondencias.get(linha.id) ?? [],
+    justificativasEscopo: escopos.get(linha.id) ?? [],
   }));
 
   return (

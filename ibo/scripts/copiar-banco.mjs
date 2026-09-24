@@ -70,6 +70,7 @@ const TABLES = [
   "pending_issues",
   "references_tb",
   "provision_relations",
+  "provision_correspondences",
   "votes",
   "meetings",
   "meeting_members",
@@ -79,6 +80,7 @@ const TABLES = [
   "minutes_reviews",
   "minutes_retifications",
   "personal_notes",
+  "document_snapshots",
   "library_books",
   "library_sections",
   "audit_logs",
@@ -105,6 +107,11 @@ try {
 
   let total = 0;
   for (const tabela of TABLES) {
+    const existeNaOrigem = await origem.query("SELECT to_regclass($1) AS tabela", [`public.${tabela}`]);
+    if (!existeNaOrigem.rows[0].tabela) {
+      console.log(`${tabela}: ausente na origem (ignorada)`);
+      continue;
+    }
     const { rows } = await origem.query(`SELECT * FROM ${tabela}`);
     if (rows.length === 0) {
       console.log(`${tabela}: 0 registros`);

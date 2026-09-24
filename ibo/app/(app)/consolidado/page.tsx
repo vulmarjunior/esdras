@@ -22,7 +22,7 @@ function flattenItens(tree: TreeNode[], vigentes: Map<string, string>): ItemEsta
         status: n.status,
         origem: n.origem,
         alteracaoTipo: n.alteracao_tipo,
-        texto: n.redacao_consolidada || n.redacao_trabalho || n.proposta_inicial || n.texto_vigente || "",
+        texto: n.redacao_trabalho || n.redacao_consolidada || n.proposta_inicial || n.texto_vigente || "",
         depth,
         chapterId: cap?.id ?? n.id,
         chapterLabel: cap ? provisionLabel(cap) : "",

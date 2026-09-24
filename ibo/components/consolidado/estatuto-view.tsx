@@ -45,6 +45,8 @@ function rotulo(item: ItemEstatuto): string {
       return `${n}`;
     case "alinea":
       return n.replace(/\)?$/, ")");
+    case "item":
+      return n.replace(/\.?$/, ".");
     default:
       return item.id;
   }

@@ -14,6 +14,7 @@ const PESO_TIPO: Record<ProvisionType, number> = {
   inciso: 1,
   paragrafo: 2,
   alinea: 3,
+  item: 4,
 };
 
 export interface IrmaoOrdenavel {

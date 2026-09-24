@@ -27,6 +27,8 @@ import {
 } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ALTERACAO_TYPE_LABELS, PENDING_CATEGORY_LABELS } from "@/lib/labels";
+import { rotuloCorrespondencia } from "@/lib/correspondencias";
+import type { CorrespondenciaRegistro } from "@/app/actions/provision";
 import type { LinhaComparativo } from "@/lib/comparativo-core";
 import type { Comment, PendingIssue, Suggestion } from "@/lib/types";
 import { cn } from "@/lib/utils";
@@ -36,6 +38,8 @@ export interface LinhaAcompanhamento extends LinhaComparativo {
   comments: Comment[];
   pendings: PendingIssue[];
   personalNote: string;
+  correspondencias: CorrespondenciaRegistro[];
+  justificativasEscopo: { label: string; texto: string }[];
 }
 
 type ContributionTab = "sugestao" | "comentario" | "pendencia" | "anotacao";
@@ -162,11 +166,12 @@ export function Acompanhamento({ linhas }: { linhas: LinhaAcompanhamento[] }) {
 
               <div className="p-3 sm:p-5">
                 <Tabs defaultValue="redacao">
-                  <TabsList className="grid h-auto w-full grid-cols-2 sm:grid-cols-5">
+                  <TabsList className="grid h-auto w-full grid-cols-2 sm:grid-cols-6">
                     <TabsTrigger value="redacao">Redação atual</TabsTrigger>
                     <TabsTrigger value="vigente">Vigente</TabsTrigger>
                     <TabsTrigger value="inicial">Proposta inicial</TabsTrigger>
                     <TabsTrigger value="justificativa">Justificativa</TabsTrigger>
+                    <TabsTrigger value="vinculos">Vínculos ({selected.correspondencias.length})</TabsTrigger>
                     <TabsTrigger value="pendencias">Pendências ({openPendings.length})</TabsTrigger>
                   </TabsList>
                   <TabsContent value="redacao" className="pt-4">
@@ -178,8 +183,37 @@ export function Acompanhamento({ linhas }: { linhas: LinhaAcompanhamento[] }) {
                   <TabsContent value="inicial" className="pt-4">
                     <TextPanel text={selected.propostaInicial} empty="Sem proposta inicial cadastrada." />
                   </TabsContent>
-                  <TabsContent value="justificativa" className="pt-4">
-                    <TextPanel text={selected.justificativa} empty="Nenhuma justificativa registrada." />
+                  <TabsContent value="justificativa" className="space-y-3 pt-4">
+                    <TextPanel text={selected.justificativa} empty="Nenhuma justificativa registrada para este dispositivo." />
+                    {selected.justificativasEscopo.length > 0 && (
+                      <div className="space-y-2">
+                        <h4 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                          Justificativas de escopo (capítulos/seções que contêm este dispositivo)
+                        </h4>
+                        {selected.justificativasEscopo.map((item) => (
+                          <div key={item.label} className="rounded-lg border bg-muted/20 p-3">
+                            <p className="mb-1 text-xs font-medium text-muted-foreground">{item.label}</p>
+                            <RichTextContent text={item.texto} className="text-sm leading-6" />
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </TabsContent>
+                  <TabsContent value="vinculos" className="space-y-3 pt-4">
+                    {selected.correspondencias.length === 0 ? (
+                      <p className="rounded-lg border p-4 text-sm text-muted-foreground">
+                        Nenhum vínculo com o Estatuto registrado. O dispositivo usa correspondência automática pelo próprio número.
+                      </p>
+                    ) : (
+                      <ul className="divide-y rounded-lg border">
+                        {selected.correspondencias.map((vinculo) => (
+                          <li key={vinculo.id} className="flex flex-wrap items-center justify-between gap-2 px-3 py-2 text-sm">
+                            <span className="font-medium">{vinculo.vigente_label ?? "Sem dispositivo vinculado"}</span>
+                            <Badge variant="outline">{rotuloCorrespondencia(vinculo.tipo)}</Badge>
+                          </li>
+                        ))}
+                      </ul>
+                    )}
                   </TabsContent>
                   <TabsContent value="pendencias" className="space-y-3 pt-4">
                     {selected.pendings.length === 0 ? (

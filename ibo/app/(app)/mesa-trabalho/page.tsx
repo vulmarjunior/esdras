@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { getSessionUser } from "@/lib/auth";
 import {
   getActiveMeeting,
+  getExcluidosProposta,
   getNumerosArmazenados,
   getProposalTree,
   getVigenteTree,
@@ -9,12 +10,11 @@ import {
   type TreeNode,
 } from "@/lib/data";
 import { all } from "@/lib/db";
+import { getTodasCorrespondencias, type CorrespondenciaRegistro } from "@/app/actions/provision";
 import { numerarArvore } from "@/lib/numeracao";
 import type { Comment, PendingIssue, Suggestion } from "@/lib/types";
-import {
-  ChapterWorkbench,
-  type WorkbenchNode,
-} from "@/components/workbench/chapter-workbench";
+import { ChapterWorkbench } from "@/components/workbench/chapter-workbench";
+import type { WorkbenchNode } from "@/lib/workbench-node";
 
 export const dynamic = "force-dynamic";
 
@@ -39,10 +39,13 @@ function mapNode(
   comments: Map<string, Comment[]>,
   pendings: Map<string, PendingIssue[]>,
   dispositivosVigentes: Set<string>,
+  nomesUsuarios: Map<number, string>,
+  correspondencias: Map<string, CorrespondenciaRegistro[]>,
 ): WorkbenchNode {
   const nodeSuggestions = suggestions.get(node.id) ?? [];
   const nodeComments = comments.get(node.id) ?? [];
   const nodePendings = pendings.get(node.id) ?? [];
+  const nodeCorrespondencias = correspondencias.get(node.id) ?? [];
   return {
     id: node.id,
     parentId: node.parent_id,
@@ -61,6 +64,9 @@ function mapNode(
     propostaInicial: node.proposta_inicial,
     redacaoTrabalho: node.redacao_trabalho,
     redacaoConsolidada: node.redacao_consolidada,
+    acordoEm: node.acordo_em,
+    acordoPorName: node.acordo_por ? nomesUsuarios.get(node.acordo_por) ?? null : null,
+    acordoVersion: node.acordo_version,
     justificativa: node.justificativa,
     version: node.version,
     updatedAt: node.updated_at,
@@ -70,6 +76,7 @@ function mapNode(
     suggestions: nodeSuggestions,
     comments: nodeComments,
     pendings: nodePendings,
+    correspondencias: nodeCorrespondencias,
     suggestionCount: nodeSuggestions.length,
     commentCount: nodeComments.length,
     childCount: node.child_count,
@@ -84,6 +91,8 @@ function mapNode(
         comments,
         pendings,
         dispositivosVigentes,
+        nomesUsuarios,
+        correspondencias,
       ),
     ),
   };
@@ -106,7 +115,10 @@ export default async function WorkbenchPage({
     commentRows,
     pendingRows,
     noteRows,
+    userRows,
     activeMeeting,
+    excluidos,
+    correspondenciaRows,
   ] = await Promise.all([
     getProposalTree(),
     getVigenteTree(),
@@ -122,11 +134,16 @@ export default async function WorkbenchPage({
       "SELECT provision_id, content FROM personal_notes WHERE user_id = ?",
       [user.id],
     ),
+    all<{ id: number; name: string }>("SELECT id, name FROM users"),
     getActiveMeeting(),
+    getExcluidosProposta(),
+    getTodasCorrespondencias(),
   ]);
 
   const numerosSugeridos = numerarArvore(tree);
   const notes = new Map(noteRows.map((row) => [row.provision_id, row.content]));
+  const nomesUsuarios = new Map(userRows.map((row) => [row.id, row.name]));
+  const correspondenciasPorDispositivo = groupByProvision(correspondenciaRows);
   const suggestions = groupByProvision(suggestionRows);
   const comments = groupByProvision(commentRows);
   const pendings = groupByProvision(pendingRows);
@@ -150,6 +167,8 @@ export default async function WorkbenchPage({
       comments,
       pendings,
       dispositivosVigentes,
+      nomesUsuarios,
+      correspondenciasPorDispositivo,
     ),
   );
   const chapters = documentTree.filter(
@@ -163,6 +182,7 @@ export default async function WorkbenchPage({
       canEdit={user.role === "admin" || user.role === "coordenador"}
       activeMeetingId={activeMeeting?.id ?? null}
       vigenteOptions={vigenteOptions}
+      excluidos={excluidos}
       initialChapterId={query.capitulo}
       initialSelectedId={query.dispositivo}
     />

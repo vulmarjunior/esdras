@@ -17,7 +17,7 @@ CREATE TABLE IF NOT EXISTS provisions (
   id TEXT PRIMARY KEY,
   parent_id TEXT REFERENCES provisions(id) ON DELETE CASCADE,
   project_id TEXT NOT NULL DEFAULT 'projeto-ibo',
-  type TEXT NOT NULL CHECK (type IN ('capitulo','secao','artigo','paragrafo','inciso','alinea')),
+  type TEXT NOT NULL CHECK (type IN ('capitulo','secao','artigo','paragrafo','inciso','alinea','item')),
   numero TEXT,
   titulo TEXT,
   ordem INTEGER NOT NULL DEFAULT 0,
@@ -28,6 +28,14 @@ CREATE TABLE IF NOT EXISTS provisions (
   -- Vazio + sem_origem = 0 → correspondência automática (próprio número).
   origem_ref_id TEXT REFERENCES provisions(id) ON DELETE SET NULL,
   sem_origem INTEGER NOT NULL DEFAULT 0 CHECK (sem_origem IN (0,1)),
+  -- Exclusão reversível (tombstone): o dispositivo sai da árvore ativa sem
+  -- perder conteúdo, relações, posição ou histórico.
+  deleted_at TEXT,
+  deleted_by INTEGER REFERENCES users(id),
+  -- Concordância editorial não bloqueante: revisão acordada, quando e por quem.
+  acordo_version INTEGER,
+  acordo_em TEXT,
+  acordo_por INTEGER REFERENCES users(id),
   alteracao_tipo TEXT NOT NULL DEFAULT 'nao_avaliado' CHECK (alteracao_tipo IN ('nao_avaliado','mantido','alteracao_redacional','alteracao_material','novo','revogado','desmembrado','incorporado','reorganizado')),
   status TEXT NOT NULL DEFAULT 'nao_iniciado' CHECK (status IN ('nao_iniciado','em_analise','em_discussao','redacao_definida','aprovado','reaberto')),
   texto_vigente TEXT NOT NULL DEFAULT '',
@@ -122,6 +130,26 @@ CREATE TABLE IF NOT EXISTS provision_relations (
   UNIQUE (provision_id, related_id)
 );
 
+-- Correspondências múltiplas minuta ↔ Estatuto registrado (1:1, 1:N, N:1, N:M).
+-- Linha com vigente_id preenchido = vínculo; sem vigente_id = declaração de
+-- acréscimo ou de não aplicabilidade do dispositivo da minuta.
+CREATE TABLE IF NOT EXISTS provision_correspondences (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  provision_id TEXT NOT NULL REFERENCES provisions(id) ON DELETE CASCADE,
+  vigente_id TEXT REFERENCES provisions(id) ON DELETE CASCADE,
+  tipo TEXT NOT NULL DEFAULT 'relacionado'
+    CHECK (tipo IN ('nao_examinado','relacionado','acrescimo','nao_aplicavel','substituido','desmembrado','incorporado')),
+  observacao TEXT,
+  created_at TEXT NOT NULL DEFAULT (datetime('now')),
+  created_by INTEGER REFERENCES users(id)
+);
+CREATE INDEX IF NOT EXISTS idx_provision_correspondences_vigente
+  ON provision_correspondences(vigente_id);
+CREATE UNIQUE INDEX IF NOT EXISTS uq_correspondencia_vinculo
+  ON provision_correspondences(provision_id, vigente_id) WHERE vigente_id IS NOT NULL;
+CREATE UNIQUE INDEX IF NOT EXISTS uq_correspondencia_declarada
+  ON provision_correspondences(provision_id, tipo) WHERE vigente_id IS NULL;
+
 CREATE TABLE IF NOT EXISTS votes (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   user_id INTEGER NOT NULL REFERENCES users(id),
@@ -211,6 +239,19 @@ CREATE TABLE IF NOT EXISTS personal_notes (
   updated_at TEXT NOT NULL DEFAULT (datetime('now')),
   UNIQUE (provision_id, user_id)
 );
+
+-- Marcos integrais recuperáveis da minuta (árvore, conteúdo, referências,
+-- justificativas, marcadores e proveniência em um único JSON).
+CREATE TABLE IF NOT EXISTS document_snapshots (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  rotulo TEXT,
+  descricao TEXT,
+  conteudo TEXT NOT NULL,
+  created_at TEXT NOT NULL DEFAULT (datetime('now')),
+  created_by INTEGER REFERENCES users(id)
+);
+CREATE INDEX IF NOT EXISTS idx_document_snapshots_created_at
+  ON document_snapshots(created_at);
 
 -- Biblioteca de literatura de consulta (livros doutrinários). O conteúdo é
 -- importado pelo Admin (MD/TXT/EPUB) e dividido em seções; `busca` guarda o

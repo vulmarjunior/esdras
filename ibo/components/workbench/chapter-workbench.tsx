@@ -6,11 +6,12 @@ import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import {
-  AlertTriangle,
+  ArchiveRestore,
   ArrowLeftRight,
   ArrowUpRight,
   Ban,
   BookOpenText,
+  Camera,
   ChevronRight,
   FilePenLine,
   GripVertical,
@@ -23,13 +24,13 @@ import {
   Plus,
   RotateCcw,
   Search,
-  StickyNote,
   Trash2,
   Users,
 } from "lucide-react";
 import {
   deleteProvision,
   moveProposalProvision,
+  restoreProvision,
   setAlteracaoTipo,
   setOrigemReferencia,
   setTagNovo,
@@ -38,13 +39,25 @@ import {
 import { cn } from "@/lib/utils";
 import { normalizarNumero } from "@/lib/numeracao";
 import { PROVISION_TYPE_LABELS } from "@/lib/labels";
+import {
+  allowedChildren,
+  articleStats,
+  currentText,
+  descendantIds,
+  destinationLabel,
+  findNode,
+  flatten,
+  isStructural,
+  label,
+  type WorkbenchNode,
+} from "@/lib/workbench-node";
 import { escolherSelecaoAposExclusao, simulateArticleMove } from "@/lib/workbench-move";
 import { ConfirmDialog, type ConfirmDialogState } from "@/components/confirm-dialog";
+import { WorkbenchDocumentRow } from "@/components/workbench/document-row";
 import { WorkbenchVersionHistory } from "@/components/workbench/version-history";
-import type { Comment, PendingIssue, Suggestion } from "@/lib/types";
-import type { DispositivoOption } from "@/lib/data";
+import type { DispositivoOption, ExcluidoInfo } from "@/lib/data";
 import { RichTextContent } from "@/components/rich-text-content";
-import { NovoBadge, StatusBadge, StatusDot } from "@/components/status-badge";
+import { NovoBadge, StatusBadge } from "@/components/status-badge";
 import { NewProvisionForm, StatusControl } from "@/components/provision/provision-forms";
 import { JustificativaEditor } from "@/components/provision/justificativa-editor";
 import { PersonalNoteForm } from "@/components/provision/personal-note-form";
@@ -52,6 +65,7 @@ import { SuggestionForm } from "@/components/provision/suggestion-forms";
 import { CommentForm, CommentList } from "@/components/provision/comment-forms";
 import { PendingForm, PendingItem } from "@/components/provision/pending-forms";
 import { ApprovalControl } from "@/components/workbench/approval-control";
+import { CorrespondencePanel } from "@/components/workbench/correspondence-panel";
 import { Button, buttonVariants } from "@/components/ui/button";
 import {
   Dialog,
@@ -70,120 +84,13 @@ const WorkingTextEditor = dynamic(
   { loading: () => <p className="text-sm text-muted-foreground">Carregando editor…</p> },
 );
 
-export interface WorkbenchNode {
-  id: string;
-  parentId: string | null;
-  type: string;
-  numero: string | null;
-  numeroVigente: string | null;
-  numeroSugerido: string | null;
-  titulo: string | null;
-  origem: string;
-  origemRefId: string | null;
-  semOrigem: boolean;
-  temVigente: boolean;
-  alteracaoTipo: string;
-  status: string;
-  textoVigente: string;
-  propostaInicial: string;
-  redacaoTrabalho: string;
-  redacaoConsolidada: string;
-  justificativa: string;
-  version: number;
-  updatedAt: string;
-  hasNote: boolean;
-  hasPending: boolean;
-  personalNote: string;
-  suggestions: Suggestion[];
-  comments: Comment[];
-  pendings: PendingIssue[];
-  suggestionCount: number;
-  commentCount: number;
-  childCount: number;
-  children: WorkbenchNode[];
-}
-
-interface FlatNode extends WorkbenchNode {
-  depth: number;
-}
-
-function label(node: Pick<WorkbenchNode, "type" | "numero" | "id">): string {
-  const numeroArtigo = node.numero && /^\d+$/.test(node.numero)
-    ? Number(node.numero) < 10 ? `${node.numero}º` : node.numero
-    : node.numero;
-  if (node.type === "capitulo") return node.numero ? `Capítulo ${node.numero}` : "Novo capítulo";
-  if (node.type === "secao") return node.numero ? `Seção ${node.numero}` : "Nova seção";
-  if (node.type === "artigo") return numeroArtigo ? `Art. ${numeroArtigo}` : "Novo artigo";
-  if (node.type === "paragrafo") {
-    if (!node.numero) return "Novo parágrafo";
-    if (node.numero.toLocaleLowerCase("pt-BR") === "único") return "Parágrafo único";
-    return `§ ${node.numero}`;
-  }
-  if (node.type === "alinea") return node.numero ? node.numero.replace(/\)?$/, ")") : "Nova alínea";
-  return node.numero || PROVISION_TYPE_LABELS[node.type] || node.id;
-}
-
-function flatten(nodes: WorkbenchNode[], depth = 0): FlatNode[] {
-  return nodes.flatMap((node) => [
-    { ...node, depth },
-    ...flatten(node.children, depth + 1),
-  ]);
-}
-
-function findNode(nodes: WorkbenchNode[], id: string): WorkbenchNode | undefined {
-  for (const node of nodes) {
-    if (node.id === id) return node;
-    const found = findNode(node.children, id);
-    if (found) return found;
-  }
-  return undefined;
-}
-
-function descendantIds(node: WorkbenchNode): Set<string> {
-  return new Set(flatten(node.children).map((child) => child.id));
-}
-
-function destinationLabel(node: WorkbenchNode): string {
-  const former = node.numeroVigente && normalizarNumero(node.numeroVigente) !== normalizarNumero(node.numero)
-    ? ` · vigente ${node.numeroVigente}`
-    : "";
-  return `${label(node)}${node.titulo ? ` — ${node.titulo}` : ""}${former}`;
-}
-
-function currentText(node: WorkbenchNode): string {
-  if (node.status === "aprovado" && node.redacaoConsolidada.trim()) return node.redacaoConsolidada;
-  return node.redacaoTrabalho || node.propostaInicial || node.textoVigente || "";
-}
-
-function allowedChildren(type: string): string[] {
-  const hierarchy: Record<string, string[]> = {
-    capitulo: ["secao", "artigo"],
-    secao: ["artigo"],
-    artigo: ["paragrafo", "inciso", "alinea"],
-    paragrafo: ["inciso", "alinea"],
-    inciso: ["alinea"],
-    alinea: [],
-  };
-  return hierarchy[type] ?? [];
-}
-
-/** Capítulos e seções são nós estruturais: o conteúdo no documento é o título. */
-function isStructural(type: string): boolean {
-  return type === "capitulo" || type === "secao";
-}
-
-function articleStats(chapter: WorkbenchNode) {
-  const articles = flatten(chapter.children).filter((node) => node.type === "artigo" && node.alteracaoTipo !== "revogado");
-  const approved = articles.filter((node) => node.status === "aprovado").length;
-  return { total: articles.length, approved };
-}
-
 export function ChapterWorkbench({
   chapters,
   documentTree,
   canEdit,
   activeMeetingId,
   vigenteOptions,
+  excluidos,
   initialChapterId,
   initialSelectedId,
 }: {
@@ -192,6 +99,7 @@ export function ChapterWorkbench({
   canEdit: boolean;
   activeMeetingId: number | null;
   vigenteOptions: DispositivoOption[];
+  excluidos: ExcluidoInfo[];
   initialChapterId?: string;
   initialSelectedId?: string;
 }) {
@@ -219,6 +127,12 @@ export function ChapterWorkbench({
   const [movePending, setMovePending] = useState(false);
   const [removeConfirm, setRemoveConfirm] = useState<ConfirmDialogState | null>(null);
   const [removePending, setRemovePending] = useState(false);
+  const [restoreTarget, setRestoreTarget] = useState<ExcluidoInfo | null>(null);
+  const [restoreParentId, setRestoreParentId] = useState<string | null>(null);
+  const [restoreAfterId, setRestoreAfterId] = useState<string | null>(null);
+  const [restorePending, setRestorePending] = useState(false);
+  const [restoreRowPending, setRestoreRowPending] = useState<string | null>(null);
+  const [insertOpen, setInsertOpen] = useState<"antes" | "depois" | null>(null);
   const [revokePending, setRevokePending] = useState(false);
   const [tagNovoPending, setTagNovoPending] = useState(false);
   const [origemPending, setOrigemPending] = useState(false);
@@ -228,7 +142,7 @@ export function ChapterWorkbench({
   const selected = effectiveSelectedId === chapter?.id
     ? chapter
     : items.find((item) => item.id === effectiveSelectedId) ?? chapter;
-  const selectedRef = useRef<HTMLButtonElement | null>(null);
+  const selectedRef = useRef<HTMLElement | null>(null);
   const allNodes = useMemo(() => flatten(documentTree), [documentTree]);
   const selectedDescendants = selected ? descendantIds(selected) : new Set<string>();
   const possibleParents = selected
@@ -243,6 +157,29 @@ export function ChapterWorkbench({
     ? documentTree.filter((node) => node.id !== selected?.id && node.alteracaoTipo !== "revogado")
     : (findNode(documentTree, moveParentId)?.children ?? [])
       .filter((node) => node.id !== selected?.id && node.alteracaoTipo !== "revogado");
+  const restoreParents = useMemo(() => {
+    if (!restoreTarget) return [];
+    return allNodes.filter((node) =>
+      node.id !== restoreTarget.id &&
+      node.alteracaoTipo !== "revogado" &&
+      allowedChildren(node.type).includes(restoreTarget.type),
+    );
+  }, [allNodes, restoreTarget]);
+  const restoreSiblings = restoreTarget
+    ? (restoreParentId === null ? documentTree : findNode(documentTree, restoreParentId)?.children ?? [])
+      .filter((node) => node.id !== restoreTarget.id)
+    : [];
+  const insertParent = selected?.parentId ? findNode(documentTree, selected.parentId) ?? null : null;
+  const insertTypes = insertParent ? allowedChildren(insertParent.type) : ["capitulo"];
+  const insertAfterId = insertOpen === "depois"
+    ? selected?.id ?? null
+    : insertOpen === "antes" && selected
+      ? (() => {
+          const siblings = insertParent ? insertParent.children : documentTree;
+          const index = siblings.findIndex((node) => node.id === selected.id);
+          return index > 0 ? siblings[index - 1].id : null;
+        })()
+      : null;
   const moveEffects = selected
     ? simulateArticleMove(documentTree, selected.id, moveParentId, moveAfterId)
     : [];
@@ -334,14 +271,14 @@ export function ChapterWorkbench({
   function askRemove() {
     if (!selected) return;
     const base =
-      "Todas as sugestões, comentários, pendências, referências, versões e vínculos associados serão removidos permanentemente. Esta ação não pode ser desfeita.";
+      "O dispositivo será retirado da minuta por exclusão reversível: conteúdo, versões, sugestões, comentários e vínculos são preservados e a restauração fica disponível em Retirados da minuta.";
     setRemoveConfirm({
-      title: `Excluir ${label(selected)}`,
+      title: `Retirar ${label(selected)} da minuta`,
       description:
         selected.childCount > 0
-          ? `Este dispositivo possui ${selected.childCount} dispositivo(s) filho(s), que também serão excluídos.\n\n${base}`
+          ? `Este dispositivo possui ${selected.childCount} dispositivo(s) filho(s), que acompanham a retirada.\n\n${base}`
           : base,
-      confirmLabel: "Excluir dispositivo",
+      confirmLabel: "Retirar da minuta",
     });
   }
 
@@ -353,12 +290,43 @@ export function ChapterWorkbench({
     const result = await deleteProvision(alvo.id);
     setRemovePending(false);
     if (result.error) return toast.error(result.error);
-    toast.success(result.message || "Dispositivo excluído.");
+    toast.success(result.message || "Dispositivo retirado da minuta.");
     setRemoveConfirm(null);
     if (destino) {
       setChapterId(destino.chapterId);
       setSelectedId(destino.selectedId);
     }
+    router.refresh();
+  }
+
+  async function restaurar(item: ExcluidoInfo) {
+    setRestoreRowPending(item.id);
+    const result = await restoreProvision(item.id);
+    setRestoreRowPending(null);
+    if (result.conflict) {
+      setRestoreTarget(item);
+      setRestoreParentId(
+        item.parentId && findNode(documentTree, item.parentId) ? item.parentId : null,
+      );
+      setRestoreAfterId(null);
+      return;
+    }
+    if (result.error) return toast.error(result.error);
+    toast.success(result.message || "Dispositivo restaurado.");
+    router.refresh();
+  }
+
+  async function confirmRestore() {
+    if (!restoreTarget) return;
+    setRestorePending(true);
+    const result = await restoreProvision(restoreTarget.id, {
+      parentId: restoreParentId,
+      afterId: restoreAfterId,
+    });
+    setRestorePending(false);
+    if (result.error) return toast.error(result.error);
+    toast.success(result.message || "Dispositivo restaurado.");
+    setRestoreTarget(null);
     router.refresh();
   }
 
@@ -421,6 +389,11 @@ export function ChapterWorkbench({
           <Link href="/consolidado" className={buttonVariants({ variant: "outline", size: "sm" })}>
             <BookOpenText /> Prévia integral
           </Link>
+          {canEdit && (
+            <Link href="/marcos" className={buttonVariants({ variant: "outline", size: "sm" })}>
+              <Camera /> Marcos
+            </Link>
+          )}
           <Button
             variant="outline"
             size="sm"
@@ -549,49 +522,17 @@ export function ChapterWorkbench({
               </button>
 
               <div className="space-y-1">
-                {items.map((item) => {
-                  const active = item.id === effectiveSelectedId;
-                  const revoked = item.alteracaoTipo === "revogado";
-                  const moved = item.numero && item.numeroVigente && normalizarNumero(item.numero) !== normalizarNumero(item.numeroVigente);
-                  return (
-                    <button
-                      key={item.id}
-                      ref={active ? selectedRef : undefined}
-                      type="button"
-                      onClick={() => setSelectedId(item.id)}
-                      className={cn(
-                        "group w-full rounded-xl border border-transparent px-3 py-2 text-left transition-all hover:border-border hover:bg-card",
-                        active && "border-primary/50 bg-card shadow-sm ring-2 ring-primary/10",
-                        revoked && "opacity-65",
-                      )}
-                      style={{ paddingLeft: `${12 + Math.min(item.depth, 4) * 18}px` }}
-                    >
-                      <span className="mb-1 flex flex-wrap items-center gap-2">
-                        <span className={cn("font-heading text-sm font-semibold", revoked && "line-through")}>{label(item)}</span>
-                        {item.titulo && <span className="text-sm text-muted-foreground">— {item.titulo}</span>}
-                        {item.origem === "novo" && <NovoBadge />}
-                        {moved && (
-                          <span className="rounded-full border border-amber-300 bg-amber-50 px-1.5 py-0.5 text-[10px] font-medium text-amber-800 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-200">
-                            era {item.numeroVigente}
-                          </span>
-                        )}
-                        {revoked && <span className="rounded-full border px-1.5 py-0.5 text-[10px] text-muted-foreground">revogado</span>}
-                        <span className="ml-auto flex items-center gap-1.5">
-                          {item.hasPending && <AlertTriangle className="h-3.5 w-3.5 text-amber-500" aria-label="Possui pendência aberta" />}
-                          {item.hasNote && <StickyNote className="h-3.5 w-3.5 text-violet-500" aria-label="Possui anotação pessoal" />}
-                          <StatusDot status={item.status} />
-                        </span>
-                      </span>
-                      {revoked ? (
-                        <span className="block text-sm italic text-muted-foreground">Retirado da proposta de texto futuro.</span>
-                      ) : isStructural(item.type) ? null : currentText(item).trim() ? (
-                        <RichTextContent text={currentText(item)} className="text-[15px] leading-7 text-foreground/85" />
-                      ) : (
-                        <span className="block text-sm italic text-muted-foreground">Redação ainda não cadastrada.</span>
-                      )}
-                    </button>
-                  );
-                })}
+                {items.map((item) => (
+                  <WorkbenchDocumentRow
+                    key={item.id}
+                    item={item}
+                    active={item.id === effectiveSelectedId}
+                    canEdit={canEdit}
+                    editingOpen={editingOpen}
+                    onSelect={setSelectedId}
+                    registerRef={item.id === effectiveSelectedId ? (element) => { selectedRef.current = element; } : undefined}
+                  />
+                ))}
               </div>
             </article>
           </ScrollArea>
@@ -619,8 +560,16 @@ export function ChapterWorkbench({
               <div className="space-y-4 p-4">
                 <div className="grid grid-cols-2 gap-2">
                   {!isStructural(selected.type) && (
-                    <Button type="button" size="sm" className="justify-start" onClick={() => setEditingOpen(true)}>
-                      <FilePenLine /> Redigir
+                    <Button
+                      type="button"
+                      size="sm"
+                      className="justify-start"
+                      onClick={() => {
+                        setEditingOpen(true);
+                        router.refresh();
+                      }}
+                    >
+                      <FilePenLine /> Modo artigo ampliado
                     </Button>
                   )}
                   <Button
@@ -633,6 +582,16 @@ export function ChapterWorkbench({
                   >
                     <GripVertical /> Reorganizar
                   </Button>
+                  {canEdit && (
+                    <>
+                      <Button type="button" variant="outline" size="sm" className="justify-start" onClick={() => setInsertOpen("antes")}>
+                        <Plus /> Inserir antes
+                      </Button>
+                      <Button type="button" variant="outline" size="sm" className="justify-start" onClick={() => setInsertOpen("depois")}>
+                        <Plus /> Inserir depois
+                      </Button>
+                    </>
+                  )}
                   <Button type="button" variant="outline" size="sm" className="justify-start" onClick={() => setCollaborationOpen(true)}>
                     <MessageSquareText /> Colaboração
                   </Button>
@@ -647,7 +606,7 @@ export function ChapterWorkbench({
                   >
                     <Users /> Colaborar
                   </Link>
-                  {canEdit && !selected.temVigente && (
+                  {canEdit && (
                     <Button
                       type="button"
                       variant="outline"
@@ -656,7 +615,7 @@ export function ChapterWorkbench({
                       onClick={askRemove}
                       disabled={removePending}
                     >
-                      {removePending ? <Loader2 className="animate-spin" /> : <Trash2 />} Excluir
+                      {removePending ? <Loader2 className="animate-spin" /> : <Trash2 />} Retirar da minuta
                     </Button>
                   )}
                   {canEdit && selected.temVigente && (
@@ -695,6 +654,9 @@ export function ChapterWorkbench({
                       types={allowedChildren(selected.type)}
                       label="Adicionar dispositivo subordinado"
                       origemOptions={vigenteOptions}
+                      siblingOptions={selected.children
+                        .filter((child) => child.alteracaoTipo !== "revogado")
+                        .map((child) => ({ id: child.id, label: destinationLabel(child) }))}
                       onCreated={(id) => focusCreated(id, chapter.id)}
                     />
                   </div>
@@ -720,6 +682,12 @@ export function ChapterWorkbench({
                     />
                   </TabsContent>
                   <TabsContent value="origem" className="space-y-3 pt-2">
+                    <CorrespondencePanel
+                      provisionId={selected.id}
+                      canEdit={canEdit}
+                      correspondencias={selected.correspondencias}
+                      vigenteOptions={vigenteOptions.filter((option) => option.id !== selected.id)}
+                    />
                     {canEdit && (
                       <label className="block space-y-1.5 text-xs font-medium">
                         Referência ao dispositivo de origem
@@ -847,6 +815,126 @@ export function ChapterWorkbench({
         <Link href="/comparativo" className="font-medium text-primary hover:underline">Abrir quadro comparativo</Link>
       </div>
 
+      {excluidos.length > 0 && (
+        <section className="rounded-xl border bg-card p-4" aria-label="Retirados da minuta">
+          <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+            <h3 className="flex items-center gap-1.5 text-sm font-semibold">
+              <ArchiveRestore className="h-4 w-4" /> Retirados da minuta ({excluidos.length})
+            </h3>
+            <p className="text-xs text-muted-foreground">
+              Exclusão reversível: conteúdo, versões e vínculos preservados.
+            </p>
+          </div>
+          <ul className="divide-y">
+            {excluidos.map((item) => (
+              <li key={item.id} className="flex flex-wrap items-center justify-between gap-2 py-2 text-sm">
+                <div className="min-w-0">
+                  <span className="font-medium">{label(item)}</span>
+                  {item.titulo && <span className="text-muted-foreground"> — {item.titulo}</span>}
+                  <span className="block text-xs text-muted-foreground">
+                    {item.parentLabel ? `estava em ${item.parentLabel}` : "estava na raiz"}
+                    {item.childCount > 0 ? ` · ${item.childCount} descendente(s) acompanham` : ""}
+                    {item.deletedBy ? ` · retirado por ${item.deletedBy}` : ""} em {item.deletedAt}
+                  </span>
+                </div>
+                {canEdit && (
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    onClick={() => restaurar(item)}
+                    disabled={restoreRowPending === item.id}
+                  >
+                    {restoreRowPending === item.id ? <Loader2 className="animate-spin" /> : <ArchiveRestore />}
+                    Restaurar
+                  </Button>
+                )}
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+
+      <Dialog open={insertOpen !== null} onOpenChange={(open) => { if (!open) setInsertOpen(null); }}>
+        <DialogContent className="max-h-[92vh] overflow-y-auto sm:max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>
+              {insertOpen === "antes" ? "Inserir antes de" : "Inserir depois de"} {selected ? label(selected) : "dispositivo"}
+            </DialogTitle>
+            <DialogDescription>
+              O novo dispositivo será criado como irmão, na posição escolhida. A identidade e o
+              histórico dos dispositivos existentes permanecem.
+            </DialogDescription>
+          </DialogHeader>
+          {selected && (
+            <NewProvisionForm
+              parentId={selected.parentId}
+              parentType={insertParent?.type ?? "root"}
+              canEdit={canEdit}
+              types={insertTypes}
+              label="Criar dispositivo"
+              origemOptions={vigenteOptions}
+              afterId={insertAfterId}
+              defaultOpen
+              onCreated={(id) => {
+                setInsertOpen(null);
+                focusCreated(id, chapter?.id ?? "");
+              }}
+            />
+          )}
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={Boolean(restoreTarget)} onOpenChange={(open) => { if (!open) setRestoreTarget(null); }}>
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Restaurar {restoreTarget ? label(restoreTarget) : "dispositivo"}</DialogTitle>
+            <DialogDescription>
+              O destino original também está retirado da minuta. Escolha onde restaurar — nenhum
+              reposicionamento acontece em silêncio.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <label className="space-y-1.5 text-xs font-medium">
+              Destino estrutural
+              <select
+                className="h-9 w-full rounded-lg border border-input bg-background px-2.5 text-sm font-normal"
+                value={restoreParentId ?? "__root__"}
+                onChange={(event) => {
+                  setRestoreParentId(event.target.value === "__root__" ? null : event.target.value);
+                  setRestoreAfterId(null);
+                }}
+              >
+                <option value="__root__">Raiz da proposta</option>
+                {restoreParents.map((node) => (
+                  <option key={node.id} value={node.id}>{destinationLabel(node)}</option>
+                ))}
+              </select>
+            </label>
+            <label className="space-y-1.5 text-xs font-medium">
+              Posição no destino
+              <select
+                className="h-9 w-full rounded-lg border border-input bg-background px-2.5 text-sm font-normal"
+                value={restoreAfterId ?? "__start__"}
+                onChange={(event) => setRestoreAfterId(event.target.value === "__start__" ? null : event.target.value)}
+              >
+                <option value="__start__">No início</option>
+                {restoreSiblings.map((node) => (
+                  <option key={node.id} value={node.id}>Após {destinationLabel(node)}</option>
+                ))}
+              </select>
+            </label>
+          </div>
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={() => setRestoreTarget(null)} disabled={restorePending}>Cancelar</Button>
+            <Button type="button" onClick={confirmRestore} disabled={restorePending}>
+              {restorePending && <Loader2 className="animate-spin" />}
+              Restaurar dispositivo
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       <Dialog open={moveOpen} onOpenChange={setMoveOpen}>
         <DialogContent className="sm:max-w-2xl">
           <DialogHeader>
@@ -936,9 +1024,10 @@ export function ChapterWorkbench({
       <Dialog open={editingOpen} onOpenChange={setEditingOpen}>
         <DialogContent className="h-[calc(100dvh-1rem)] w-[calc(100vw-1rem)] max-w-none gap-0 overflow-hidden rounded-xl p-0 sm:h-[94vh] sm:w-[calc(100vw-2rem)] sm:!max-w-6xl xl:!max-w-7xl">
           <DialogHeader className="shrink-0 border-b px-4 py-4 pr-14 sm:px-6">
-            <DialogTitle>Redigir {selected ? label(selected) : "dispositivo"}</DialogTitle>
+            <DialogTitle>Modo artigo ampliado — {selected ? label(selected) : "dispositivo"}</DialogTitle>
             <DialogDescription>
-              Edite a redação de trabalho sem sair do capítulo. Cada salvamento cria uma nova versão no histórico.
+              Edite com autosave, IA, justificativa, histórico e conclusão sem sair do capítulo. O texto
+              também pode ser editado diretamente no documento.
             </DialogDescription>
           </DialogHeader>
           {selected && !isStructural(selected.type) && (
@@ -949,11 +1038,11 @@ export function ChapterWorkbench({
                   <span className="text-xs text-muted-foreground">Área ampliada de edição</span>
                 </div>
                 <WorkingTextEditor
-                  key={`${selected.id}:${selected.version}`}
+                  key={selected.id}
                   provisionId={selected.id}
                   initialText={selected.redacaoTrabalho || selected.propostaInicial || selected.textoVigente}
                   version={selected.version}
-                  canEdit={canEdit && selected.status !== "aprovado"}
+                  canEdit={canEdit}
                   compararTexto={selected.textoVigente}
                   editorMinHeightClass="min-h-[19rem] sm:min-h-[26rem] lg:min-h-[34rem]"
                 />
@@ -975,8 +1064,12 @@ export function ChapterWorkbench({
                   status={selected.status}
                   canEdit={canEdit}
                   hasWorkingText={Boolean(selected.redacaoTrabalho.trim())}
+                  acordoEm={selected.acordoEm}
+                  acordoPorName={selected.acordoPorName}
+                  acordoVersion={selected.acordoVersion}
+                  currentVersion={selected.version}
                 />
-                <WorkbenchVersionHistory key={`${selected.id}:${selected.version}`} provisionId={selected.id} version={selected.version} canEdit={canEdit && selected.status !== "aprovado"} open={editingOpen} />
+                <WorkbenchVersionHistory key={`${selected.id}:${selected.version}`} provisionId={selected.id} version={selected.version} canEdit={canEdit} open={editingOpen} />
                 <div className="flex justify-end">
                   <Link href={`/dispositivo/${selected.id}?aba=historico&${returnQuery}`} className={buttonVariants({ variant: "outline", size: "sm" })}>
                     Abrir tela clássica: histórico e referências

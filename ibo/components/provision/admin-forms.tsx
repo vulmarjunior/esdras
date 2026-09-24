@@ -35,6 +35,9 @@ export function NewProvisionForm({
   label = "Incluir dispositivo",
   origemOptions,
   onCreated,
+  afterId,
+  siblingOptions,
+  defaultOpen = false,
 }: {
   parentId: string | null;
   parentType: string;
@@ -43,10 +46,16 @@ export function NewProvisionForm({
   label?: string;
   origemOptions?: DispositivoOption[];
   onCreated?: (id: string) => void;
+  /** Posição fixa de inserção: undefined = fim; null = início; id = após o irmão. */
+  afterId?: string | null;
+  /** Irmãos do destino para escolher a posição (quando afterId não é fixo). */
+  siblingOptions?: { id: string; label: string }[];
+  defaultOpen?: boolean;
 }) {
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useState(defaultOpen);
   const onlyType = types?.length === 1 ? types[0] : "";
   const [form, setForm] = useState({ tipo: onlyType, numero: "", titulo: "", texto: "", justificativa: "", origemRefId: "" });
+  const [posicao, setPosicao] = useState<string>("__fim__");
   const [pending, setPending] = useState(false);
   const router = useRouter();
   const origemGroups = useMemo(() => agruparPorCapitulo(origemOptions ?? []), [origemOptions]);
@@ -57,7 +66,8 @@ export function NewProvisionForm({
     artigo: ["paragrafo", "inciso", "alinea"],
     paragrafo: ["inciso", "alinea"],
     inciso: ["alinea"],
-    alinea: [],
+    alinea: ["item"],
+    item: [],
   };
   const tipos = types || (parentId ? allowed[parentType] || [] : ["capitulo", "secao", "artigo"]);
   const tipoEfetivo = form.tipo || onlyType;
@@ -67,11 +77,20 @@ export function NewProvisionForm({
 
   async function submit() {
     setPending(true);
-    const res = await createProvision(parentId, form.tipo, form.texto, form.justificativa, form.titulo, form.numero, form.origemRefId || undefined);
+    const posicaoEfetiva =
+      afterId !== undefined
+        ? afterId
+        : posicao === "__fim__"
+          ? undefined
+          : posicao === "__inicio__"
+            ? null
+            : posicao;
+    const res = await createProvision(parentId, form.tipo, form.texto, form.justificativa, form.titulo, form.numero, form.origemRefId || undefined, posicaoEfetiva);
     setPending(false);
     if (res.error) return toast.error(res.error);
     toast.success(res.message || "Dispositivo criado.");
     setForm({ tipo: onlyType, numero: "", titulo: "", texto: "", justificativa: "", origemRefId: "" });
+    setPosicao("__fim__");
     setOpen(false);
     if (res.id && onCreated) {
       onCreated(res.id);
@@ -124,6 +143,22 @@ export function NewProvisionForm({
           className="h-9 w-full rounded-md border bg-background px-3 text-sm"
         />
       </div>
+      {afterId === undefined && siblingOptions && siblingOptions.length > 0 && (
+        <label className="block space-y-1 text-xs font-medium">
+          Posição da inserção
+          <select
+            value={posicao}
+            onChange={(e) => setPosicao(e.target.value)}
+            className="h-9 w-full rounded-md border bg-background px-2 text-sm font-normal"
+          >
+            <option value="__fim__">Ao final do trecho</option>
+            <option value="__inicio__">No início do trecho</option>
+            {siblingOptions.map((option) => (
+              <option key={option.id} value={option.id}>Após {option.label}</option>
+            ))}
+          </select>
+        </label>
+      )}
       {estrutural ? (
         <p className="rounded-md border bg-muted/40 px-3 py-2 text-xs text-muted-foreground">
           Capítulos e seções são identificados pelo título; o texto de corpo pertence aos artigos e dispositivos subordinados.
@@ -223,7 +258,8 @@ export function ProvisionAdminActions({
       artigo: ["paragrafo", "inciso", "alinea"],
       paragrafo: ["inciso", "alinea"],
       inciso: ["alinea"],
-      alinea: [],
+      alinea: ["item"],
+      item: [],
     };
     if (!parentType) return ["capitulo", "secao", "artigo"];
     return HIERARQUIA[parentType] || [];
@@ -247,21 +283,21 @@ export function ProvisionAdminActions({
     setPending(false);
     setConfirmState(null);
     if (res.error) return toast.error(res.error);
-    toast.success(res.message || "Dispositivo excluído.");
+    toast.success(res.message || "Dispositivo retirado da minuta.");
     router.push("/");
     router.refresh();
   }
 
   function askRemove() {
     const base =
-      "Todas as sugestões de redação, comentários, pendências, referências, versões e vínculos associados a ele serão removidos permanentemente. Esta ação não pode ser desfeita.";
+      "O dispositivo será retirado da minuta por exclusão reversível: sugestões, comentários, pendências, referências, versões e vínculos são preservados e a restauração fica disponível na Mesa de Trabalho.";
     setConfirmState({
-      title: "Excluir dispositivo",
+      title: "Retirar dispositivo da minuta",
       description:
         childCount > 0
-          ? `Este dispositivo possui ${childCount} dispositivo(s) filho(s), que também serão excluídos.\n\n${base}`
+          ? `Este dispositivo possui ${childCount} dispositivo(s) filho(s), que acompanham a retirada.\n\n${base}`
           : base,
-      confirmLabel: "Excluir dispositivo",
+      confirmLabel: "Retirar da minuta",
     });
   }
 
@@ -332,19 +368,17 @@ export function ProvisionAdminActions({
         <Button size="sm" variant="outline" onClick={() => { setForm({ numero: numero ?? "", titulo: titulo ?? "", posicaoSugerida: "", type: "" }); setEditing(!editing); }}>
           {editing ? "Fechar edição" : "Editar dispositivo"}
         </Button>
-        {!temVigente && (
-          <Button
-            size="sm"
-            variant="outline"
-            className="border-red-200 text-red-700 hover:bg-red-50 hover:text-red-800 dark:border-red-800 dark:text-red-300 dark:hover:bg-red-950/40"
-            onClick={askRemove}
-          >
-            Excluir dispositivo
-          </Button>
-        )}
+        <Button
+          size="sm"
+          variant="outline"
+          className="border-red-200 text-red-700 hover:bg-red-50 hover:text-red-800 dark:border-red-800 dark:text-red-300 dark:hover:bg-red-950/40"
+          onClick={askRemove}
+        >
+          Retirar da minuta
+        </Button>
         {temVigente && (
           <span className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
-            <span>Dispositivo do Estatuto registrado: para removê-lo do texto final, marque-o como revogado.</span>
+            <span>Para propor a supressão de regra vigente, marque-o como revogado.</span>
             <Button
               size="sm"
               variant={alteracaoTipo === "revogado" ? "default" : "outline"}

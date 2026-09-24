@@ -4,6 +4,7 @@ import { cookies } from "next/headers";
 import { getDb, all } from "@/lib/db";
 import { provisionLabel, getProposalTree, getNumerosArmazenados, type TreeNode } from "@/lib/data";
 import { ALTERACAO_TYPE_LABELS, PENDING_CATEGORY_LABELS, REFERENCE_TYPE_LABELS } from "@/lib/labels";
+import { rotuloCorrespondencia } from "@/lib/correspondencias";
 import { htmlToText } from "@/lib/rich-text";
 
 const secret = new TextEncoder().encode(
@@ -67,7 +68,7 @@ export async function GET(req: NextRequest) {
       if (!approved && !n.children.some(hasApproved)) return;
       const label = provisionLabel(n) + marca(n.origem);
       const redacao = approved
-        ? n.redacao_consolidada || n.redacao_trabalho || n.texto_vigente
+        ? n.redacao_trabalho || n.redacao_consolidada || n.texto_vigente
         : "";
       if (n.type === "capitulo") {
         lines.push("", label.toUpperCase() + (n.titulo ? ` — ${n.titulo}` : ""), "-".repeat(40), "");
@@ -101,7 +102,7 @@ export async function GET(req: NextRequest) {
       const t = textos.get(n.id);
       const vigente = htmlToText(t?.texto_vigente || "") || "(não existe)";
       const nova =
-        htmlToText(t?.redacao_consolidada || t?.redacao_trabalho || t?.proposta_inicial || t?.texto_vigente || "") ||
+        htmlToText(t?.redacao_trabalho || t?.redacao_consolidada || t?.proposta_inicial || t?.texto_vigente || "") ||
         "(sem alteração)";
       const vigenteNumero = vigentes.get(n.id);
       lines.push(`${provisionLabel(n).toUpperCase()} (vigente: ${vigenteNumero ? `Art. ${vigenteNumero}` : "novo"})`);
@@ -110,6 +111,68 @@ export async function GET(req: NextRequest) {
       lines.push("");
     }
     return download(lines.join("\n"), "quadro-comparativo.txt");
+  }
+
+  if (type === "correspondencias") {
+    const tree = await getProposalTree();
+    const vigentes = await getNumerosArmazenados("vigente");
+    const corrRows = await all<{
+      provision_id: string;
+      vigente_id: string | null;
+      tipo: string;
+      vigente_type: string | null;
+      vigente_numero: string | null;
+      vigente_titulo: string | null;
+    }>(`
+      SELECT c.provision_id, c.vigente_id, c.tipo,
+             v.type AS vigente_type, v.numero AS vigente_numero, v.titulo AS vigente_titulo
+        FROM provision_correspondences c
+        LEFT JOIN provisions v ON v.id = c.vigente_id
+       ORDER BY c.id`);
+    const porDispositivo = new Map<string, typeof corrRows>();
+    for (const row of corrRows) {
+      const lista = porDispositivo.get(row.provision_id) ?? [];
+      lista.push(row);
+      porDispositivo.set(row.provision_id, lista);
+    }
+    const lines: string[] = ["CORRESPONDÊNCIAS — MINUTA × ESTATUTO VIGENTE", "=".repeat(60), ""];
+    const acrescimos: string[] = [];
+    const supressoes: string[] = [];
+    for (const n of flatten(tree)) {
+      if (n.type === "capitulo" || n.type === "secao") continue;
+      const label = provisionLabel(n);
+      const era = vigentes.get(n.id);
+      if (n.alteracao_tipo === "revogado") {
+        supressoes.push(`${label}${era ? ` (vigente ${era})` : ""}`);
+        continue;
+      }
+      const links = porDispositivo.get(n.id) ?? [];
+      if (links.length === 0) {
+        if (era || n.texto_vigente.trim()) {
+          lines.push(`${label}${era ? ` (era ${era})` : ""} — correspondência automática, não examinada`);
+        } else {
+          acrescimos.push(label);
+          lines.push(`${label} — acréscimo (sem correspondente declarado)`);
+        }
+        continue;
+      }
+      lines.push(`${label}${era ? ` (era ${era})` : ""}`);
+      for (const link of links) {
+        const destino = link.vigente_type
+          ? provisionLabel({
+              id: link.vigente_id ?? "",
+              type: link.vigente_type,
+              numero: link.vigente_numero,
+              titulo: link.vigente_titulo,
+            } as never)
+          : "—";
+        lines.push(`    ${rotuloCorrespondencia(link.tipo)}: ${destino}`);
+      }
+      if (links.some((link) => link.tipo === "acrescimo")) acrescimos.push(label);
+    }
+    lines.push("", `ACRÉSCIMOS (${acrescimos.length})`, "-".repeat(40), ...(acrescimos.length ? acrescimos : ["(nenhum)"]));
+    lines.push("", `SUPRESSÕES PROPOSTAS (${supressoes.length})`, "-".repeat(40), ...(supressoes.length ? supressoes : ["(nenhuma)"]));
+    return download(lines.join("\n"), "correspondencias.txt");
   }
 
   if (type === "reforma") {

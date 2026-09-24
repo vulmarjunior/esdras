@@ -24,14 +24,12 @@ export async function updateRedacao(
   reason: string
 ): Promise<ActionState> {
   const user = await requireRole(...rolesCom("editar_redacao"));
-  const prov = await get<{ version: number; redacao_trabalho: string; status: string }>(
-    "SELECT version, redacao_trabalho, status FROM provisions WHERE id = ?",
+  const prov = await get<{ version: number; redacao_trabalho: string; status: string; deleted_at: string | null }>(
+    "SELECT version, redacao_trabalho, status, deleted_at FROM provisions WHERE id = ?",
     [provisionId]
   );
   if (!prov) return { error: "Dispositivo não encontrado." };
-  if (prov.status === "aprovado") {
-    return { error: "Reabra o dispositivo antes de alterar uma redação concluída." };
-  }
+  if (prov.deleted_at) return { error: "Dispositivo retirado da minuta; restaure-o antes de editar." };
   const conflito = avaliarConflito(expectedVersion, prov.version);
   if (conflito.conflito) {
     return { conflict: true, error: conflito.mensagem || "Conflito de versão." };
@@ -61,7 +59,75 @@ export async function updateRedacao(
   revalidatePath(`/dispositivo/${provisionId}`);
   revalidatePath("/mesa-trabalho");
   await publishRealtime({ entity: "provision", id: provisionId, action: "redacao" });
-  return { ok: true, message: "Redação salva. Nova versão criada." };
+  return { ok: true, message: "Redação salva. Nova versão criada.", version: prov.version + 1 };
+}
+
+/**
+ * Persistência corrente do autosave (RF-08): grava a redação de trabalho sem
+ * criar versão histórica a cada tecla. Checkpoints recuperáveis continuam sendo
+ * criados por `updateRedacao` (salvar versão), conclusão e restauração.
+ */
+export async function autosaveRedacao(
+  provisionId: string,
+  content: string,
+  expectedVersion: number,
+): Promise<ActionState> {
+  const user = await requireRole(...rolesCom("editar_redacao"));
+  const prov = await get<{ version: number; redacao_trabalho: string; status: string; deleted_at: string | null }>(
+    "SELECT version, redacao_trabalho, status, deleted_at FROM provisions WHERE id = ?",
+    [provisionId],
+  );
+  if (!prov) return { error: "Dispositivo não encontrado." };
+  if (prov.deleted_at) return { error: "Dispositivo retirado da minuta; restaure-o antes de editar." };
+  const clean = sanitizeHtml(content);
+  if (!htmlToText(clean).trim()) return { error: "A redação não pode ficar vazia." };
+  if (clean === prov.redacao_trabalho) {
+    return { ok: true, version: prov.version, message: "Sem alterações pendentes." };
+  }
+  const conflito = avaliarConflito(expectedVersion, prov.version);
+  if (conflito.conflito) {
+    return { conflict: true, error: conflito.mensagem, version: prov.version, serverContent: prov.redacao_trabalho };
+  }
+  const ts = now();
+  const atualizadas = await all<{ id: string }>(
+    `UPDATE provisions
+        SET redacao_trabalho = ?, version = version + 1, updated_at = ?, updated_by = ?,
+            status = CASE WHEN status = 'nao_iniciado' THEN 'em_analise' ELSE status END
+      WHERE id = ? AND version = ? AND deleted_at IS NULL
+      RETURNING id`,
+    [clean, ts, user.id, provisionId, expectedVersion],
+  );
+  if (atualizadas.length === 0) {
+    const atual = await get<{ version: number; redacao_trabalho: string }>(
+      "SELECT version, redacao_trabalho FROM provisions WHERE id = ?",
+      [provisionId],
+    );
+    return {
+      conflict: true,
+      error: "Este dispositivo foi alterado por outra sessão.",
+      version: atual?.version,
+      serverContent: atual?.redacao_trabalho,
+    };
+  }
+  if (prov.status === "nao_iniciado") {
+    await run(
+      "INSERT INTO audit_logs (user_id, user_name, action, entity, entity_id, detail) VALUES (?, ?, ?, 'provision', ?, ?)",
+      [user.id, user.name, "Rascunho iniciado (autosave)", provisionId, ""],
+    );
+  }
+  return { ok: true, version: expectedVersion + 1, message: "Rascunho salvo." };
+}
+
+/**
+ * Resolução explícita de conflito (RF-08): o operador revisou o texto do
+ * servidor e escolheu manter o seu — nunca last-write-wins silencioso.
+ */
+export async function sobrescreverRedacao(
+  provisionId: string,
+  content: string,
+  serverVersion: number,
+): Promise<ActionState> {
+  return updateRedacao(provisionId, content, serverVersion, "Sobrescrita explícita após conflito — revisão manual");
 }
 
 export async function updateJustificativa(provisionId: string, justificativa: string): Promise<ActionState> {
@@ -121,11 +187,15 @@ export async function setStatus(provisionId: string, status: string): Promise<Ac
     }
   }
 
+  const ts = now();
   await transaction(async () => {
     if (status === "aprovado") {
-      await run("UPDATE provisions SET status = 'aprovado', redacao_consolidada = redacao_trabalho, updated_at = ? WHERE id = ?", [now(), provisionId]);
+      await run(
+        "UPDATE provisions SET status = 'aprovado', redacao_consolidada = redacao_trabalho, acordo_version = version, acordo_em = ?, acordo_por = ?, updated_at = ? WHERE id = ?",
+        [ts, user.id, ts, provisionId],
+      );
     } else {
-      await run("UPDATE provisions SET status = ?, updated_at = ? WHERE id = ?", [status, now(), provisionId]);
+      await run("UPDATE provisions SET status = ?, updated_at = ? WHERE id = ?", [status, ts, provisionId]);
     }
     await audit(user.id, user.name, "Status alterado para " + status, "provision", provisionId);
   });
@@ -191,7 +261,6 @@ export async function restoreRedacaoVersion(
       "SELECT version, status FROM provisions WHERE id = ? FOR UPDATE", [provisionId],
     );
     if (!prov) return { error: "Dispositivo não encontrado." };
-    if (prov.status === "aprovado") return { error: "Reabra o dispositivo antes de restaurar uma versão." };
     const conflito = avaliarConflito(expectedVersion, prov.version);
     if (conflito.conflito) return { conflict: true, error: conflito.mensagem || "Conflito de versão. Recarregue o artigo." };
     const previous = await get<{ content: string }>(

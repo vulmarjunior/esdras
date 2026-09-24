@@ -27,6 +27,13 @@ describe("podeMover", () => {
     expect(podeMover("alinea", "inciso")).toBe(true);
     expect(podeMover("inciso", "paragrafo")).toBe(true);
   });
+
+  it("itens ficam dentro de alíneas (LC 95)", () => {
+    expect(podeMover("item", "alinea")).toBe(true);
+    expect(podeMover("item", "artigo")).toBe(false);
+    expect(podeMover("item", "inciso")).toBe(false);
+    expect(podeMover("alinea", "item")).toBe(false);
+  });
 });
 
 describe("inserirApos", () => {

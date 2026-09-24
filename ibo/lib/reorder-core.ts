@@ -6,7 +6,8 @@ export const HIERARQUIA: Record<ProvisionType, ProvisionType[]> = {
   artigo: ["paragrafo", "inciso", "alinea"],
   paragrafo: ["inciso", "alinea"],
   inciso: ["alinea"],
-  alinea: [],
+  alinea: ["item"],
+  item: [],
 };
 
 /**

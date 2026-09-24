@@ -8,7 +8,9 @@ import type { Role } from "@/lib/types";
 import {
   LayoutDashboard,
   CalendarDays,
+  Camera,
   CircleAlert,
+  ClipboardCheck,
   ScrollText,
   FileDown,
   History,
@@ -66,8 +68,10 @@ const NAV_TEMAS: NavTema[] = [
       { href: "/comparativo", label: "Acompanhamento", icon: ArrowLeftRight },
       { href: "/consolidado", label: "Proposta em construção", icon: ScrollText },
       { href: "/pendentes", label: "Pendências", icon: CircleAlert, editorOnly: true, sectionLabel: "Ferramentas da reforma" },
+      { href: "/conferencia", label: "Conferência", icon: ClipboardCheck, editorOnly: true },
       { href: "/renumeracao", label: "Renumeração", icon: ListOrdered, editorOnly: true },
       { href: "/coerencia", label: "Coerência", icon: ShieldAlert, editorOnly: true },
+      { href: "/marcos", label: "Marcos da minuta", icon: Camera, editorOnly: true },
     ],
   },
   {

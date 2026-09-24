@@ -21,6 +21,8 @@ export function provisionLabel(p: Provision): string {
       return p.numero ? `${p.numero}` : novoTipo("INCISO");
     case "alinea":
       return p.numero ? `${p.numero.replace(/\)?$/, ")")}` : novoTipo("ALÍNEA");
+    case "item":
+      return p.numero ? `${p.numero.replace(/\.?$/, ".")}` : novoTipo("ITEM");
     default:
       return p.id;
   }

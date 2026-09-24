@@ -3,7 +3,7 @@ import { buildReview, diffWords, normalizeText, type ReviewNode } from "../lib/r
 import { originalPositions } from "../lib/review-original";
 
 function node(overrides: Partial<ReviewNode> = {}): ReviewNode {
-  return { id: "art-1", parent_id: "cap-1", project_id: "ibo", type: "artigo", numero: "1º", titulo: null, ordem: 0, ordem_pai: 0, origem: "original", origem_ref_id: null, sem_origem: 0, alteracao_tipo: "nao_avaliado", status: "nao_iniciado", texto_vigente: "Texto original.", proposta_inicial: "", redacao_trabalho: "", justificativa: "", redacao_consolidada: "", posicao_sugerida: null, version: 0, updated_at: "", updated_by: null, children: [], ...overrides };
+  return { id: "art-1", parent_id: "cap-1", project_id: "ibo", type: "artigo", numero: "1º", titulo: null, ordem: 0, ordem_pai: 0, origem: "original", origem_ref_id: null, sem_origem: 0, deleted_at: null, deleted_by: null, acordo_version: null, acordo_em: null, acordo_por: null, alteracao_tipo: "nao_avaliado", status: "nao_iniciado", texto_vigente: "Texto original.", proposta_inicial: "", redacao_trabalho: "", justificativa: "", redacao_consolidada: "", posicao_sugerida: null, version: 0, updated_at: "", updated_by: null, children: [], ...overrides };
 }
 describe("leitura comparativa", () => {
   it("ignora formatação e espaços, mas preserva diferenças de conteúdo", () => {

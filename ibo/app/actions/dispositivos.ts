@@ -45,10 +45,11 @@ export async function createProvision(
   justificativa: string,
   titulo?: string,
   numero?: string,
-  origemRefId?: string
+  origemRefId?: string,
+  afterId?: string | null
 ): Promise<ActionState & { id?: string }> {
   const user = await requireRole(...rolesCom("gerenciar_dispositivos"));
-  const tipos = ["capitulo", "secao", "artigo", "paragrafo", "inciso", "alinea"];
+  const tipos = ["capitulo", "secao", "artigo", "paragrafo", "inciso", "alinea", "item"];
   if (!tipos.includes(tipo)) return { error: "Tipo de dispositivo inválido." };
   const estrutural = tipo === "capitulo" || tipo === "secao";
   if (estrutural && !titulo?.trim()) {
@@ -62,7 +63,8 @@ export async function createProvision(
     artigo: ["paragrafo", "inciso", "alinea"],
     paragrafo: ["inciso", "alinea"],
     inciso: ["alinea"],
-    alinea: [],
+    alinea: ["item"],
+    item: [],
   };
 
   if (tipo === "capitulo" && parentId) {
@@ -80,7 +82,6 @@ export async function createProvision(
 
   const ts = now();
   const id = `novo-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`;
-  const posicao = pai ? `Após o atual ${provisionLabel(pai)}` : "Ao final do documento";
   const cleanTexto = sanitizeHtml(texto);
   const refId = origemRefId?.trim() || null;
   if (refId) {
@@ -91,31 +92,54 @@ export async function createProvision(
     }
   }
 
+  const irmaos = await irmaosAtivos(parentId);
+  let afterEfetivo: string | null;
+  if (afterId === undefined) {
+    afterEfetivo = irmaos.length ? irmaos[irmaos.length - 1].id : null;
+  } else {
+    afterEfetivo = afterId;
+    if (afterEfetivo !== null && !irmaos.some((item) => item.id === afterEfetivo)) {
+      return { error: "Posição de referência inválida para a inserção." };
+    }
+  }
+  const novaOrdem = inserirApos(irmaos.map((item) => item.id), id, afterEfetivo);
+  const ordemPai = novaOrdem.indexOf(id);
+  const anterior = afterEfetivo
+    ? await get<Provision>("SELECT * FROM provisions WHERE id = ?", [afterEfetivo])
+    : null;
+  const labelAnterior = anterior ? provisionLabel(anterior) : afterEfetivo;
+  const posicao = afterEfetivo === null
+    ? (irmaos.length === 0 ? "Primeiro dispositivo do trecho" : "No início do trecho")
+    : afterId === undefined
+      ? `Ao final do trecho, após ${labelAnterior}`
+      : `Após ${labelAnterior}`;
+
   await transaction(async () => {
     const maxOrdem = (await get<{ m: number }>("SELECT COALESCE(MAX(ordem), 0) m FROM provisions"))?.m ?? 0;
-    const maxOrdemPai = pai
-      ? (await get<{ m: number }>("SELECT COALESCE(MAX(ordem_pai), -1) m FROM provision_placements WHERE version_key = 'proposta' AND parent_id = ?", [pai.id]))?.m ?? -1
-      : (await get<{ m: number }>("SELECT COALESCE(MAX(ordem_pai), -1) m FROM provision_placements WHERE version_key = 'proposta' AND parent_id IS NULL"))?.m ?? -1;
     await run(
       `INSERT INTO provisions
        (id, parent_id, type, numero, titulo, ordem, ordem_pai, origem, origem_ref_id, alteracao_tipo, status,
         proposta_inicial, redacao_trabalho, justificativa, posicao_sugerida, version, updated_at, updated_by)
        VALUES (?, ?, ?, ?, ?, ?, ?, 'novo', ?, 'novo', 'nao_iniciado', ?, ?, ?, ?, 0, ?, ?)`,
-      [id, parentId, tipo, numero?.trim() || null, titulo?.trim() || null, maxOrdem + 1, maxOrdemPai + 1, refId, cleanTexto, cleanTexto, sanitizeHtml(justificativa || ""), posicao, ts, user.id]
+      [id, parentId, tipo, numero?.trim() || null, titulo?.trim() || null, maxOrdem + 1, ordemPai, refId, cleanTexto, cleanTexto, sanitizeHtml(justificativa || ""), posicao, ts, user.id]
     );
     await run(
       `INSERT INTO provision_placements
        (provision_id, version_key, parent_id, numero, titulo, ordem_pai, updated_at, updated_by)
-       VALUES (?, 'proposta', ?, ?, ?, ?, ?, ?)
-       ON CONFLICT (version_key, provision_id) DO UPDATE SET
-         parent_id = EXCLUDED.parent_id,
-         numero = EXCLUDED.numero,
-         titulo = EXCLUDED.titulo,
-         ordem_pai = EXCLUDED.ordem_pai,
-         updated_at = EXCLUDED.updated_at,
-         updated_by = EXCLUDED.updated_by`,
-      [id, parentId, numero?.trim() || null, titulo?.trim() || null, maxOrdemPai + 1, ts, user.id]
+       VALUES (?, 'proposta', ?, ?, ?, ?, ?, ?)`,
+      [id, parentId, numero?.trim() || null, titulo?.trim() || null, ordemPai, ts, user.id]
     );
+    for (const [indice, irmaoId] of novaOrdem.entries()) {
+      if (irmaoId === id) continue;
+      const atual = irmaos.find((item) => item.id === irmaoId);
+      if (atual && atual.ordem_pai !== indice) {
+        await run(
+          "UPDATE provision_placements SET ordem_pai = ?, updated_at = ?, updated_by = ? WHERE version_key = 'proposta' AND provision_id = ?",
+          [indice, ts, user.id, irmaoId]
+        );
+      }
+    }
+    await atualizarNumerosSubordinados(parentId, user.id, ts);
     await audit(user.id, user.name, `Criou novo ${tipo}`, "provision", id, `Posição: ${posicao}${refId ? `; origem: ${refId}` : ""}`);
   });
 
@@ -139,9 +163,10 @@ export async function updateProvision(
     artigo: ["paragrafo", "inciso", "alinea"],
     paragrafo: ["inciso", "alinea"],
     inciso: ["alinea"],
-    alinea: [],
+    alinea: ["item"],
+    item: [],
   };
-  const tipos = ["capitulo", "secao", "artigo", "paragrafo", "inciso", "alinea"];
+  const tipos = ["capitulo", "secao", "artigo", "paragrafo", "inciso", "alinea", "item"];
 
   let novoType: Provision["type"] = prov.type;
   if (data.type !== undefined) {
@@ -454,7 +479,7 @@ async function atualizarNumerosSubordinados(
   }>(`
     SELECT pp.provision_id AS id, p.type, p.alteracao_tipo, pp.numero, p.status
     FROM provision_placements pp JOIN provisions p ON p.id = pp.provision_id
-    WHERE pp.version_key = 'proposta' AND ${where}
+    WHERE pp.version_key = 'proposta' AND p.deleted_at IS NULL AND ${where}
     ORDER BY pp.ordem_pai, p.ordem, p.id
   `, parentId === null ? [] : [parentId]);
   const novos = numerarSubordinados(rows.map((r) => ({ ...r, children: [] })));
@@ -505,7 +530,8 @@ export async function moveProposalProvision(
     return all<{ id: string; ordem_pai: number }>(`
       SELECT pp.provision_id AS id, pp.ordem_pai
         FROM provision_placements pp
-       WHERE pp.version_key = 'proposta' AND ${where}
+        JOIN provisions p ON p.id = pp.provision_id
+       WHERE pp.version_key = 'proposta' AND p.deleted_at IS NULL AND ${where}
        ORDER BY pp.ordem_pai`, params);
   };
 
@@ -588,16 +614,16 @@ export async function moveProposalProvision(
   return { ok: true, message: `${provisionLabel(prov)} movido na estrutura da proposta.` };
 }
 
+/**
+ * Exclusão editorial reversível (RF-07): marca o dispositivo com tombstone.
+ * Nada é apagado — conteúdo, relações, versões, referências e a posição original
+ * permanecem e podem ser restaurados.
+ */
 export async function deleteProvision(provisionId: string): Promise<ActionState> {
   const user = await requireRole(...rolesCom("gerenciar_dispositivos"));
   const prov = await get<Provision>("SELECT * FROM provisions WHERE id = ?", [provisionId]);
   if (!prov) return { error: "Dispositivo não encontrado." };
-  if (await pertenceAoEstatutoRegistrado(provisionId)) {
-    return {
-      error:
-        "Dispositivo do Estatuto registrado não pode ser excluído (documento histórico). Para removê-lo do texto final, altere o status para 'revogado'.",
-    };
-  }
+  if (prov.deleted_at) return { error: "Este dispositivo já está retirado da minuta." };
   const descendentes = (await get<{ c: number }>(
     `WITH RECURSIVE sub AS (
        SELECT id FROM provisions WHERE id = ?
@@ -607,15 +633,19 @@ export async function deleteProvision(provisionId: string): Promise<ActionState>
     [provisionId]
   ))?.c ?? 0;
 
+  const ts = now();
   await transaction(async () => {
-    await run("DELETE FROM provisions WHERE id = ?", [provisionId]);
+    await run(
+      "UPDATE provisions SET deleted_at = ?, deleted_by = ?, updated_at = ?, updated_by = ? WHERE id = ?",
+      [ts, user.id, ts, user.id, provisionId]
+    );
     await audit(
       user.id,
       user.name,
-      "Excluiu dispositivo",
+      "Retirou dispositivo da minuta (exclusão reversível)",
       "provision",
       provisionId,
-      `Tipo: ${prov.type}${prov.numero ? `, número: ${prov.numero}` : ""}${descendentes > 0 ? `, ${descendentes} dispositivo(s) filho(s) removido(s) em cascata` : ""}`
+      `Tipo: ${prov.type}${prov.numero ? `, número: ${prov.numero}` : ""}${descendentes > 0 ? `, ${descendentes} descendente(s) acompanham a exclusão` : ""}`
     );
   });
   revalidatePath("/");
@@ -626,5 +656,123 @@ export async function deleteProvision(provisionId: string): Promise<ActionState>
   revalidatePath("/revisao");
   revalidatePath("/renumeracao");
   await publishRealtime({ entity: "provision", id: provisionId, action: "excluido" });
-  return { ok: true, message: "Dispositivo excluído." };
+  return { ok: true, message: "Dispositivo retirado da minuta. A restauração está disponível em Retirados da minuta." };
+}
+
+interface NoComExclusao extends NoEstrutural {
+  deleted_at: string | null;
+}
+
+/** Estrutura da proposta com o estado de exclusão de cada dispositivo. */
+async function mapaDaProposta(): Promise<Map<string, NoComExclusao>> {
+  const rows = await all<NoComExclusao>(`
+    SELECT p.id, p.type, p.deleted_at,
+           CASE WHEN pp.id IS NULL THEN p.parent_id ELSE pp.parent_id END AS parent_id
+      FROM provisions p
+      LEFT JOIN provision_placements pp
+        ON pp.provision_id = p.id AND pp.version_key = 'proposta'`);
+  return new Map(rows.map((r) => [r.id, r]));
+}
+
+/** Irmãos ativos (não retirados) de um pai, na ordem da proposta. */
+async function irmaosAtivos(parentId: string | null): Promise<{ id: string; ordem_pai: number }[]> {
+  const where = parentId === null ? "pp.parent_id IS NULL" : "pp.parent_id = ?";
+  const params = parentId === null ? [] : [parentId];
+  return all<{ id: string; ordem_pai: number }>(`
+    SELECT pp.provision_id AS id, pp.ordem_pai
+      FROM provision_placements pp
+      JOIN provisions p ON p.id = pp.provision_id
+     WHERE pp.version_key = 'proposta' AND p.deleted_at IS NULL AND ${where}
+     ORDER BY pp.ordem_pai`, params);
+}
+
+/**
+ * Restaura um dispositivo retirado (RF-07). Sem destino, volta à posição
+ * original; se o pai original também estiver retirado, devolve conflito para o
+ * operador escolher um novo destino — nunca reposiciona em silêncio.
+ */
+export async function restoreProvision(
+  provisionId: string,
+  destino?: { parentId: string | null; afterId: string | null },
+): Promise<ActionState> {
+  const user = await requireRole(...rolesCom("gerenciar_dispositivos"));
+  const prov = await get<Provision>("SELECT * FROM provisions WHERE id = ?", [provisionId]);
+  if (!prov) return { error: "Dispositivo não encontrado." };
+  if (!prov.deleted_at) return { error: "Este dispositivo não está retirado da minuta." };
+
+  const mapa = await mapaDaProposta();
+  const placement = await get<{ parent_id: string | null; ordem_pai: number }>(
+    "SELECT parent_id, ordem_pai FROM provision_placements WHERE provision_id = ? AND version_key = 'proposta'",
+    [provisionId],
+  );
+  const parentOriginal = placement?.parent_id ?? prov.parent_id;
+
+  let parentId: string | null;
+  let afterId: string | null;
+  if (destino) {
+    const erro = validarMovimento(mapa, provisionId, destino.parentId, destino.afterId);
+    if (erro) return { error: erro };
+    if (destino.parentId && mapa.get(destino.parentId)?.deleted_at) {
+      return { error: "O destino escolhido também está retirado da minuta." };
+    }
+    parentId = destino.parentId;
+    afterId = destino.afterId;
+  } else {
+    const pai = parentOriginal ? mapa.get(parentOriginal) : null;
+    if (parentOriginal !== null && (!pai || pai.deleted_at)) {
+      return {
+        conflict: true,
+        error: "O destino original deste dispositivo também está retirado da minuta. Escolha um novo destino para restaurá-lo.",
+      };
+    }
+    parentId = parentOriginal;
+    const irmaos = await irmaosAtivos(parentId);
+    const indiceOriginal = Math.min(Math.max(placement?.ordem_pai ?? irmaos.length, 0), irmaos.length);
+    afterId = indiceOriginal > 0 ? irmaos[indiceOriginal - 1].id : null;
+  }
+
+  const irmaos = await irmaosAtivos(parentId);
+  const novaOrdem = inserirApos(irmaos.map((x) => x.id), provisionId, afterId);
+  const ts = now();
+  const labelPai = parentId
+    ? provisionLabel((await get<Provision>("SELECT * FROM provisions WHERE id = ?", [parentId])) ?? prov)
+    : "raiz da proposta";
+
+  await transaction(async () => {
+    await run(
+      "UPDATE provisions SET deleted_at = NULL, deleted_by = NULL, updated_at = ?, updated_by = ? WHERE id = ?",
+      [ts, user.id, provisionId],
+    );
+    await run(
+      "UPDATE provision_placements SET parent_id = ?, ordem_pai = ?, updated_at = ?, updated_by = ? WHERE version_key = 'proposta' AND provision_id = ?",
+      [parentId, novaOrdem.indexOf(provisionId), ts, user.id, provisionId],
+    );
+    for (const [i, id] of novaOrdem.entries()) {
+      if (id === provisionId) continue;
+      if (irmaos.find((x) => x.id === id)?.ordem_pai !== i) {
+        await run(
+          "UPDATE provision_placements SET ordem_pai = ?, updated_at = ?, updated_by = ? WHERE version_key = 'proposta' AND provision_id = ?",
+          [i, ts, user.id, id],
+        );
+      }
+    }
+    await atualizarNumerosSubordinados(parentId, user.id, ts);
+    await audit(
+      user.id,
+      user.name,
+      "Restaurou dispositivo retirado",
+      "provision",
+      provisionId,
+      `${provisionLabel(prov)} em ${labelPai}`,
+    );
+  });
+  revalidatePath("/");
+  revalidatePath(`/dispositivo/${provisionId}`);
+  revalidatePath("/consolidado");
+  revalidatePath("/mesa-trabalho");
+  revalidatePath("/comparativo");
+  revalidatePath("/revisao");
+  revalidatePath("/renumeracao");
+  await publishRealtime({ entity: "provision", id: provisionId, action: "restaurado" });
+  return { ok: true, message: "Dispositivo restaurado na minuta." };
 }

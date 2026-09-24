@@ -144,6 +144,20 @@ describe("numeração derivada", () => {
     expect(numeros.has("a-rev")).toBe(false);
   });
 
+  it("itens são sequenciais por pai e não incluem revogados", () => {
+    const arvore: NoNumeravel[] = [no({ id: "art", type: "artigo", children: [
+      no({ id: "al1", type: "alinea", children: [
+        no({ id: "it1", type: "item" }),
+        no({ id: "it-rev", type: "item", alteracao_tipo: "revogado" }),
+        no({ id: "it2", type: "item" }),
+      ] }),
+    ] })];
+    const numeros = numerarSubordinados(arvore);
+    expect(numeros.get("it1")).toBe("1");
+    expect(numeros.get("it2")).toBe("2");
+    expect(numeros.has("it-rev")).toBe(false);
+  });
+
 });
 
 describe("era efetiva (referência de origem)", () => {

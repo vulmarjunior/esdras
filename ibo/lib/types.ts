@@ -10,7 +10,7 @@ export interface User {
   created_at: string;
 }
 
-export type ProvisionType = "capitulo" | "secao" | "artigo" | "paragrafo" | "inciso" | "alinea";
+export type ProvisionType = "capitulo" | "secao" | "artigo" | "paragrafo" | "inciso" | "alinea" | "item";
 
 /** Versão de trabalho exibida no painel/navegação (proposta é o padrão). */
 export type VersaoTrabalho = "vigente" | "proposta";
@@ -31,6 +31,13 @@ export interface Provision {
   origem_ref_id: string | null;
   /** Anotação de trabalho: dispositivo declarado sem correspondente no Estatuto registrado. */
   sem_origem: number;
+  /** Exclusão reversível (tombstone): sai da árvore ativa sem apagar conteúdo nem histórico. */
+  deleted_at: string | null;
+  deleted_by: number | null;
+  /** Concordância editorial (não bloqueante): revisão acordada, quando e por quem. */
+  acordo_version: number | null;
+  acordo_em: string | null;
+  acordo_por: number | null;
   alteracao_tipo: string;
   status: ProvisionStatus;
   texto_vigente: string;
@@ -54,6 +61,30 @@ export interface ProvisionPlacement {
   ordem_pai: number;
   updated_at: string;
   updated_by: number | null;
+}
+
+/**
+ * Correspondência múltipla entre a minuta e o Estatuto registrado (RF-01/RF-05).
+ * `vigente_id` nulo declara acréscimo ou não aplicabilidade do dispositivo.
+ */
+export interface ProvisionCorrespondence {
+  id: number;
+  provision_id: string;
+  vigente_id: string | null;
+  tipo: string;
+  observacao: string | null;
+  created_at: string;
+  created_by: number | null;
+}
+
+/** Marco integral recuperável da minuta (RF-09). */
+export interface DocumentSnapshot {
+  id: number;
+  rotulo: string | null;
+  descricao: string | null;
+  conteudo: unknown;
+  created_at: string;
+  created_by: number | null;
 }
 
 export interface Suggestion {

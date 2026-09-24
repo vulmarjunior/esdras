@@ -55,9 +55,9 @@ const ARVORE: NoComparavel[] = [
 ];
 
 describe("textoAtual", () => {
-  it("respeita a prioridade consolidada → trabalho → proposta inicial → vigente", () => {
-    expect(textoAtual({ redacao_consolidada: "c", redacao_trabalho: "t", proposta_inicial: "p", texto_vigente: "v" })).toBe("c");
-    expect(textoAtual({ redacao_consolidada: "", redacao_trabalho: "t", proposta_inicial: "p", texto_vigente: "v" })).toBe("t");
+  it("respeita a prioridade trabalho → consolidada → proposta inicial → vigente", () => {
+    expect(textoAtual({ redacao_consolidada: "c", redacao_trabalho: "t", proposta_inicial: "p", texto_vigente: "v" })).toBe("t");
+    expect(textoAtual({ redacao_consolidada: "c", redacao_trabalho: "", proposta_inicial: "p", texto_vigente: "v" })).toBe("c");
     expect(textoAtual({ redacao_consolidada: "", redacao_trabalho: "", proposta_inicial: "p", texto_vigente: "v" })).toBe("p");
     expect(textoAtual({ redacao_consolidada: "", redacao_trabalho: "", proposta_inicial: "", texto_vigente: "v" })).toBe("v");
   });

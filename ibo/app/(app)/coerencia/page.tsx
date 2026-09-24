@@ -14,12 +14,12 @@ export default async function CoerenciaPage() {
 
   const rows = await all<{ id: string; type: string; numero: string | null; redacao_consolidada: string; redacao_trabalho: string; texto_vigente: string }>(`
     SELECT id, type, numero, redacao_consolidada, redacao_trabalho, texto_vigente
-    FROM provisions WHERE type = 'artigo' AND status = 'aprovado' ORDER BY ordem_pai`);
+    FROM provisions WHERE type = 'artigo' AND status = 'aprovado' AND deleted_at IS NULL ORDER BY ordem_pai`);
 
   const textos = rows.map((r) => ({
     id: r.id,
     label: provisionLabel(r as never),
-    texto: (r.redacao_consolidada || r.redacao_trabalho || r.texto_vigente || "").trim(),
+    texto: (r.redacao_trabalho || r.redacao_consolidada || r.texto_vigente || "").trim(),
   })).filter((t) => t.texto);
 
   return (

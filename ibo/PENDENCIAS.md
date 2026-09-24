@@ -49,6 +49,15 @@ Pauta de trabalho para o próximo agente/dev. Estado do projeto: **MVP completo 
 Todos os requisitos do PRD estão cobertos (MVP §46 = 21/21; módulo Reuniões §21–29; IA §30–33; Consolidação/Exportações §34–35; Realtime §40; Concorrência §41; Responsividade §42; Segurança §43). Decisões registradas: autenticação local JWT (§38), votação consultiva (§13), importação via seed (§36), Supabase RLS fora de escopo (§43, decidido). Sem pendências de PRD em aberto.
 - [x] **Refatorar `app/actions/provision.ts` (525 ln) e `components/provision/provision-forms.tsx` (944 ln)** — **CONCLUÍDO**: extração em módulos de domínio. Actions: `redacao.ts` (154), `dispositivos.ts` (254), `colaboracao.ts` (175), `state.ts` (tipo `ActionState`), com `provision.ts` como barrel (29). Componentes: `submit-btn.tsx`, `status-control.tsx`, `admin-forms.tsx`, `suggestion-forms.tsx`, `comment-forms.tsx`, `pending-forms.tsx`, `reference-form.tsx`, `vote-buttons.tsx`, `historical-text-editor.tsx`, `justificativa-editor.tsx`, `relation-form.tsx`, com `provision-forms.tsx` como barrel (10). Comportamento idêntico (importadores inalterados); lint/build/test 56 verdes.
 
+## 3.2 Mesa de Trabalho 2.0 (23/09/2026) — entregue, homologada e publicada
+
+Fases 1–7 do PRD `../PRD_ESDRAS_MESA_TRABALHO_2_0.md` implementadas, validadas no clone local e homologadas pelo usuário (resumo técnico no `AGENTS.md`).
+
+- [x] **Validação do usuário** no ambiente local (autosave, exclusão reversível, correspondências, marcos, conferência).
+- [x] **Migração aplicada no Supabase** em 24/09/2026: `node scripts/migrate-mesa-2-0.mjs` (aditiva e idempotente; contagens de dados inalteradas).
+- [x] **Fase 8 do PRD** — corte controlado com a tela clássica como contingência; rollback = reverter o deploy (as colunas/tabelas novas podem ficar, são inertes para o código anterior). Diagnóstico, registro por fase, riscos e rollback em `docs/relatorio-mesa-2-0-2026-09-23.md`.
+- Evoluções possíveis (não autorizadas): UI de desmembramento/reunião, automação E2E de conflito/rede e entidade própria de justificativa coletiva com escopo.
+
 ## 4. Documentação/observações de código
 
 - `components/status-badge.tsx` centraliza as cores semânticas de status — usar sempre lá, não hardcode.

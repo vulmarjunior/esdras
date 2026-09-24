@@ -17,6 +17,7 @@ const TOOLS: Tool[] = [
 interface Props {
   value: string;
   onChange: (html: string) => void;
+  onBlur?: () => void;
   placeholder?: string;
   className?: string;
   minHeightClass?: string;
@@ -31,7 +32,7 @@ interface Props {
  * O DOM não é controlado pelo React enquanto o usuário digita (evita cursor voltando
  * ao início): atualizações externas chegam apenas quando o editor está sem foco.
  */
-export function RichTextEditor({ value, onChange, placeholder, className, minHeightClass = "min-h-32" }: Props) {
+export function RichTextEditor({ value, onChange, onBlur, placeholder, className, minHeightClass = "min-h-32" }: Props) {
   const ref = useRef<HTMLDivElement>(null);
   const savedRange = useRef<Range | null>(null);
   const [focused, setFocused] = useState(false);
@@ -218,7 +219,7 @@ export function RichTextEditor({ value, onChange, placeholder, className, minHei
         onKeyUp={saveSelection}
         onMouseUp={saveSelection}
         onFocus={() => setFocused(true)}
-        onBlur={() => setFocused(false)}
+        onBlur={() => { setFocused(false); onBlur?.(); }}
         data-placeholder={placeholder}
         className={cn(
           "px-3.5 py-3 font-serif text-[15px] leading-relaxed text-foreground outline-none",

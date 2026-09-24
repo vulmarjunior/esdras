@@ -43,14 +43,14 @@ export interface LinhaComparativo {
   revogado: boolean;
 }
 
-/** Texto atual do dispositivo (mesma prioridade da revisão). */
+/** Texto atual do dispositivo: a redação de trabalho é a fonte principal; a consolidada é marco histórico. */
 export function textoAtual(p: {
   redacao_consolidada: string;
   redacao_trabalho: string;
   proposta_inicial: string;
   texto_vigente: string;
 }): string {
-  return p.redacao_consolidada || p.redacao_trabalho || p.proposta_inicial || p.texto_vigente || "";
+  return p.redacao_trabalho || p.redacao_consolidada || p.proposta_inicial || p.texto_vigente || "";
 }
 
 export function buildComparativo(

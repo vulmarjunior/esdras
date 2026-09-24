@@ -164,7 +164,7 @@ export function DeviceTabs(props: Props) {
           propostaInicial={prov.proposta_inicial}
           redacaoTrabalho={prov.redacao_trabalho}
           versao={prov.version}
-          canEditWork={canEditWork && prov.status !== "aprovado"}
+          canEditWork={canEditWork}
           canFixExtraction={canFixExtraction}
         />
 
@@ -240,12 +240,12 @@ export function DeviceTabs(props: Props) {
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-base">
                 <NumBadge n="✓" className="bg-emerald-600 text-white" />
-                Redação concluída para a proposta
+                Redação acordada — marco histórico
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-2">
               <RichTextContent text={prov.redacao_consolidada} />
-              <FieldHelper>Texto final deste dispositivo na proposta — fica bloqueado até eventual reabertura.</FieldHelper>
+              <FieldHelper>Texto registrado no momento da concordância. A redação atual é a de trabalho; este marco permanece como histórico e não bloqueia edições.</FieldHelper>
             </CardContent>
           </Card>
         )}

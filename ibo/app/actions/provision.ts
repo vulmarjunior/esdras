@@ -2,6 +2,8 @@ export type { ActionState } from "./state";
 
 export {
   updateRedacao,
+  autosaveRedacao,
+  sobrescreverRedacao,
   getRedacaoVersions,
   restoreRedacaoVersion,
   updateJustificativa,
@@ -19,6 +21,7 @@ export {
   moveProvision,
   moveProposalProvision,
   deleteProvision,
+  restoreProvision,
 } from "./dispositivos";
 
 export {
@@ -31,3 +34,12 @@ export {
   addProvisionRelation,
   removeProvisionRelation,
 } from "./colaboracao";
+
+export {
+  getTodasCorrespondencias,
+  getCorrespondencias,
+  addCorrespondence,
+  updateCorrespondence,
+  removeCorrespondence,
+} from "./correspondencias";
+export type { CorrespondenciaRegistro } from "./correspondencias";

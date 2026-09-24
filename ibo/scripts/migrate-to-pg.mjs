@@ -38,7 +38,7 @@ CREATE TABLE IF NOT EXISTS provisions (
   id TEXT PRIMARY KEY,
   parent_id TEXT REFERENCES provisions(id) ON DELETE CASCADE,
   project_id TEXT NOT NULL DEFAULT 'projeto-ibo',
-  type TEXT NOT NULL CHECK (type IN ('capitulo','secao','artigo','paragrafo','inciso','alinea')),
+  type TEXT NOT NULL CHECK (type IN ('capitulo','secao','artigo','paragrafo','inciso','alinea','item')),
   numero TEXT,
   titulo TEXT,
   ordem INTEGER NOT NULL DEFAULT 0,
@@ -46,6 +46,11 @@ CREATE TABLE IF NOT EXISTS provisions (
   origem TEXT NOT NULL DEFAULT 'original' CHECK (origem IN ('original','novo')),
   origem_ref_id TEXT REFERENCES provisions(id) ON DELETE SET NULL,
   sem_origem INTEGER NOT NULL DEFAULT 0 CHECK (sem_origem IN (0,1)),
+  deleted_at TEXT,
+  deleted_by INTEGER REFERENCES users(id),
+  acordo_version INTEGER,
+  acordo_em TEXT,
+  acordo_por INTEGER REFERENCES users(id),
   alteracao_tipo TEXT NOT NULL DEFAULT 'nao_avaliado' CHECK (alteracao_tipo IN ('nao_avaliado','mantido','alteracao_redacional','alteracao_material','novo','revogado','desmembrado','incorporado','reorganizado')),
   status TEXT NOT NULL DEFAULT 'nao_iniciado' CHECK (status IN ('nao_iniciado','em_analise','em_discussao','redacao_definida','aprovado','reaberto')),
   texto_vigente TEXT NOT NULL DEFAULT '',
@@ -127,6 +132,22 @@ CREATE TABLE IF NOT EXISTS provision_relations (
   related_id TEXT NOT NULL REFERENCES provisions(id) ON DELETE CASCADE,
   UNIQUE (provision_id, related_id)
 );
+CREATE TABLE IF NOT EXISTS provision_correspondences (
+  id BIGSERIAL PRIMARY KEY,
+  provision_id TEXT NOT NULL REFERENCES provisions(id) ON DELETE CASCADE,
+  vigente_id TEXT REFERENCES provisions(id) ON DELETE CASCADE,
+  tipo TEXT NOT NULL DEFAULT 'relacionado'
+    CHECK (tipo IN ('nao_examinado','relacionado','acrescimo','nao_aplicavel','substituido','desmembrado','incorporado')),
+  observacao TEXT,
+  created_at TEXT NOT NULL DEFAULT (to_char(now(), 'YYYY-MM-DD HH24:MI:SS')),
+  created_by INTEGER REFERENCES users(id)
+);
+CREATE INDEX IF NOT EXISTS idx_provision_correspondences_vigente
+  ON provision_correspondences(vigente_id);
+CREATE UNIQUE INDEX IF NOT EXISTS uq_correspondencia_vinculo
+  ON provision_correspondences(provision_id, vigente_id) WHERE vigente_id IS NOT NULL;
+CREATE UNIQUE INDEX IF NOT EXISTS uq_correspondencia_declarada
+  ON provision_correspondences(provision_id, tipo) WHERE vigente_id IS NULL;
 CREATE TABLE IF NOT EXISTS votes (
   id BIGSERIAL PRIMARY KEY,
   user_id INTEGER NOT NULL REFERENCES users(id),
@@ -217,14 +238,24 @@ CREATE TABLE IF NOT EXISTS personal_notes (
   updated_at TEXT NOT NULL DEFAULT (to_char(now(), 'YYYY-MM-DD HH24:MI:SS')),
   UNIQUE (provision_id, user_id)
 );
+CREATE TABLE IF NOT EXISTS document_snapshots (
+  id BIGSERIAL PRIMARY KEY,
+  rotulo TEXT,
+  descricao TEXT,
+  conteudo JSONB NOT NULL,
+  created_at TEXT NOT NULL DEFAULT (to_char(now(), 'YYYY-MM-DD HH24:MI:SS')),
+  created_by INTEGER REFERENCES users(id)
+);
+CREATE INDEX IF NOT EXISTS idx_document_snapshots_created_at
+  ON document_snapshots(created_at);
 `;
 
 const TABLES = [
   "users", "provisions", "provision_placements", "provision_versions", "suggestions", "comments",
-  "pending_issues", "references_tb", "provision_relations", "votes",
+  "pending_issues", "references_tb", "provision_relations", "provision_correspondences", "votes",
   "meetings", "meeting_members", "meeting_events", "meeting_decisions",
   "minutes", "minutes_reviews", "minutes_retifications", "audit_logs",
-  "personal_notes",
+  "personal_notes", "document_snapshots",
 ];
 
 const client = new pg.Client({ connectionString: DATABASE_URL, ssl: { rejectUnauthorized: false } });

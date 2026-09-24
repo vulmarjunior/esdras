@@ -55,6 +55,7 @@ export const PROVISION_TYPE_LABELS: Record<string, string> = {
   paragrafo: "Parágrafo",
   inciso: "Inciso",
   alinea: "Alínea",
+  item: "Item",
 };
 
 export const ALTERACAO_TYPE_LABELS: Record<string, string> = {
