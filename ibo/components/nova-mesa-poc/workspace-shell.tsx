@@ -11,7 +11,7 @@ export default function WorkspaceShell({children,outline,onNavigate,selectedLabe
   children:ReactNode; outline:OutlineEntry[]; onNavigate:(id:string)=>void;selectedLabel:string|null;
 }){
   const [outlineOpen,setOutlineOpen]=useState(true);
-  const [supportOpen,setSupportOpen]=useState(true);
+  const [supportOpen,setSupportOpen]=useState(false);
   const [consultOpen,setConsultOpen]=useState(false);
   const [aiOpen,setAiOpen]=useState(false);
   const [reference,setReference]=useState<Reference|null>(null);
@@ -51,7 +51,7 @@ export default function WorkspaceShell({children,outline,onNavigate,selectedLabe
     if(!pdf&&!/\.(txt|md)$/i.test(file.name)){return;}
     const item:Reference=pdf?{name:file.name,kind:"pdf",url:URL.createObjectURL(file)}
       :{name:file.name,kind:"text",text:await file.text()};
-    setReference(item);setConsultOpen(true);
+    setReference(item);setSideBySide(false);setQuery("");setConsultOpen(true);
   };
   const reader=reference?<section aria-label={"Leitura de "+reference.name} className="flex h-full min-h-0 flex-col overflow-hidden rounded-xl border bg-background">
     <div className="flex shrink-0 items-center justify-between gap-2 border-b p-3">
@@ -61,8 +61,8 @@ export default function WorkspaceShell({children,outline,onNavigate,selectedLabe
     {reference.kind==="pdf"?<iframe title={"Documento "+reference.name} src={reference.url} className="min-h-0 w-full flex-1"/>:
       <pre className="min-h-0 flex-1 overflow-auto whitespace-pre-wrap break-words p-5 font-serif text-base leading-relaxed">{reference.text}</pre>}
   </section>:null;
-  return <div className="mx-auto w-full max-w-[1800px] min-w-0 px-3 py-4 lg:px-6">
-    <header className="mb-4 flex flex-wrap items-center justify-between gap-3">
+  return <div className="mx-auto w-full max-w-[1920px] min-w-0 px-1 py-2 lg:px-3">
+    <header className="mb-3 flex flex-wrap items-center justify-between gap-2">
       <div className="min-w-0"><h1 className="text-xl font-semibold">Mesa de Trabalho · Nova minuta</h1>
         <p className="text-sm text-muted-foreground">Minuta em elaboração · Salvamento manual no servidor</p></div>
       <div className="flex flex-wrap gap-2">
@@ -74,27 +74,27 @@ export default function WorkspaceShell({children,outline,onNavigate,selectedLabe
           onChange={event=>{void openFile(event.target.files?.[0]);event.target.value="";}}/>
       </div>
     </header>
-    <div className="flex min-w-0 flex-col gap-4 xl:flex-row xl:items-start">
-      {outlineOpen&&<nav aria-label="Sumário da minuta" className="min-w-0 rounded-xl border p-3 xl:sticky xl:top-4 xl:w-56 xl:shrink-0">
+    <div className="flex min-w-0 flex-col gap-3 xl:flex-row xl:items-start">
+      {outlineOpen&&<nav aria-label="Sumário da minuta" className="min-w-0 rounded-xl border bg-card p-3 xl:sticky xl:top-4 xl:w-60 xl:shrink-0">
         <h2 className="mb-2 font-semibold">Estrutura</h2>
         <div className="max-h-[60vh] overflow-auto xl:max-h-[75vh]">
           {outline.length===0?<p className="text-sm text-muted-foreground">Insira um capítulo ou artigo para começar.</p>:
           outline.map(item=><button type="button" key={item.id} onClick={()=>onNavigate(item.id)}
-            className="block w-full truncate rounded px-2 py-1.5 text-left text-sm hover:bg-muted focus-visible:outline-2"
+            className="block w-full rounded px-2 py-1.5 text-left text-sm leading-snug hover:bg-muted focus-visible:outline-2"
             style={{paddingLeft:8+Math.min(item.depth,3)*10}} title={item.label+" "+item.title}>
-            <span className="font-medium">{item.label}</span> {item.title}</button>)}
+            <span className="font-medium">{item.label}</span> <span className="line-clamp-2 break-words text-muted-foreground">{item.title}</span></button>)}
         </div>
       </nav>}
       <div className={sideBySide?"flex min-w-0 flex-1 flex-col gap-3 2xl:flex-row":"min-w-0 flex-1"}>
         <div className="min-w-0 flex-1">{children}</div>
         {sideBySide&&reader&&<div className="h-[75vh] min-w-0 overflow-hidden 2xl:sticky 2xl:top-4 2xl:w-[min(42vw,670px)] 2xl:shrink-0" role="region" aria-label="Consulta ao lado">{reader}</div>}
       </div>
-      {supportOpen&&!sideBySide&&<aside aria-label="Painel de apoio" className="min-w-0 rounded-xl border p-3 xl:sticky xl:top-4 xl:w-64 xl:shrink-0">
+      {supportOpen&&!sideBySide&&<aside aria-label="Painel de apoio" className="min-w-0 rounded-xl border bg-card p-3 xl:sticky xl:top-4 xl:w-72 xl:shrink-0">
         <h2 className="mb-3 font-semibold">Painel de apoio</h2>
         <section className="min-w-0 space-y-2 border-b pb-4">
           <h3 className="text-sm font-medium">Dispositivo em foco</h3>
           <p className="break-words text-sm text-muted-foreground">{selectedLabel??"Selecione um dispositivo no documento."}</p>
-          <p className="break-words text-xs text-muted-foreground">Comentários, alternativas e histórico: integração futura. Nenhum dado é exibido artificialmente neste laboratório.</p>
+          <p className="break-words text-xs text-muted-foreground">Comentários e alternativas por dispositivo ainda não foram integrados. O histórico geral está disponível na barra da minuta.</p>
         </section>
         <section className="min-w-0 space-y-2 pt-4">
           <h3 className="text-sm font-medium">Documentos de consulta</h3>
