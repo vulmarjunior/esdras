@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
-import {loadNovaMesaDraft,saveNovaMesaDraft} from "@/app/actions/nova-mesa-draft";
+import {loadNovaMesaDraft,saveNovaMesaDraft,listNovaMesaVersions,readNovaMesaVersion,restoreNovaMesaVersion} from "@/app/actions/nova-mesa-draft";
 import {
   canContain, Draft, DraftNode, findNode, formatSelection, insertAfter,
   labelFor, moveNode, newNode, NodeType, removeNode, setAlignment, setRichText,
@@ -75,6 +75,11 @@ export default function ContinuousEditorLab({canEdit}:{canEdit:boolean}){
   const [conflict,setConflict]=useState(false);
   const [dirty,setDirty]=useState(false);
   const [version,setVersion]=useState(0);
+  const [historyOpen,setHistoryOpen]=useState(false);
+  const [historyLoading,setHistoryLoading]=useState(false);
+  const [historyError,setHistoryError]=useState("");
+  const [versions,setVersions]=useState<{version:number;author:string|null;createdAt:string}[]>([]);
+  const [preview,setPreview]=useState<{version:number;draft:Draft}|null>(null);
   const versionRef=useRef(0);
   const editCount=useRef(0);
   const dirtyRef=useRef(false);
@@ -113,6 +118,30 @@ export default function ContinuousEditorLab({canEdit}:{canEdit:boolean}){
       }else setSaveError(result.error);
     }catch{setSaveError("Falha ao salvar. Preserve uma cópia JSON e tente novamente.");}
     finally{savingRef.current=false;setSaving(false);}
+  };
+  const showHistory=async()=>{
+    setHistoryOpen(true);setHistoryLoading(true);setHistoryError("");setPreview(null);
+    try{setVersions(await listNovaMesaVersions());}
+    catch{setHistoryError("Não foi possível carregar as versões do servidor.");}
+    finally{setHistoryLoading(false);}
+  };
+  const showVersion=async(number:number)=>{
+    setHistoryLoading(true);setHistoryError("");
+    try{setPreview({version:number,draft:await readNovaMesaVersion(number)});}
+    catch{setHistoryError("Não foi possível abrir esta versão.");}
+    finally{setHistoryLoading(false);}
+  };
+  const restore=async()=>{
+    if(!preview||!canEdit||dirtyRef.current||savingRef.current||loading||conflict)return;
+    if(!window.confirm("Restaurar a versão "+preview.version+"? A redação atual será preservada no histórico e uma nova versão será criada."))return;
+    setHistoryLoading(true);setHistoryError("");
+    try{
+      const result=await restoreNovaMesaVersion(preview.version,versionRef.current);
+      if(result.ok){setHistoryOpen(false);setPreview(null);await load();setNotice("Versão restaurada como nova revisão "+result.version+".");}
+      else if("conflict" in result){setConflict(true);setHistoryError("Outra sessão alterou a minuta. A restauração foi interrompida.");}
+      else setHistoryError(result.error);
+    }catch{setHistoryError("Falha na restauração. Nenhum texto local foi descartado.");}
+    finally{setHistoryLoading(false);}
   };
   const root=useRef<HTMLDivElement|null>(null);
   const pendingFocus=useRef<string|null>(null);
@@ -263,11 +292,38 @@ export default function ContinuousEditorLab({canEdit}:{canEdit:boolean}){
     <div className="mb-3 flex flex-wrap items-center gap-2 rounded border p-3 text-sm">
       <span role="status">{loading?"Carregando minuta…":loadingError?"Carregamento indisponível":conflict?"Conflito de versões":dirty?"Alterações não salvas":"Minuta sincronizada"}{!loading&&!loadingError?" · versão "+version:""}</span>
       <button type="button" disabled={!editable||!dirty||saving} className="rounded border px-3 py-2 disabled:opacity-50" onClick={()=>{void save();}}>{saving?"Salvando…":"Salvar no servidor"}</button>
-      <button type="button" disabled={loading||dirty} className="rounded border px-3 py-2 disabled:opacity-50" onClick={()=>{void load();}}>Recarregar</button>
+      <button type="button" disabled={loading||dirty||saving} className="rounded border px-3 py-2 disabled:opacity-50" onClick={()=>{void load();}}>Recarregar</button>
+      <button type="button" disabled={loading||!!loadingError} className="rounded border px-3 py-2 disabled:opacity-50" onClick={()=>{void showHistory();}}>Histórico de versões</button>
       {loadingError&&<p role="alert" className="w-full text-red-700">{loadingError}</p>}
       {saveError&&<p role="alert" className="w-full text-red-700">{saveError}</p>}
       {!canEdit&&<p className="w-full text-amber-700">Acesso somente leitura: seu perfil não pode alterar a nova minuta.</p>}
     </div>
+    {historyOpen&&<section aria-label="Histórico de versões da nova minuta" className="mb-4 min-w-0 rounded-lg border p-4">
+      <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+        <h2 className="font-semibold">Histórico da minuta · Somente leitura</h2>
+        <button type="button" className="rounded border px-3 py-1" onClick={()=>{setHistoryOpen(false);setPreview(null);}}>Fechar</button>
+      </div>
+      {historyError&&<p role="alert" className="mb-2 text-sm text-red-700">{historyError}</p>}
+      {historyLoading&&<p role="status" className="text-sm">Carregando histórico…</p>}
+      {!historyLoading&&versions.length===0&&<p className="text-sm text-muted-foreground">Nenhuma versão salva nesta minuta.</p>}
+      <div className="mb-3 max-h-40 min-w-0 space-y-1 overflow-y-auto">
+        {versions.map(item=><button type="button" key={item.version} disabled={historyLoading}
+          className="block w-full rounded border px-3 py-2 text-left text-sm disabled:opacity-50"
+          onClick={()=>{void showVersion(item.version);}}>Versão {item.version} · {new Date(item.createdAt).toLocaleString("pt-BR")} · {item.author??"Autor não identificado"}</button>)}
+      </div>
+      {preview&&<div className="min-w-0 rounded border p-3">
+        <h3 className="mb-2 font-medium">Prévia da versão {preview.version} — não editável</h3>
+        <div className="max-h-72 min-w-0 overflow-auto whitespace-pre-wrap break-words rounded bg-muted p-3 text-sm">
+          {flatten(preview.draft).map(row=><p key={row.node.id} className="mb-2" style={{paddingLeft:Math.min(row.depth,4)*12}}>
+            <strong>{labelFor(row.node,row.siblings,row.articleNumber,row.chapterNumber)}</strong>{row.node.text}
+          </p>)}
+        </div>
+        <button type="button" className="mt-3 rounded border px-3 py-2 text-sm disabled:opacity-50"
+          disabled={!canEdit||dirty||saving||historyLoading||conflict}
+          onClick={()=>{void restore();}}>Restaurar como nova versão</button>
+        {(dirty||conflict)&&<p className="mt-2 text-xs text-amber-700">Para restaurar, resolva as alterações locais ou o conflito de versões. Exporte uma cópia JSON antes de descartar qualquer redação.</p>}
+      </div>}
+    </section>}
     <h2 className="mb-2 text-lg font-semibold">Minuta · Editor experimental</h2>
     <p className="mb-4 text-sm text-muted-foreground">Documento de seleção contínua, com regiões de edição independentes para proteger os limites normativos. Sem autosave ou colaboração em tempo real; salvamento manual versionado em teste.</p>
     <div className="mb-3 flex flex-wrap gap-2">
