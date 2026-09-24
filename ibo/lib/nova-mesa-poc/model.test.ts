@@ -30,4 +30,16 @@ describe("modelo experimental da minuta independente",()=>{
   expect(findNode(draft.nodes,"a")).toBeDefined();
  });
  it("rejeita movimentação circular",()=>expect(()=>moveNode(base(),"a","p1",null)).toThrow());
+ it("rejeita parágrafo fora de artigo, inclusive via movimentação",()=>{
+  expect(()=>insertAfter(base(),null,null,node("p2","paragraph"))).toThrow("Hierarquia");
+  expect(()=>moveNode(base(),"p1","cap",null)).toThrow("Hierarquia");
+ });
+ it("rejeita identidades repetidas em subárvores",()=>{
+  expect(()=>insertAfter(base(),"cap",null,node("novo","article",[node("p1","paragraph")]))).toThrow("duplicada");
+ });
+ it("aceita bloco livre dentro de artigo sem renumerar parágrafos",()=>{
+  const draft=insertAfter(base(),"a","p1",node("rascunho","free"));
+  expect(draft.nodes[0].children[0].children.map(n=>n.type)).toEqual(["paragraph","free"]);
+  expect(labelFor(draft.nodes[0].children[0].children[0],draft.nodes[0].children[0].children,1,1)).toBe("Parágrafo único. ");
+ });
 });
