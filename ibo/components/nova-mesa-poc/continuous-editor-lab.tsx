@@ -271,9 +271,9 @@ export default function ContinuousEditorLab({canEdit}:{canEdit:boolean}){
   const download=()=>{
     const blob=new Blob([JSON.stringify(live.current,null,2)],{type:"application/json"});
     const url=URL.createObjectURL(blob);
-    const anchor=document.createElement("a");anchor.href=url;anchor.download="esdras-laboratorio-nao-oficial.json";
+    const anchor=document.createElement("a");anchor.href=url;anchor.download="esdras-minuta-copia.json";
     anchor.click();URL.revokeObjectURL(url);setSavedLocal(true);
-    setNotice("Cópia JSON experimental exportada. Não substitui salvamento no servidor.");
+    setNotice("Cópia JSON exportada. Não substitui salvamento no servidor.");
   };
   const outline=rows.filter(row=>["chapter","section","subsection","article"].includes(row.node.type)).map(row=>({
     id:row.node.id,label:labelFor(row.node,row.siblings,row.articleNumber,row.chapterNumber).trim(),
@@ -289,7 +289,7 @@ export default function ContinuousEditorLab({canEdit}:{canEdit:boolean}){
     selectedLabel={selected?names[findNode(live.current.nodes,selected.id)?.type??"free"]:null}>
     <main className="min-w-0">
 
-    <p className="mb-2 font-semibold text-amber-700">Laboratório isolado — salvamento manual experimental; não usar ainda para redação oficial.</p>
+    <p className="mb-2 font-semibold text-amber-700">Minuta em elaboração · Salve as alterações no servidor antes de sair desta página.</p>
     <div className="mb-3 flex flex-wrap items-center gap-2 rounded border p-3 text-sm">
       <span role="status">{loading?"Carregando minuta…":loadingError?"Carregamento indisponível":conflict?"Conflito de versões":dirty?"Alterações não salvas":"Minuta sincronizada"}{!loading&&!loadingError?" · versão "+version:""}</span>
       <button type="button" disabled={!editable||!dirty||saving} className="rounded border px-3 py-2 disabled:opacity-50" onClick={()=>{void save();}}>{saving?"Salvando…":"Salvar no servidor"}</button>
@@ -325,8 +325,8 @@ export default function ContinuousEditorLab({canEdit}:{canEdit:boolean}){
         {(dirty||conflict)&&<p className="mt-2 text-xs text-amber-700">Para restaurar, resolva as alterações locais ou o conflito de versões. Exporte uma cópia JSON antes de descartar qualquer redação.</p>}
       </div>}
     </section>}
-    <h2 className="mb-2 text-lg font-semibold">Minuta · Editor experimental</h2>
-    <p className="mb-4 text-sm text-muted-foreground">Documento de seleção contínua, com regiões de edição independentes para proteger os limites normativos. Sem autosave ou colaboração em tempo real; salvamento manual versionado em teste.</p>
+    <h2 className="mb-2 text-lg font-semibold">Minuta · Editor de redação</h2>
+    <p className="mb-4 text-sm text-muted-foreground">Documento de seleção contínua, com regiões de edição independentes para proteger os limites normativos. O salvamento é manual e versionado. Confira o indicador de alterações pendentes antes de sair.</p>
     <div className="mb-3 flex flex-wrap gap-2">
       {(["bold","italic","underline"] as Mark[]).map(mark=>
         <button type="button" key={mark} title={mark} disabled={!editable} onMouseDown={event=>event.preventDefault()} onClick={()=>format(mark)}
@@ -340,7 +340,7 @@ export default function ContinuousEditorLab({canEdit}:{canEdit:boolean}){
         <button type="button" key={type} disabled={!editable} className="rounded border px-3 py-2 text-sm" onClick={()=>add(type)}>+ {names[type]}</button>)}
     </div>
     <div className="mb-4 flex flex-wrap items-center gap-2">
-      <button type="button" className="rounded border px-3 py-1" onClick={download}>Exportar cópia experimental (JSON)</button>
+      <button type="button" className="rounded border px-3 py-1" onClick={download}>Exportar cópia (JSON)</button>
       <span className="text-xs text-amber-700">{savedLocal?"Cópia JSON exportada; alterações posteriores requerem nova exportação.":dirty?"Alterações locais pendentes: salve antes de sair.":"Use Exportar JSON para criar uma cópia independente."}</span>
       <button type="button" className="rounded border px-3 py-1" disabled={!editable||!selected} onClick={()=>move(-1)}>↑ Mover</button>
       <button type="button" className="rounded border px-3 py-1" disabled={!editable||!selected} onClick={()=>move(1)}>↓ Mover</button>
@@ -360,7 +360,7 @@ export default function ContinuousEditorLab({canEdit}:{canEdit:boolean}){
       onMouseUp={()=>{const selection=window.getSelection();const id=bodyFrom(selection?.anchorNode??null)?.dataset.bodyId;
         const row=rows.find(entry=>entry.node.id===id);if(row)choose({id:row.node.id,parentId:row.parentId});}}
       aria-label="Documento experimental editável" className="min-h-[450px] min-w-0 overflow-x-auto rounded-lg border bg-white p-4 text-zinc-900 shadow-sm outline-offset-2 sm:p-6">
-      <h2 contentEditable={false} className="mb-6 select-none text-center text-xl font-bold">NOVO ESTATUTO · MINUTA EXPERIMENTAL</h2>
+      <h2 contentEditable={false} className="mb-6 select-none text-center text-xl font-bold">NOVO ESTATUTO · MINUTA EM ELABORAÇÃO</h2>
       {rows.length===0&&<p contentEditable={false} className="text-sm text-zinc-500">Insira um capítulo ou artigo para começar.</p>}
       {rows.map(row=><div key={row.node.id} data-node-id={row.node.id}
         className={"my-3 rounded border-l-2 pl-3 "+(selected?.id===row.node.id?"border-blue-500":"border-transparent")}
@@ -371,6 +371,6 @@ export default function ContinuousEditorLab({canEdit}:{canEdit:boolean}){
         {row.node.type==="free"&&<span contentEditable={false} className="ml-2 select-none text-xs text-amber-700">Provisório · reservado</span>}
       </div>)}
     </div>
-    <p className="mt-3 text-xs text-muted-foreground">Prova de conceito não validada em navegadores: edição limitada a uma região por vez, sem autosave ou tratamento completo de seleção, marcas e IME. A formatação ainda é experimental. Não usar com dados reais.</p>
+    <p className="mt-3 text-xs text-muted-foreground">Editor de minuta em elaboração: edite um dispositivo por vez, salve manualmente antes de sair e confira as alterações após reorganizações.</p>
   </main></WorkspaceShell>;
 }
