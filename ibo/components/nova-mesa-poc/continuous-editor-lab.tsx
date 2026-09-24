@@ -51,6 +51,13 @@ export default function ContinuousEditorLab(){
     setNotice("");
   };
   useLayoutEffect(()=>{
+    // React nunca reconcilia o texto interno das regiões contentEditable: o DOM
+    // pertence ao navegador durante a digitação. Sincronizamos apenas em
+    // operações estruturais, inclusive ao desfazer.
+    for(const body of root.current?.querySelectorAll<HTMLElement>("[data-body-id]")??[]){
+      const node=findNode(live.current.nodes,body.dataset.bodyId??"");
+      if(node && body.textContent!==node.text)body.textContent=node.text;
+    }
     const id=pendingFocus.current; if(!id)return;
     pendingFocus.current=null;
     const body=Array.from(root.current?.querySelectorAll<HTMLElement>("[data-body-id]")??[])
@@ -167,7 +174,7 @@ export default function ContinuousEditorLab(){
         style={{marginLeft:Math.min(row.depth,4)*16}}>
         <span contentEditable={false} className="select-none font-semibold">{labelFor(row.node,row.siblings,row.articleNumber,row.chapterNumber)}</span>
         <span contentEditable suppressContentEditableWarning onInput={onInput} onBeforeInput={event=>onBeforeInput(event.nativeEvent as InputEvent)} onPaste={onPaste} data-body-id={row.node.id} data-poc-body="true" className={"inline-block min-w-[55%] whitespace-pre-wrap align-top outline-offset-2 "+(row.node.type==="chapter"?"font-bold":"")}
-          data-placeholder={row.node.type==="free"?"Texto livre reservado":"Redação pendente"}>{row.node.text}</span>
+          data-placeholder={row.node.type==="free"?"Texto livre reservado":"Redação pendente"}></span>
         {row.node.type==="free"&&<span contentEditable={false} className="ml-2 select-none text-xs text-amber-700">Provisório · reservado</span>}
       </div>)}
     </div>
