@@ -1,6 +1,7 @@
 "use client";
 
-import { useLayoutEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import {loadNovaMesaDraft,saveNovaMesaDraft} from "@/app/actions/nova-mesa-draft";
 import {
   canContain, Draft, DraftNode, findNode, formatSelection, insertAfter,
   labelFor, moveNode, newNode, NodeType, removeNode, setAlignment, setRichText,
@@ -13,7 +14,7 @@ const names: Record<NodeType,string> = {
   chapter:"Capítulo", section:"Seção", subsection:"Subseção", article:"Artigo", paragraph:"Parágrafo",
   inciso:"Inciso", alinea:"Alínea", free:"Texto livre",
 };
-const initial:Draft={id:"experimento",nodes:[]};
+const initial:Draft={id:"estatuto-ibo-2026",nodes:[]};
 type Location={id:string,parentId:string|null};
 type Row={node:DraftNode,parentId:string|null,siblings:DraftNode[],articleNumber:number,chapterNumber:number,depth:number};
 function flatten(draft:Draft):Row[]{
@@ -58,7 +59,7 @@ function renderRuns(body:HTMLElement,runs:TextRun[]){
   }
   body.replaceChildren(fragment);
 }
-export default function ContinuousEditorLab(){
+export default function ContinuousEditorLab({canEdit}:{canEdit:boolean}){
   const [draft,setDraft]=useState<Draft>(initial);
   const live=useRef<Draft>(draft);
   const [selected,setSelected]=useState<Location|null>(null);
@@ -67,6 +68,52 @@ export default function ContinuousEditorLab(){
   const [revision,setRevision]=useState(0);
   const [undo,setUndo]=useState<Draft[]>([]);
   const [savedLocal,setSavedLocal]=useState(false);
+  const [loading,setLoading]=useState(true);
+  const [loadingError,setLoadingError]=useState("");
+  const [saving,setSaving]=useState(false);
+  const [saveError,setSaveError]=useState("");
+  const [conflict,setConflict]=useState(false);
+  const [dirty,setDirty]=useState(false);
+  const [version,setVersion]=useState(0);
+  const versionRef=useRef(0);
+  const editCount=useRef(0);
+  const dirtyRef=useRef(false);
+  const savingRef=useRef(false);
+  const editable=canEdit&&!loading&&!loadingError&&!conflict;
+  const markDirty=()=>{editCount.current++;dirtyRef.current=true;setDirty(true);setSaveError("");};
+  const load=async()=>{
+    if(dirtyRef.current)return;
+    setLoading(true);setLoadingError("");
+    try{
+      const snapshot=await loadNovaMesaDraft();
+      live.current=snapshot.draft;versionRef.current=snapshot.version;setVersion(snapshot.version);
+      setDraft(snapshot.draft);setRevision(n=>n+1);setUndo([]);setSelected(null);selectedRef.current=null;
+      dirtyRef.current=false;setDirty(false);setConflict(false);setSaveError("");
+    }catch{setLoadingError("Falha ao carregar. Verifique se a migração isolada foi aplicada ao banco. Edição bloqueada para evitar perda de dados.");}
+    finally{setLoading(false);}
+  };
+  useEffect(()=>{void load();},[]);
+  useEffect(()=>{
+    const warn=(event:BeforeUnloadEvent)=>{if(dirtyRef.current){event.preventDefault();event.returnValue="";}};
+    window.addEventListener("beforeunload",warn);
+    return()=>window.removeEventListener("beforeunload",warn);
+  },[]);
+  const save=async()=>{
+    if(!editable||savingRef.current||!dirtyRef.current)return;
+    savingRef.current=true;setSaving(true);setSaveError("");
+    const snapshot=live.current,sequence=editCount.current;
+    try{
+      const result=await saveNovaMesaDraft(snapshot,versionRef.current);
+      if(result.ok){
+        versionRef.current=result.version;setVersion(result.version);
+        if(sequence===editCount.current){dirtyRef.current=false;setDirty(false);setNotice("Versão "+result.version+" salva no servidor.");}
+        else setNotice("Uma versão foi salva, mas há alterações posteriores pendentes.");
+      }else if("conflict" in result){
+        setConflict(true);setSaveError("Conflito: outra sessão salvou alterações. Exporte uma cópia JSON antes de recarregar. Nenhum texto foi sobrescrito.");
+      }else setSaveError(result.error);
+    }catch{setSaveError("Falha ao salvar. Preserve uma cópia JSON e tente novamente.");}
+    finally{savingRef.current=false;setSaving(false);}
+  };
   const root=useRef<HTMLDivElement|null>(null);
   const pendingFocus=useRef<string|null>(null);
   const rows=flatten(draft);
