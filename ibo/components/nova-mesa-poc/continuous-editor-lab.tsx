@@ -159,6 +159,23 @@ export default function ContinuousEditorLab(){
     const body=bodyFrom(text);const id=body?.dataset.bodyId;
     if(id&&body){live.current=setRichText(live.current,id,runsFromElement(body));setSavedLocal(false);}
   };
+  const format=(mark:Mark)=>{
+    const selection=window.getSelection();
+    if(!selection?.rangeCount||selection.isCollapsed){setNotice("Selecione o trecho que deseja formatar.");return;}
+    const range=selection.getRangeAt(0),body=bodyFrom(range.startContainer);
+    if(!body||body!==bodyFrom(range.endContainer)){setNotice("Formate somente dentro de um dispositivo.");return;}
+    const id=body.dataset.bodyId;if(!id)return;
+    const before=range.cloneRange();before.selectNodeContents(body);before.setEnd(range.startContainer,range.startOffset);
+    const start=before.toString().length,end=start+range.toString().length;
+    try{commit(formatSelection(live.current,id,start,end,mark),id);}
+    catch(error){setNotice(error instanceof Error?error.message:"Seleção inválida.");}
+  };
+  const align=(alignment:Alignment)=>{
+    const current=selectedRef.current;
+    if(!current){setNotice("Selecione o dispositivo a ser alinhado.");return;}
+    try{commit(setAlignment(live.current,current.id,alignment),current.id);}
+    catch(error){setNotice(error instanceof Error?error.message:"Não foi possível alinhar.");}
+  };
   const download=()=>{
     const blob=new Blob([JSON.stringify(live.current,null,2)],{type:"application/json"});
     const url=URL.createObjectURL(blob);
@@ -170,6 +187,14 @@ export default function ContinuousEditorLab(){
     <p className="mb-2 font-semibold text-amber-700">Laboratório isolado — conteúdo não persistente; não usar para o estatuto real.</p>
     <h1 className="mb-2 text-2xl font-bold">Nova Mesa · Editor documental experimental</h1>
     <p className="mb-4 text-sm text-muted-foreground">Documento de seleção contínua, com regiões de edição independentes para proteger os limites normativos. Sem colaboração, servidor ou histórico permanente.</p>
+    <div className="mb-3 flex flex-wrap gap-2">
+      {(["bold","italic","underline"] as Mark[]).map(mark=>
+        <button type="button" key={mark} title={mark} onMouseDown={event=>event.preventDefault()} onClick={()=>format(mark)}
+          className="rounded border px-3 py-2 text-sm">{mark==="bold"?<strong>B</strong>:mark==="italic"?<em>I</em>:<u>U</u>}</button>)}
+      {(["left","center","right","justify"] as Alignment[]).map(alignment=>
+        <button type="button" key={alignment} title={alignment} onMouseDown={event=>event.preventDefault()} onClick={()=>align(alignment)}
+          className="rounded border px-3 py-2 text-sm">{alignment==="left"?"Esquerda":alignment==="center"?"Centro":alignment==="right"?"Direita":"Justificar"}</button>)}
+    </div>
     <div className="mb-3 flex flex-wrap gap-2">
       {(["chapter","article","paragraph","inciso","alinea","free"] as NodeType[]).map(type=>
         <button type="button" key={type} className="rounded border px-3 py-2 text-sm" onClick={()=>add(type)}>+ {names[type]}</button>)}
@@ -202,10 +227,10 @@ export default function ContinuousEditorLab(){
         style={{marginLeft:Math.min(row.depth,4)*16}}>
         <span contentEditable={false} className="select-none font-semibold">{labelFor(row.node,row.siblings,row.articleNumber,row.chapterNumber)}</span>
         <span contentEditable suppressContentEditableWarning onInput={onInput} onBeforeInput={event=>onBeforeInput(event.nativeEvent as InputEvent)} onPaste={onPaste} data-body-id={row.node.id} data-poc-body="true" className={"inline-block min-w-[55%] whitespace-pre-wrap align-top outline-offset-2 "+(row.node.type==="chapter"?"font-bold":"")}
-          data-placeholder={row.node.type==="free"?"Texto livre reservado":"Redação pendente"}></span>
+          style={{textAlign:row.node.alignment??(row.node.type==="chapter"?"center":"justify")}} data-placeholder={row.node.type==="free"?"Texto livre reservado":"Redação pendente"}></span>
         {row.node.type==="free"&&<span contentEditable={false} className="ml-2 select-none text-xs text-amber-700">Provisório · reservado</span>}
       </div>)}
     </div>
-    <p className="mt-3 text-xs text-muted-foreground">Prova de conceito não validada em navegadores: edição limitada a uma região por vez, sem persistência, histórico de texto, edição rica ou tratamento completo de seleção e IME. Não usar com dados reais.</p>
+    <p className="mt-3 text-xs text-muted-foreground">Prova de conceito não validada em navegadores: edição limitada a uma região por vez, sem persistência, histórico de texto ou tratamento completo de seleção, marcas e IME. A formatação ainda é experimental. Não usar com dados reais.</p>
   </main>;
 }
