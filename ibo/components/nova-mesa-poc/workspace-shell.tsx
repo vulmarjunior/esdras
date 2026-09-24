@@ -80,8 +80,11 @@ export default function WorkspaceShell({children,outline,onNavigate,selectedLabe
             <span className="font-medium">{item.label}</span> {item.title}</button>)}
         </div>
       </nav>}
-      <div className="min-w-0 flex-1">{children}</div>
-      {supportOpen&&<aside aria-label="Painel de apoio" className="min-w-0 rounded-xl border p-3 xl:sticky xl:top-4 xl:w-64 xl:shrink-0">
+      <div className={sideBySide?"flex min-w-0 flex-1 flex-col gap-3 2xl:flex-row":"min-w-0 flex-1"}>
+        <div className="min-w-0 flex-1">{children}</div>
+        {sideBySide&&reader&&<div className="h-[75vh] min-w-0 overflow-hidden 2xl:sticky 2xl:top-4 2xl:w-[min(42vw,670px)] 2xl:shrink-0" role="region" aria-label="Consulta ao lado">{reader}</div>}
+      </div>
+      {supportOpen&&!sideBySide&&<aside aria-label="Painel de apoio" className="min-w-0 rounded-xl border p-3 xl:sticky xl:top-4 xl:w-64 xl:shrink-0">
         <h2 className="mb-3 font-semibold">Painel de apoio</h2>
         <section className="min-w-0 space-y-2 border-b pb-4">
           <h3 className="text-sm font-medium">Dispositivo em foco</h3>
@@ -109,7 +112,6 @@ export default function WorkspaceShell({children,outline,onNavigate,selectedLabe
         </section>
       </aside>}
     </div>
-    {sideBySide&&reader&&<div className="fixed inset-x-2 bottom-2 top-[12%] z-40 min-w-0 rounded-xl border bg-background p-2 shadow-2xl md:inset-x-auto md:right-3 md:w-[min(48vw,720px)]" role="region" aria-label="Consulta ao lado">{reader}</div>}
     {consultOpen&&<dialog ref={dialogRef} onClose={()=>setConsultOpen(false)} aria-label="Leitura ampliada de documento de consulta"
       className="fixed inset-0 m-auto h-[min(92vh,980px)] w-[min(94vw,1150px)] max-w-none overflow-hidden rounded-xl border bg-background p-3 text-foreground shadow-2xl backdrop:bg-black/60">
       <div className="flex h-full min-h-0 flex-col gap-2">
