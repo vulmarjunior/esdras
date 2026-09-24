@@ -1,7 +1,7 @@
 import { Alignment, Mark, normalizeRuns, plainText, TextRun, toRuns, markRange } from "./rich-text";
 /** Modelo experimental isolado: não usa nem modifica dispositivos históricos. */
 export type NodeType = "chapter" | "section" | "subsection" | "article" | "paragraph" | "inciso" | "alinea" | "free";
-export type DraftNode = { id: string; type: NodeType; text: string; runs?: TextRun[]; alignment?: Alignment; children: DraftNode[] };
+export type DraftNode = { id: string; type: NodeType; text: string; runs?: TextRun[]; alignment?: Alignment; approved?: boolean; children: DraftNode[] };
 export type Draft = { id: string; nodes: DraftNode[] };
 
 const letters = "abcdefghijklmnopqrstuvwxyz";
@@ -25,7 +25,7 @@ export function findNode(nodes: DraftNode[], id: string): DraftNode | undefined 
   for (const n of nodes) { if (n.id === id) return n; const child = findNode(n.children,id); if(child) return child; }
 }
 export function changeText(draft: Draft, id: string, text: string): Draft {
-  const visit = (nodes: DraftNode[]): DraftNode[] => nodes.map(n=>n.id===id?{...n,text,runs:toRuns(text)}:{...n,children:visit(n.children)});
+  const visit = (nodes: DraftNode[]): DraftNode[] => nodes.map(n=>n.id===id?{...n,text,runs:toRuns(text),approved:text===n.text?n.approved:false}:{...n,children:visit(n.children)});
   return {...draft,nodes:visit(draft.nodes)};
 }
 /** Atualiza apenas as marcas do texto do dispositivo, sem tocar em seus filhos. */
@@ -38,7 +38,13 @@ export function formatSelection(draft:Draft,id:string,start:number,end:number,ma
 export function setRichText(draft:Draft,id:string,runs:readonly TextRun[]):Draft {
   if(!findNode(draft.nodes,id))throw new Error("Dispositivo não encontrado");
   const normalized=normalizeRuns(runs),text=plainText(normalized);
-  const visit=(nodes:DraftNode[]):DraftNode[]=>nodes.map(n=>n.id===id?{...n,text,runs:normalized}:{...n,children:visit(n.children)});
+  const visit=(nodes:DraftNode[]):DraftNode[]=>nodes.map(n=>n.id===id?{...n,text,runs:normalized,approved:text===n.text?n.approved:false}:{...n,children:visit(n.children)});
+  return {...draft,nodes:visit(draft.nodes)};
+}
+/** Indicador editorial simples: o texto atual foi apreciado pela comissão. */
+export function setApproved(draft:Draft,id:string,approved:boolean):Draft {
+  if(!findNode(draft.nodes,id))throw new Error("Dispositivo não encontrado");
+  const visit=(nodes:DraftNode[]):DraftNode[]=>nodes.map(n=>n.id===id?{...n,approved}:{...n,children:visit(n.children)});
   return {...draft,nodes:visit(draft.nodes)};
 }
 export function setAlignment(draft:Draft,id:string,alignment:Alignment):Draft {
