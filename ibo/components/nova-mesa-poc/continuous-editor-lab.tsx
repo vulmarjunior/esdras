@@ -84,7 +84,7 @@ export default function ContinuousEditorLab({canEdit}:{canEdit:boolean}){
   const editCount=useRef(0);
   const dirtyRef=useRef(false);
   const savingRef=useRef(false);
-  const editable=canEdit&&!loading&&!loadingError&&!conflict;
+  const editable=canEdit&&!loading&&!loadingError&&!conflict&&!saving;
   const markDirty=()=>{editCount.current++;dirtyRef.current=true;setDirty(true);setSaveError("");};
   const load=async()=>{
     if(dirtyRef.current)return;
@@ -211,6 +211,7 @@ export default function ContinuousEditorLab({canEdit}:{canEdit:boolean}){
     catch(error){setNotice(error instanceof Error?error.message:"Movimento inválido.");}
   };
   const onInput=(event:React.FormEvent<HTMLSpanElement>)=>{
+    if(!editable)return;
     const body=bodyFrom(event.target as Node);
     const id=body?.dataset.bodyId;
     if(!id||!body)return;
@@ -340,9 +341,9 @@ export default function ContinuousEditorLab({canEdit}:{canEdit:boolean}){
     </div>
     <div className="mb-4 flex flex-wrap items-center gap-2">
       <button type="button" className="rounded border px-3 py-1" onClick={download}>Exportar cópia experimental (JSON)</button>
-      <span className="text-xs text-amber-700">{savedLocal?"Cópia exportada; alterações posteriores requerem nova exportação.":"Alterações locais não salvas no servidor."}</span>
+      <span className="text-xs text-amber-700">{savedLocal?"Cópia JSON exportada; alterações posteriores requerem nova exportação.":dirty?"Alterações locais pendentes: salve antes de sair.":"Use Exportar JSON para criar uma cópia independente."}</span>
       <button type="button" className="rounded border px-3 py-1" disabled={!editable||!selected} onClick={()=>move(-1)}>↑ Mover</button>
-      <button type="button" className="rounded border px-3 py-1" disabled={!selected} onClick={()=>move(1)}>↓ Mover</button>
+      <button type="button" className="rounded border px-3 py-1" disabled={!editable||!selected} onClick={()=>move(1)}>↓ Mover</button>
       <button type="button" className="rounded border px-3 py-1" disabled={!editable||!selected} onClick={()=>{
         const current=selectedRef.current;if(!current)return;commit(removeNode(live.current,current.id));selectedRef.current=null;setSelected(null);
       }}>Retirar</button>
