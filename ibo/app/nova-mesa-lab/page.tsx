@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useRef, useState } from "react";
-import { changeText, Draft, DraftNode, findNode, insertAfter, labelFor, moveNode, newNode, NodeType, removeNode } from "@/lib/nova-mesa-poc/model";
+import { canContain, changeText, Draft, DraftNode, findNode, insertAfter, labelFor, moveNode, newNode, NodeType, removeNode } from "@/lib/nova-mesa-poc/model";
 
 const names: Record<NodeType,string> = {chapter:"Capítulo",article:"Artigo",paragraph:"Parágrafo",inciso:"Inciso",alinea:"Alínea",free:"Texto livre"};
 type Selection = {id:string;parentId:string|null};
@@ -12,25 +12,21 @@ export default function NovaMesaLab() {
   const [undo,setUndo]=useState<Draft[]>([]);
   const [message,setMessage]=useState("");
   const refs=useRef<Record<string,HTMLTextAreaElement|null>>({});
-  const chapterCount=useRef(0);
   const snapshot=(next:Draft)=>{setUndo(history=>[...history.slice(-19),draft]);setDraft(next);};
   const articleCount=useMemo(()=> {
     const map=new Map<string,number>(); let n=0;
     const visit=(nodes:DraftNode[])=>{for(const node of nodes){if(node.type==="article") map.set(node.id,++n);visit(node.children);}};
     visit(draft.nodes);return map;
   },[draft]);
-  const canAdd=(type:NodeType,parent:DraftNode|null)=> type==="chapter" || type==="free" ? parent===null :
-    type==="article" ? parent===null || parent.type==="chapter" :
-    type==="paragraph" || type==="inciso" ? parent?.type==="article" :
-    parent?.type==="inciso";
   const add=(type:NodeType)=>{
     const current=selected ? findNode(draft.nodes,selected.id) : undefined;
-    const parentId=type==="chapter" || type==="free" ? null :
+    const parentId=type==="chapter" ? null :
+      type==="free" ? (current?.type==="article" || current?.type==="chapter" ? current.id : selected?.parentId ?? null) :
       type==="article" ? (current?.type==="chapter" ? current.id : selected?.parentId ?? null) :
       type==="paragraph" || type==="inciso" ? (current?.type==="article" ? current.id : selected?.parentId ?? null) :
       current?.type==="inciso" ? current.id : selected?.parentId ?? null;
     const parent=parentId?findNode(draft.nodes,parentId)??null:null;
-    if(!canAdd(type,parent)){setMessage("Selecione um artigo ou inciso compatível antes de inserir esse dispositivo.");return;}
+    if(!canContain(parent?.type ?? null,type)){setMessage("Selecione um artigo ou inciso compatível antes de inserir esse dispositivo.");return;}
     const siblings=parent?parent.children:draft.nodes;
     const afterId=selected && selected.parentId===parentId ? selected.id : siblings.at(-1)?.id??null;
     const node=newNode(type);
