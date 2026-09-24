@@ -18,7 +18,7 @@ export async function loadNovaMesaDraft():Promise<DraftSnapshot>{
   return {draft:validateDraft(row.content),version:row.version,updatedAt:row.updated_at};
 }
 
-/** Grava atomicamente a árvore completa. Conflito impede qualquer sobrescrita silenciosa. */
+/** Autosave/salvar agora: atualiza o rascunho com controle de concorrência, sem criar marco no histórico. */
 export async function saveNovaMesaDraft(candidate:unknown,expectedVersion:number):Promise<DraftSaveResult>{
   const user=await requireRole("admin","coordenador");
   if(!Number.isSafeInteger(expectedVersion)||expectedVersion<0)return {ok:false,error:"Versão esperada inválida."};
@@ -30,8 +30,6 @@ export async function saveNovaMesaDraft(candidate:unknown,expectedVersion:number
         VALUES (?,?::jsonb,1,?) ON CONFLICT (id) DO NOTHING RETURNING version`,
         [DRAFT_ID,JSON.stringify(draft),user.id]);
       if(inserted.length){
-        await all("INSERT INTO nova_mesa_draft_versions (draft_id,version,content,author_id) VALUES (?,1,?::jsonb,?) RETURNING id",
-          [DRAFT_ID,JSON.stringify(draft),user.id]);
         return {ok:true,version:1};
       }
     }else{
@@ -40,13 +38,28 @@ export async function saveNovaMesaDraft(candidate:unknown,expectedVersion:number
         WHERE id = ? AND version = ? RETURNING version`,
         [JSON.stringify(draft),user.id,DRAFT_ID,expectedVersion]);
       if(updated.length){
-        await all("INSERT INTO nova_mesa_draft_versions (draft_id,version,content,author_id) VALUES (?,?,?::jsonb,?) RETURNING id",
-          [DRAFT_ID,updated[0].version,JSON.stringify(draft),user.id]);
         return {ok:true,version:updated[0].version};
       }
     }
     const current=await get<{version:number}>("SELECT version FROM nova_mesa_drafts WHERE id = ?",[DRAFT_ID]);
     return {ok:false,conflict:true,version:current?.version??0};
+  });
+}
+
+/** Cria um marco explícito da revisão já salva; não altera o rascunho nem as versões antigas. */
+export async function checkpointNovaMesaVersion(expectedVersion:number):Promise<DraftSaveResult>{
+  const user=await requireRole("admin","coordenador");
+  if(!Number.isSafeInteger(expectedVersion)||expectedVersion<1)
+    return {ok:false,error:"Salve a minuta antes de registrar uma versão."};
+  return transaction(async():Promise<DraftSaveResult>=>{
+    const row=await get<Row>("SELECT content,version,updated_at FROM nova_mesa_drafts WHERE id=? FOR UPDATE",[DRAFT_ID]);
+    if(!row)return {ok:false,error:"Minuta não encontrada."};
+    if(row.version!==expectedVersion)return {ok:false,conflict:true,version:row.version};
+    const content=JSON.stringify(validateDraft(row.content));
+    await all(`INSERT INTO nova_mesa_draft_versions (draft_id,version,content,author_id)
+      VALUES (?,?,?::jsonb,?) ON CONFLICT (draft_id,version) DO NOTHING RETURNING id`,
+      [DRAFT_ID,row.version,content,user.id]);
+    return {ok:true,version:row.version};
   });
 }
 
