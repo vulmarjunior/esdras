@@ -65,6 +65,21 @@ export default function ContinuousEditorLab({canEdit}:{canEdit:boolean}){
   const [selected,setSelected]=useState<Location|null>(null);
   const [hovered,setHovered]=useState<string|null>(null);
   const [insertOpen,setInsertOpen]=useState(false);
+  const insertMenuRef=useRef<HTMLDivElement|null>(null);
+  const insertButtonRef=useRef<HTMLButtonElement|null>(null);
+  const stickyBarRef=useRef<HTMLDivElement|null>(null);
+  const [insertLeft,setInsertLeft]=useState(8);
+  useEffect(()=>{
+    if(!insertOpen)return;
+    const closeOutside=(event:PointerEvent)=>{
+      const target=event.target as Node;
+      if(!insertMenuRef.current?.contains(target)&&!insertButtonRef.current?.contains(target))setInsertOpen(false);
+    };
+    const closeEscape=(event:KeyboardEvent)=>{if(event.key==="Escape"){setInsertOpen(false);insertButtonRef.current?.focus();}};
+    document.addEventListener("pointerdown",closeOutside);
+    document.addEventListener("keydown",closeEscape);
+    return()=>{document.removeEventListener("pointerdown",closeOutside);document.removeEventListener("keydown",closeEscape);};
+  },[insertOpen]);
   const selectedRef=useRef<Location|null>(null);
   const [notice,setNotice]=useState("");
   const [revision,setRevision]=useState(0);
@@ -336,11 +351,11 @@ export default function ContinuousEditorLab({canEdit}:{canEdit:boolean}){
     <main className="min-w-0">
 
 
-    <div className="sticky top-0 z-30 mb-2 md:top-12 flex flex-wrap items-center gap-2 rounded-lg border bg-background/95 px-3 py-2 text-sm shadow-md backdrop-blur">
+    <div ref={stickyBarRef} className="sticky top-0 z-30 mb-2 md:top-12 flex flex-wrap items-center gap-2 rounded-lg border bg-background/95 px-3 py-2 text-sm shadow-md backdrop-blur">
       <span role="status">{loading?"Carregando minuta…":loadingError?"Carregamento indisponível":conflict?"Conflito de versões":saving?"Salvando…":marking?"Registrando marco histórico…":dirty?"Alterações pendentes · autosave em 2,5 s":"Minuta salva"}{!loading&&!loadingError?" · versão "+version:""}</span>
       <button type="button" disabled={!canEdit||loading||!!loadingError||conflict||saving||marking} className="rounded border border-primary/40 bg-primary/10 px-3 py-2 font-semibold text-foreground disabled:opacity-50" onClick={()=>{if(dirtyRef.current){if(autoTimer.current){clearTimeout(autoTimer.current);autoTimer.current=null;}void save();}else setNotice("Todas as alterações já estão salvas no servidor · versão "+versionRef.current+".");}}>{saving?"Salvando…":"Salvar agora"}</button>
       <button type="button" disabled={!canEdit||loading||!!loadingError||conflict||saving||marking} className="rounded border px-3 py-2 font-semibold disabled:opacity-50" onClick={()=>{void saveVersion();}}>{marking?"Registrando versão…":"Salvar versão"}</button>
-      <button type="button" disabled={!editable} aria-expanded={insertOpen} className="rounded border border-blue-500 bg-blue-50 px-3 py-2 font-semibold text-blue-900 disabled:opacity-50" onClick={()=>setInsertOpen(v=>!v)}>+ Inserir dispositivo</button>
+      <button ref={insertButtonRef} type="button" disabled={!editable} aria-expanded={insertOpen} aria-controls="nova-mesa-insert-menu" className="rounded border border-blue-500 bg-blue-50 px-3 py-2 font-semibold text-blue-900 disabled:opacity-50" onClick={()=>{const bar=stickyBarRef.current?.getBoundingClientRect(),button=insertButtonRef.current?.getBoundingClientRect();if(bar&&button)setInsertLeft(Math.max(8,Math.min(button.left-bar.left,bar.width-360)));setInsertOpen(v=>!v);}}>+ Inserir dispositivo</button>
       <span className="rounded bg-muted px-2 py-1 font-medium">{activeRow?labelFor(activeRow.node,activeRow.siblings,activeRow.articleNumber,activeRow.chapterNumber).trim()+" · "+names[activeRow.node.type]+" ativo":"Nenhum dispositivo ativo"}</span>
       <button type="button" disabled={loading||dirty||saving||marking} className="rounded border px-3 py-2 disabled:opacity-50" onClick={()=>{void load();}}>Recarregar</button>
       <button type="button" disabled={loading||!!loadingError} className="rounded border px-3 py-2 disabled:opacity-50" onClick={()=>{void showHistory();}}>Histórico de versões</button>
@@ -370,8 +385,9 @@ export default function ContinuousEditorLab({canEdit}:{canEdit:boolean}){
       </div>
     </div>
       </div>
+      {insertOpen&&<div id="nova-mesa-insert-menu" ref={insertMenuRef} style={{left:insertLeft}} className="absolute top-full z-50 mt-1 grid max-h-[min(65vh,450px)] w-[min(360px,calc(100vw-32px))] grid-cols-2 gap-1.5 overflow-y-auto rounded-lg border bg-background p-3 shadow-xl" role="group" aria-label="Inserir dispositivo"><span className="col-span-2 mb-1 text-xs text-muted-foreground">Sugestão: {names[suggested]}. Escolha o dispositivo para continuar a redação.</span>{contextualTypes.map(type=><button type="button" key={type} disabled={!editable} className={"rounded border px-2 py-2 text-left text-sm disabled:opacity-50 "+(type===suggested?"border-blue-500 bg-blue-50 font-semibold text-blue-900":"")} onClick={()=>add(type)}>+ {names[type]}{type===suggested?" · sugerido":""}</button>)}</div>}
     </div>
-    {insertOpen&&<div className="sticky top-[130px] z-30 mb-2 flex flex-wrap gap-2 rounded-lg border bg-background p-2 shadow-lg" role="group" aria-label="Inserir dispositivo"><span className="w-full text-xs text-muted-foreground">Sugestão estrutural: {names[suggested]}. Escolha o tipo; a redação continua no novo dispositivo.</span>{contextualTypes.map(type=><button type="button" key={type} disabled={!editable} className={"rounded border px-3 py-2 text-sm "+(type===suggested?"border-blue-500 bg-blue-50 font-semibold text-blue-900":"")} onClick={()=>add(type)}>+ {names[type]}{type===suggested?" · sugerido":""}</button>)}</div>}
+
     {historyOpen&&<section aria-label="Histórico de versões da nova minuta" className="mb-4 min-w-0 rounded-lg border p-4">
       <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
         <h2 className="font-semibold">Histórico da minuta · Somente leitura</h2>
