@@ -89,7 +89,7 @@ export default function ContinuousEditorLab({canEdit}:{canEdit:boolean}){
   const dirtyRef=useRef(false);
   const savingRef=useRef(false);
   const autoTimer=useRef<ReturnType<typeof setTimeout>|null>(null);
-  const saveRef=useRef<()=>Promise<void>>(async()=>{});
+  const saveRef=useRef<()=>Promise<boolean>>(async()=>false);
   const autoEnabled=useRef(false);
   const editable=canEdit&&!loading&&!loadingError&&!conflict&&!saving&&!marking;
   const markDirty=()=>{editCount.current++;dirtyRef.current=true;setDirty(true);setSaveError("");
