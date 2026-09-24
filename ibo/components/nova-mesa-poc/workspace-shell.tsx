@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState, type ReactNode } from "react";
+import { listConsultationDocuments, readConsultationDocument, type ConsultationItem } from "@/app/actions/nova-mesa-consulta";
 
 type OutlineEntry = { id:string; label:string; title:string; depth:number };
 type Reference = { name:string; kind:"text"|"pdf"; text?:string; url?:string };
@@ -14,6 +15,10 @@ export default function WorkspaceShell({children,outline,onNavigate,selectedLabe
   const [reference,setReference]=useState<Reference|null>(null);
   const [query,setQuery]=useState("");
   const [sideBySide,setSideBySide]=useState(false);
+  const [catalog,setCatalog]=useState<ConsultationItem[]|null>(null);
+  const [catalogLoading,setCatalogLoading]=useState(false);
+  const [catalogError,setCatalogError]=useState("");
+  const [openingId,setOpeningId]=useState<string|null>(null);
   const fileRef=useRef<HTMLInputElement>(null);
   const dialogRef=useRef<HTMLDialogElement>(null);
   const previousFocus=useRef<HTMLElement|null>(null);
@@ -21,6 +26,21 @@ export default function WorkspaceShell({children,outline,onNavigate,selectedLabe
   useEffect(()=>{if(!consultOpen)return;previousFocus.current=document.activeElement as HTMLElement|null;dialogRef.current?.showModal();
     return()=>{dialogRef.current?.close();previousFocus.current?.focus();};
   },[consultOpen]);
+  const loadCatalog=async()=>{
+    setCatalogLoading(true);setCatalogError("");
+    try{setCatalog(await listConsultationDocuments());}
+    catch{setCatalogError("Não foi possível acessar a biblioteca do Esdras. Entre na sua conta e tente novamente.");}
+    finally{setCatalogLoading(false);}
+  };
+  const openRegistered=async(item:ConsultationItem)=>{
+    setOpeningId(item.id);setCatalogError("");
+    try{
+      const result=await readConsultationDocument(item.id);
+      setReference({name:result.title,kind:"text",text:result.text});
+      setSideBySide(false);setQuery("");setConsultOpen(true);
+    }catch{setCatalogError("Não foi possível abrir este documento. Verifique sua sessão e tente novamente.");}
+    finally{setOpeningId(null);}
+  };
   const openFile=async(file:File|undefined)=>{
     if(!file)return;
     const pdf=file.type==="application/pdf"||file.name.toLowerCase().endsWith(".pdf");
@@ -70,7 +90,18 @@ export default function WorkspaceShell({children,outline,onNavigate,selectedLabe
         </section>
         <section className="min-w-0 space-y-2 pt-4">
           <h3 className="text-sm font-medium">Documentos de consulta</h3>
-          <p className="break-words text-xs leading-relaxed text-muted-foreground">Abra um arquivo local TXT, MD ou PDF para leitura. Estatuto vigente e proposta anterior ainda não estão conectados à biblioteca do Esdras.</p>
+          <button type="button" disabled={catalogLoading} className="w-full rounded border px-3 py-2 text-sm disabled:opacity-60"
+            onClick={()=>{void loadCatalog();}}>{catalogLoading?"Carregando biblioteca…":"Documentos do Esdras"}</button>
+          {catalogError&&<p role="alert" className="break-words text-xs text-red-700">{catalogError}</p>}
+          {catalog&&<div className="max-h-72 min-w-0 space-y-1 overflow-y-auto rounded border p-1" aria-label="Documentos disponíveis no Esdras">
+            {catalog.map(item=><button type="button" key={item.id} disabled={openingId!==null}
+              className="block w-full min-w-0 rounded px-2 py-2 text-left text-xs hover:bg-muted disabled:opacity-60"
+              onClick={()=>{void openRegistered(item);}}>
+              <span className="block break-words font-medium">{openingId===item.id?"Abrindo…":item.title}</span>
+              <span className="text-muted-foreground">{item.group}</span>
+            </button>)}
+          </div>}
+          <p className="break-words text-xs leading-relaxed text-muted-foreground">Abra documentos já cadastrados no Esdras ou selecione um arquivo local TXT, MD ou PDF. A consulta é somente leitura.</p>
           <button type="button" className="w-full rounded border px-3 py-2 text-sm" onClick={()=>fileRef.current?.click()}>Abrir arquivo para leitura</button>
           {reference&&<><button type="button" className="w-full min-w-0 truncate rounded border px-3 py-2 text-sm" title={reference.name}
             onClick={()=>setConsultOpen(true)}>{reference.name} · Leitura ampla</button>
