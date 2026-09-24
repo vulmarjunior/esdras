@@ -1,6 +1,6 @@
 import { Alignment, Mark, normalizeRuns, plainText, TextRun, toRuns, markRange } from "./rich-text";
 /** Modelo experimental isolado: não usa nem modifica dispositivos históricos. */
-export type NodeType = "chapter" | "article" | "paragraph" | "inciso" | "alinea" | "free";
+export type NodeType = "chapter" | "section" | "subsection" | "article" | "paragraph" | "inciso" | "alinea" | "free";
 export type DraftNode = { id: string; type: NodeType; text: string; runs?: TextRun[]; alignment?: Alignment; children: DraftNode[] };
 export type Draft = { id: string; nodes: DraftNode[] };
 
@@ -12,6 +12,8 @@ const roman = (n: number): string => {
 export function labelFor(node: DraftNode, siblings: DraftNode[], articleNumber: number, chapterNumber: number): string {
   if (node.type === "free") return "";
   if (node.type === "chapter") return "CAPÍTULO " + roman(chapterNumber);
+  if (node.type === "section") return "Seção " + roman(siblings.filter(n=>n.type==="section").findIndex(n=>n.id===node.id)+1);
+  if (node.type === "subsection") return "Subseção " + roman(siblings.filter(n=>n.type==="subsection").findIndex(n=>n.id===node.id)+1);
   if (node.type === "article") return "Art. " + articleNumber + (articleNumber <= 9 ? "º" : "") + " ";
   const same = siblings.filter(n => n.type === node.type);
   const ordinal = same.findIndex(n => n.id === node.id) + 1;
@@ -46,9 +48,11 @@ export function setAlignment(draft:Draft,id:string,alignment:Alignment):Draft {
 }
 /** Validação de hierarquia no modelo, não apenas na interface. */
 export function canContain(parent: NodeType | null, child: NodeType): boolean {
-  if (child === "free") return parent === null || parent === "chapter" || parent === "article";
+  if (child === "free") return parent === null || parent === "chapter" || parent === "section" || parent === "subsection" || parent === "article";
   if (child === "chapter") return parent === null;
-  if (child === "article") return parent === null || parent === "chapter";
+  if (child === "section") return parent === "chapter";
+  if (child === "subsection") return parent === "section";
+  if (child === "article") return parent === null || parent === "chapter" || parent === "section" || parent === "subsection";
   if (child === "paragraph" || child === "inciso") return parent === "article";
   if (child === "alinea") return parent === "inciso";
   return false;
