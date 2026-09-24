@@ -94,7 +94,7 @@ export default function ContinuousEditorLab(){
     live.current=changeText(live.current,id,body?.textContent??"");
     setNotice("Redação em memória (não salva no servidor).");
   };
-  const onBeforeInput=(event:React.InputEvent<HTMLDivElement>)=>{
+  const onBeforeInput=(event:InputEvent)=>{
     const selection=window.getSelection();
     if(!selection||!selection.rangeCount)return;
     const range=selection.getRangeAt(0);
@@ -145,7 +145,7 @@ export default function ContinuousEditorLab(){
     </div>
     {notice&&<p role="status" className="mb-3 text-sm text-amber-700">{notice}</p>}
     <div ref={root} contentEditable suppressContentEditableWarning
-      onInput={onInput} onBeforeInput={onBeforeInput} onPaste={onPaste}
+      onInput={onInput} onBeforeInput={event=>onBeforeInput(event.nativeEvent as InputEvent)} onPaste={onPaste}
       onFocus={event=>{const id=bodyFrom(event.target as Node)?.dataset.bodyId;
         const row=rows.find(entry=>entry.node.id===id);if(row)choose({id:row.node.id,parentId:row.parentId});}}
       onMouseUp={()=>{const selection=window.getSelection();const id=bodyFrom(selection?.anchorNode??null)?.dataset.bodyId;
