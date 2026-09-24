@@ -124,7 +124,7 @@ export default function ContinuousEditorLab({canEdit}:{canEdit:boolean}){
   const commit=(next:Draft,focus?:string)=>{
     setUndo(history=>[...history.slice(-19),live.current]);
     live.current=next;pendingFocus.current=focus??null;setDraft(next);setRevision(n=>n+1);setSavedLocal(false);
-    setNotice("");
+    markDirty();setNotice("");
   };
   useLayoutEffect(()=>{
     // React nunca reconcilia o texto interno das regiões contentEditable: o DOM
@@ -144,6 +144,7 @@ export default function ContinuousEditorLab({canEdit}:{canEdit:boolean}){
   },[revision]);
 
   const add=(type:NodeType)=>{
+    if(!editable)return;
     const current=selectedRef.current;
     const existing=current?findNode(live.current.nodes,current.id):undefined;
     const ancestry:DraftNode[]=[];
@@ -170,6 +171,7 @@ export default function ContinuousEditorLab({canEdit}:{canEdit:boolean}){
     }catch(error){setNotice(error instanceof Error?error.message:"Não foi possível inserir.");}
   };
   const move=(direction:-1|1)=>{
+    if(!editable)return;
     const current=selectedRef.current;if(!current)return;
     const parent=current.parentId?findNode(live.current.nodes,current.parentId):undefined;
     const siblings=parent?parent.children:live.current.nodes;
@@ -184,9 +186,10 @@ export default function ContinuousEditorLab({canEdit}:{canEdit:boolean}){
     const id=body?.dataset.bodyId;
     if(!id||!body)return;
     live.current=setRichText(live.current,id,runsFromElement(body));
-    setSavedLocal(false);
+    setSavedLocal(false);markDirty();
   };
   const onBeforeInput=(event:InputEvent)=>{
+    if(!editable){event.preventDefault();return;}
     const selection=window.getSelection();
     if(!selection||!selection.rangeCount)return;
     const range=selection.getRangeAt(0);
@@ -202,6 +205,7 @@ export default function ContinuousEditorLab({canEdit}:{canEdit:boolean}){
     }
   };
   const onPaste=(event:React.ClipboardEvent<HTMLDivElement>)=>{
+    if(!editable){event.preventDefault();return;}
     const selection=window.getSelection();if(!selection||!selection.rangeCount)return;
     const range=selection.getRangeAt(0);
     if(bodyFrom(range.startContainer)!==bodyFrom(range.endContainer)){
@@ -213,9 +217,10 @@ export default function ContinuousEditorLab({canEdit}:{canEdit:boolean}){
     range.deleteContents();const text=document.createTextNode(value);range.insertNode(text);
     range.setStartAfter(text);range.collapse(true);selection.removeAllRanges();selection.addRange(range);
     const body=bodyFrom(text);const id=body?.dataset.bodyId;
-    if(id&&body){live.current=setRichText(live.current,id,runsFromElement(body));setSavedLocal(false);}
+    if(id&&body){live.current=setRichText(live.current,id,runsFromElement(body));setSavedLocal(false);markDirty();}
   };
   const format=(mark:Mark)=>{
+    if(!editable)return;
     const selection=window.getSelection();
     if(!selection?.rangeCount||selection.isCollapsed){setNotice("Selecione o trecho que deseja formatar.");return;}
     const range=selection.getRangeAt(0),body=bodyFrom(range.startContainer);
@@ -227,6 +232,7 @@ export default function ContinuousEditorLab({canEdit}:{canEdit:boolean}){
     catch(error){setNotice(error instanceof Error?error.message:"Seleção inválida.");}
   };
   const align=(alignment:Alignment)=>{
+    if(!editable)return;
     const current=selectedRef.current;
     if(!current){setNotice("Selecione o dispositivo a ser alinhado.");return;}
     try{commit(setAlignment(live.current,current.id,alignment),current.id);}
@@ -253,32 +259,40 @@ export default function ContinuousEditorLab({canEdit}:{canEdit:boolean}){
     selectedLabel={selected?names[findNode(live.current.nodes,selected.id)?.type??"free"]:null}>
     <main className="min-w-0">
 
-    <p className="mb-2 font-semibold text-amber-700">Laboratório isolado — conteúdo não persistente; não usar para o estatuto real.</p>
+    <p className="mb-2 font-semibold text-amber-700">Laboratório isolado — salvamento manual experimental; não usar ainda para redação oficial.</p>
+    <div className="mb-3 flex flex-wrap items-center gap-2 rounded border p-3 text-sm">
+      <span role="status">{loading?"Carregando minuta…":loadingError?"Carregamento indisponível":conflict?"Conflito de versões":dirty?"Alterações não salvas":"Minuta sincronizada"}{!loading&&!loadingError?" · versão "+version:""}</span>
+      <button type="button" disabled={!editable||!dirty||saving} className="rounded border px-3 py-2 disabled:opacity-50" onClick={()=>{void save();}}>{saving?"Salvando…":"Salvar no servidor"}</button>
+      <button type="button" disabled={loading||dirty} className="rounded border px-3 py-2 disabled:opacity-50" onClick={()=>{void load();}}>Recarregar</button>
+      {loadingError&&<p role="alert" className="w-full text-red-700">{loadingError}</p>}
+      {saveError&&<p role="alert" className="w-full text-red-700">{saveError}</p>}
+      {!canEdit&&<p className="w-full text-amber-700">Acesso somente leitura: seu perfil não pode alterar a nova minuta.</p>}
+    </div>
     <h2 className="mb-2 text-lg font-semibold">Minuta · Editor experimental</h2>
-    <p className="mb-4 text-sm text-muted-foreground">Documento de seleção contínua, com regiões de edição independentes para proteger os limites normativos. Sem colaboração, servidor ou histórico permanente.</p>
+    <p className="mb-4 text-sm text-muted-foreground">Documento de seleção contínua, com regiões de edição independentes para proteger os limites normativos. Sem autosave ou colaboração em tempo real; salvamento manual versionado em teste.</p>
     <div className="mb-3 flex flex-wrap gap-2">
       {(["bold","italic","underline"] as Mark[]).map(mark=>
-        <button type="button" key={mark} title={mark} onMouseDown={event=>event.preventDefault()} onClick={()=>format(mark)}
+        <button type="button" key={mark} title={mark} disabled={!editable} onMouseDown={event=>event.preventDefault()} onClick={()=>format(mark)}
           className="rounded border px-3 py-2 text-sm">{mark==="bold"?<strong>B</strong>:mark==="italic"?<em>I</em>:<u>U</u>}</button>)}
       {(["left","center","right","justify"] as Alignment[]).map(alignment=>
-        <button type="button" key={alignment} title={alignment} onMouseDown={event=>event.preventDefault()} onClick={()=>align(alignment)}
+        <button type="button" key={alignment} title={alignment} disabled={!editable} onMouseDown={event=>event.preventDefault()} onClick={()=>align(alignment)}
           className="rounded border px-3 py-2 text-sm">{alignment==="left"?"Esquerda":alignment==="center"?"Centro":alignment==="right"?"Direita":"Justificar"}</button>)}
     </div>
     <div className="mb-3 flex flex-wrap gap-2">
       {(["chapter","section","subsection","article","paragraph","inciso","alinea","free"] as NodeType[]).map(type=>
-        <button type="button" key={type} className="rounded border px-3 py-2 text-sm" onClick={()=>add(type)}>+ {names[type]}</button>)}
+        <button type="button" key={type} disabled={!editable} className="rounded border px-3 py-2 text-sm" onClick={()=>add(type)}>+ {names[type]}</button>)}
     </div>
     <div className="mb-4 flex flex-wrap items-center gap-2">
       <button type="button" className="rounded border px-3 py-1" onClick={download}>Exportar cópia experimental (JSON)</button>
       <span className="text-xs text-amber-700">{savedLocal?"Cópia exportada; alterações posteriores requerem nova exportação.":"Alterações locais não salvas no servidor."}</span>
-      <button type="button" className="rounded border px-3 py-1" disabled={!selected} onClick={()=>move(-1)}>↑ Mover</button>
+      <button type="button" className="rounded border px-3 py-1" disabled={!editable||!selected} onClick={()=>move(-1)}>↑ Mover</button>
       <button type="button" className="rounded border px-3 py-1" disabled={!selected} onClick={()=>move(1)}>↓ Mover</button>
-      <button type="button" className="rounded border px-3 py-1" disabled={!selected} onClick={()=>{
+      <button type="button" className="rounded border px-3 py-1" disabled={!editable||!selected} onClick={()=>{
         const current=selectedRef.current;if(!current)return;commit(removeNode(live.current,current.id));selectedRef.current=null;setSelected(null);
       }}>Retirar</button>
-      <button type="button" className="rounded border px-3 py-1" disabled={!undo.length} onClick={()=>{
+      <button type="button" className="rounded border px-3 py-1" disabled={!editable||!undo.length} onClick={()=>{
         const prior=undo.at(-1);if(!prior)return;live.current=prior;setDraft(prior);setRevision(n=>n+1);
-        setUndo(history=>history.slice(0,-1));selectedRef.current=null;setSelected(null);
+        setUndo(history=>history.slice(0,-1));selectedRef.current=null;setSelected(null);markDirty();
       }}>Desfazer estrutura</button>
       <span className="text-sm">{selected?names[findNode(live.current.nodes,selected.id)?.type??"free"]+" selecionado":""}</span>
     </div>
@@ -295,11 +309,11 @@ export default function ContinuousEditorLab({canEdit}:{canEdit:boolean}){
         className={"my-3 rounded border-l-2 pl-3 "+(selected?.id===row.node.id?"border-blue-500":"border-transparent")}
         style={{marginLeft:Math.min(row.depth,4)*16}}>
         <span contentEditable={false} className="select-none font-semibold">{labelFor(row.node,row.siblings,row.articleNumber,row.chapterNumber)}</span>
-        <span contentEditable suppressContentEditableWarning onInput={onInput} onBeforeInput={event=>onBeforeInput(event.nativeEvent as InputEvent)} onPaste={onPaste} data-body-id={row.node.id} data-poc-body="true" className={"inline-block min-w-[55%] whitespace-pre-wrap align-top outline-offset-2 "+(["chapter","section","subsection"].includes(row.node.type)?"font-bold":"")}
+        <span contentEditable={editable} suppressContentEditableWarning onInput={onInput} onBeforeInput={event=>onBeforeInput(event.nativeEvent as InputEvent)} onPaste={onPaste} data-body-id={row.node.id} data-poc-body="true" className={"inline-block min-w-[55%] whitespace-pre-wrap align-top outline-offset-2 "+(["chapter","section","subsection"].includes(row.node.type)?"font-bold":"")}
           style={{textAlign:row.node.alignment??(["chapter","section","subsection"].includes(row.node.type)?"center":"justify")}} data-placeholder={row.node.type==="free"?"Texto livre reservado":"Redação pendente"}></span>
         {row.node.type==="free"&&<span contentEditable={false} className="ml-2 select-none text-xs text-amber-700">Provisório · reservado</span>}
       </div>)}
     </div>
-    <p className="mt-3 text-xs text-muted-foreground">Prova de conceito não validada em navegadores: edição limitada a uma região por vez, sem persistência, histórico de texto ou tratamento completo de seleção, marcas e IME. A formatação ainda é experimental. Não usar com dados reais.</p>
+    <p className="mt-3 text-xs text-muted-foreground">Prova de conceito não validada em navegadores: edição limitada a uma região por vez, sem autosave ou tratamento completo de seleção, marcas e IME. A formatação ainda é experimental. Não usar com dados reais.</p>
   </main></WorkspaceShell>;
 }
