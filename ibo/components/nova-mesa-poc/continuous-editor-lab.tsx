@@ -126,7 +126,7 @@ export default function ContinuousEditorLab(){
   const onInput=(event:React.FormEvent<HTMLSpanElement>)=>{
     const body=bodyFrom(event.target as Node);
     const id=body?.dataset.bodyId;
-    if(!id)return;
+    if(!id||!body)return;
     live.current=setRichText(live.current,id,runsFromElement(body));
     setSavedLocal(false);
   };
