@@ -6,7 +6,7 @@ Pauta de trabalho para o próximo agente/dev. Estado do projeto: **MVP completo 
 
 ## 1. Decisões do usuário (já tomadas — não implementar)
 
-- [x] **Supabase Auth/RLS/Realtime** — **DECIDIDO**: autenticação fica como está (JWT local). Sistema temporário, sem necessidade de complexificar. Realtime já implementado (Broadcast + Presence, sem Auth/RLS). Não migrar para Supabase Auth/RLS.
+- [x] **Supabase Auth/RLS/Realtime** — **DECIDIDO**: autenticação fica como está (JWT local). Sistema temporário, sem necessidade de complexificar. Realtime já implementado (Broadcast + Presence, sem Auth/RLS). Não migrar para Supabase Auth/RLS. **Atualização (26/09/2026):** a decisão permanece (sem Supabase Auth e sem policies por perfil); porém o acesso público via PostgREST foi fechado nas seis tabelas que nasceram sem RLS — RLS deny-all + revogação de `anon`/`authenticated` (`scripts/migrate-rls-hardening.mjs`, aplicado em produção e verificado com probe HTTP 401).
 - [x] **Deploy Vercel** — concluído (em produção: `esdrasibo.vercel.app`).
 - [x] **Nomes reais dos 9 membros** — já cadastrados pelo usuário.
 
