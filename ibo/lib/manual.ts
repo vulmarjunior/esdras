@@ -19,18 +19,23 @@ export const MANUAL: SecaoManual[] = [
     id: "visao-geral",
     titulo: "Visão geral e princípios",
     markdown: `
-O **ESDRAS** é o ambiente de trabalho da Comissão de Reforma do Estatuto Social da Igreja Batista Olaria (IBO). Ele organiza a análise do Estatuto **dispositivo por dispositivo** — capítulo, artigo, parágrafo, inciso e alínea —, registra sugestões, comentários, pendências, fundamentos e reuniões, e produz progressivamente a **versão consolidada** do novo Estatuto.
+O **ESDRAS** é o ambiente de trabalho da Comissão de Reforma do Estatuto Social da Igreja Batista Olaria (IBO). Ele organiza a análise do Estatuto **dispositivo por dispositivo** — capítulo, seção, artigo, parágrafo, inciso e alínea —, registra sugestões, comentários, pendências, fundamentos e reuniões, e produz progressivamente o **novo Estatuto**.
+
+Hoje o trabalho tem duas camadas:
+
+- a **nova minuta** (ambiente principal, independente): o documento é redigido de forma contínua na **Mesa de Trabalho**, com apreciação por dispositivo, histórico de versões e exportação;
+- o **ambiente anterior (legado)**: a proposta histórica, com sugestões, comentários, pendências, vínculos e ferramentas de análise, preservada para consulta e contribuições em **Arquivo e legado**.
 
 O sistema não é um editor de texto colaborativo. Ele preserva o **processo editorial**: autoria, histórico, versões e registros ficam sempre identificados.
 
 ### Princípios que orientam o uso
 
 - **Integridade dos dados** vem antes de tudo: nenhuma contribuição apaga a de outra pessoa.
-- **Histórico completo**: toda alteração da redação de trabalho cria uma nova versão.
+- **Histórico completo**: toda alteração da redação cria uma nova versão; na nova minuta, a persistência corrente é gravada continuamente e os marcos ficam recuperáveis no histórico.
 - **Simplicidade**: as telas são sóbrias e institucionais.
 - **IA assistiva**: a inteligência artificial sugere, mas **não decide** — toda sugestão deve ser revisada e aplicada por uma pessoa.
 
-> Regra central: nenhuma contribuição individual sobrescreve outra; nenhuma redação de trabalho é alterada sem histórico; a aprovação formal ocorrerá pela assinatura da comissão no documento final encaminhado à assembleia.
+> Regra central: nenhuma contribuição individual sobrescreve outra; nenhuma redação é alterada sem histórico; a aprovação formal ocorrerá pela assinatura da comissão no documento final encaminhado à assembleia.
 `,
   },
   {
@@ -41,13 +46,11 @@ Os usuários são cadastrados pelo **administrador**; não há cadastro público
 
 | Perfil | O que pode fazer |
 |--------|------------------|
-| **Administrador** | Tudo. Cadastra usuários, corrige a extração dos textos, acessa Auditoria e Administração. |
-| **Coordenador / Relator** | Redige a redação de trabalho, altera status, conclui redações, gerencia reuniões, inclui/edita/exclui dispositivos novos, move e renumera. |
-| **Membro da Comissão** | Contribui: sugere, comenta, registra pendências, adiciona fundamentos e revisa atas. |
+| **Administrador** | Tudo. Cadastra usuários, corrige a extração dos textos do Estatuto registrado, acessa Auditoria e Administração. |
+| **Coordenador / Relator** | Redige a nova minuta (incluir, mover, retirar e apreciar dispositivos), grava versões, exporta o documento e mantém o fluxo do ambiente anterior quando necessário. |
+| **Membro da Comissão** | Acompanha e contribui: visualiza a nova minuta e, no ambiente anterior, sugere, comenta, registra pendências e fundamentos e revisa atas. |
 
-**O que todo perfil vê:** todas as telas de trabalho (Painel, Dispositivos, Reuniões, Pendências, Renumeração, Coerência, Guia de redação, Documentos doutrinários e Relatórios).
-
-**Somente o Administrador** enxerga os itens **Auditoria** e **Administração** no menu.
+**Atalhos por perfil:** todos veem **Início**, **Visualizar nova minuta**, **Reuniões** e **Consulta**; **Redigir nova minuta** e **Mesa anterior** aparecem para coordenador/administrador. **Somente o Administrador** enxerga **Auditoria** e **Administração**.
 
 > A **anotação pessoal** é privada: cada membro anota para si e ninguém mais lê.
 `,
@@ -59,88 +62,107 @@ Os usuários são cadastrados pelo **administrador**; não há cadastro público
 O trabalho segue o fluxo aprovado no projeto. Cada passo aponta para a tela correspondente.
 
 1. **Entrar no sistema** — use o e-mail e a senha fornecidos pelo administrador. No primeiro acesso, a troca de senha é obrigatória.
-2. **Abrir a Mesa de Trabalho** — em **Reforma → Mesa de Trabalho**, escolha um capítulo e selecione o dispositivo dentro da leitura contínua.
-3. **Trabalhar no rascunho** — na aba **Análise**, o **Rascunho comparativo** mostra lado a lado o **texto vigente**, a **referência (proposta inicial)** e a **proposta (redação de trabalho)**, com o botão "Destacar diferenças".
-4. **Apresentar sugestões de redação** — aba **Colaboração** → "Sugestões de redação".
-5. **Discutir** — comentários e sugestões de redação em discussão.
-6. **Registrar fundamentos** — aba **Análise**, bloco **Fundamentação**: referências bíblicas, doutrinárias, jurídicas e pastorais.
-7. **Alterar a redação de trabalho** — coluna "Proposta (redação de trabalho)" (só coordenador/relator). Cada salvamento cria uma versão.
-8. **Concluir a redação** — use **Concluir redação** quando o texto estiver pronto para integrar a proposta final. Isso congela uma cópia editorial, mas não representa a aprovação formal da comissão.
+2. **Ver o andamento** — a página **Início** mostra capítulos, artigos e a **apreciação** dos dispositivos da nova minuta (apreciados, em análise e pendentes).
+3. **Abrir a nova minuta** — **Mesa de Trabalho → Redigir nova minuta** (coordenador/administrador) abre o documento contínuo.
+4. **Redigir o dispositivo** — selecione o dispositivo no documento e escreva nele; use a barra para formatar e para inserir, mover, transferir ou retirar dispositivos. Editar o texto de um dispositivo apreciado devolve o item para **Em análise**.
+5. **Apreciar** — na barra **Apreciação**, marque o dispositivo ativo como **Em análise** ou **Apreciado pela comissão**.
+6. **Salvar** — o **autosave** grava a persistência corrente; **Salvar versão** cria um marco recuperável no **Histórico de versões**, de onde é possível pré-visualizar e restaurar.
+7. **Exportar** — **Exportar documento…** gera o documento para **imprimir/salvar em PDF**, **HTML** ou **Markdown**, com opções de marcas de apreciação, legenda, sumário e somente-apreciados.
+8. **Visualizar e acompanhar** — membros abrem **Mesa de Trabalho → Visualizar nova minuta** (somente leitura, com o estado de cada dispositivo) e contribuem pelas telas do ambiente anterior (**Arquivo e legado → Abrir arquivo do projeto**).
 9. **Registrar uma reunião, se necessário** — o módulo **Reuniões** guarda presença, assuntos e anotações factuais para uma eventual ata.
 10. **Gerar a ata** — na reunião, use "Gerar minuta da ata" e siga o fluxo rascunho → revisão → finalizada.
-11. **Consultar o histórico** — aba **Histórico** do dispositivo.
-12. **Ler o documento completo** — menu **Reforma → Proposta em construção** (numeração, textos, novos e revogados).
-13. **Acompanhar e contribuir** — menu **Reforma → Acompanhamento**. Veja cada dispositivo no celular, consulte redação atual, texto vigente, proposta inicial, justificativa e pendências; use **Contribuir** para sugerir, comentar, registrar pendência ou fazer anotação pessoal. O quadro comparativo completo está na mesma tela.
-14. **Exportar relatórios** — menu **Reuniões → Relatórios**.
+11. **Consultar materiais** — **Consulta** reúne o manual, o guia de redação, os documentos de fé e a literatura; dentro da Mesa há consulta a arquivo local (TXT/MD/PDF) e consulta com IA.
+12. **Exportar relatórios do ambiente anterior** — **Reuniões → Relatórios**.
 `,
   },
   {
     id: "painel",
-    titulo: "O Painel da Reforma",
+    titulo: "Início e Painel clássico",
     markdown: `
-A página inicial mostra o andamento da reforma:
+A página inicial (**Início**) foi refeita para a nova minuta:
 
-- **Versão exibida (Proposta | Vigente)** — alterna entre a ordem/numeração de trabalho da reforma (padrão) e o Estatuto registrado. A escolha fica salva no seu navegador e vale também para a Revisão e a navegação do dispositivo.
-- **Na Proposta** — o número exibido é o **do documento original da proposta** (ex.: art. 5º aparece como **Art. 26º**, com o selo **era 5º**). Quando a ordem no sistema sugerir outro número, aparece um aviso vermelho **ordem: X** — resolva em Renumeração (Ordenar pela numeração do documento e Aplicar numeração).
-- **Progresso geral** — artigos analisados, porcentagem concluída e contadores por status e pendências. No modo Proposta, a contagem exclui dispositivos **revogados** e inclui os **novos**.
-- **Estrutura do Estatuto** — capítulos com seus dispositivos. Clique em qualquer dispositivo para abrir a tela de análise. Revogados aparecem riscados.
-- **Badges** — cada dispositivo exibe o status (ponto + etiqueta). Dispositivos marcados como **novos** mostram o selo **NOVO** (marcação de trabalho, ajustável na Mesa); dispositivos em que **você** tem anotação pessoal mostram o selo **nota**.
-- **Filtros** — "Somente com minhas anotações" e "Somente com pendências".
-- **Continuar de onde parou** — atalho para o primeiro artigo ainda não iniciado na versão exibida.
-- **Incluir capítulo** (coordenador/relator) — adiciona novos capítulos à proposta.
+- **Minuta do novo Estatuto** — cartão principal com o botão **Continuar na Mesa de Trabalho** (editores) ou **Visualizar a minuta** (demais perfis).
+- **Andamento da nova minuta** — número de capítulos, de artigos e a **apreciação dos dispositivos**: apreciados, em análise e pendentes, além do total de dispositivos.
+- **Última gravação** — data e hora do último salvamento da minuta no servidor.
+- **Atalhos** — Documentos de consulta, Reuniões, Literatura de consulta e **Arquivo e legado**.
+
+Os indicadores da página inicial referem-se **somente à nova minuta** — não incluem o ambiente anterior.
+
+No ambiente anterior está o **Painel clássico** (**Arquivo e legado → Painel clássico**), com os indicadores da proposta histórica: progresso por status, árvore do Estatuto registrado, filtros, "Continuar de onde parou" e inclusão de capítulos.
 `,
   },
   {
     id: "mesa-trabalho",
     titulo: "A Mesa de Trabalho",
     markdown: `
-A **Mesa de Trabalho** é o ambiente principal de elaboração da proposta por capítulo. Ela reúne três áreas na mesma tela:
+A **Mesa de Trabalho** é o ambiente principal da reforma. Nela o coordenador/relator redige a **nova minuta** — um documento contínuo, independente do Estatuto registrado e da proposta histórica.
 
-- **Navegação por capítulos**, à esquerda, com o progresso das redações concluídas.
-- **Documento em construção**, no centro, com todos os dispositivos do capítulo em leitura contínua.
-- **Painel contextual**, à direita, atualizado quando você seleciona um dispositivo.
+### Estrutura da tela
 
-Acima do documento, coordenadores e administradores encontram dois comandos estruturais explícitos:
+- **Sumário (Estrutura)**, à esquerda: capítulos, seções, subseções e artigos, com o resumo de apreciação (*X apreciados · Y em análise · Z pendentes*) e um ponto de estado nos itens em andamento ou apreciados. Clique para navegar.
+- **Documento contínuo**, no centro: a minuta inteira, com numeração derivada da posição (Art. 1º, Art. 2º…; capítulos e seções em romanos).
+- **Painel de apoio** (opcional), à direita: dispositivo em foco, documentos de consulta do Esdras e abertura de arquivo local.
 
-- **Novo capítulo** — acrescenta um capítulo à proposta.
-- **Nova seção neste capítulo** — acrescenta uma seção dentro do capítulo atualmente aberto.
+### Edição
 
-Depois da criação, a Mesa permanece aberta e seleciona o novo capítulo ou a nova seção. Para incluir artigo, parágrafo, inciso ou alínea, selecione o dispositivo que será o pai e use **Adicionar dispositivo subordinado** no painel contextual.
+- Selecione um dispositivo clicando nele; a barra superior mostra o **dispositivo ativo** e suas ações.
+- Edite o texto direto no documento. Capítulos, seções e subseções são identificados pelo **título** e exibidos centralizados.
+- **Formatar** — negrito, itálico, sublinhado e alinhamento (esquerda, centro, direita, justificar).
+- **Inserir** (+ Inserir dispositivo) — capítulo, seção, subseção, artigo, parágrafo, inciso, alínea ou texto livre; a sugestão de tipo aparece conforme o dispositivo ativo. Atalhos: **Ctrl+Alt+A** (artigo), **Ctrl+Alt+P** (parágrafo), **Ctrl+Alt+I** (inciso) e **Ctrl+Alt+L** (alínea).
+- **Mover** ↑/↓ move o dispositivo entre os irmãos; **Mover para capítulo…** transfere um artigo com todos os parágrafos, incisos e alíneas; **Retirar** remove o dispositivo ativo; **Desfazer estrutura** volta a última alteração estrutural.
 
-Capítulos e seções são identificados pelo **título** (o texto de corpo pertence aos artigos): selecione o nó e use **Editar título** no painel contextual — a mudança aparece imediatamente na Mesa, no Consolidado e na exportação.
+### Apreciação
 
-No painel contextual é possível comparar o texto vigente com a redação atual da comissão, consultar a proposta preliminar e a justificativa, acompanhar sugestões, comentários e pendências e acrescentar dispositivos subordinados.
+Cada dispositivo tem um estado editorial, exibido como **rubrica marginal** (marca discreta na margem esquerda) e na linha:
 
-A aba **Origem** apresenta o dispositivo do Estatuto registrado de onde o item selecionado veio, com o texto vigente e um link para abri-lo, e permite registrar **vínculos múltiplos** com o Estatuto (um dispositivo da minuta pode corresponder a vários do vigente e vice-versa), cada um com um tipo: *Não examinado*, *Relacionado*, *Substitui o vigente*, *Desmembrado*, *Incorporado*, além das declarações **Acréscimo** e **Não aplicável**. Coordenadores e administradores também podem definir a referência de origem manualmente no seletor: **Automático** (usa o próprio número vigente), **Sem correspondente no Estatuto vigente** ou um dispositivo específico. A escolha define o chip **era N** exibido no documento e nas listas — é uma anotação de trabalho e não altera o Estatuto registrado.
+| Estado | Marca | Significado |
+|--------|-------|-------------|
+| **Pendente de análise** | ○ cinza | Ainda não apreciado pela comissão. |
+| **Em análise** | ● azul | Em estudo ou redação. |
+| **Apreciado pela comissão** | ✓ verde | O texto atual foi apreciado; a linha ganha um tom verde discreto. |
 
-Na aba **Situação**, a marcação **Dispositivo novo** liga/desliga o selo NOVO do item. É uma anotação de trabalho do operador: não muda o histórico nem as regras de exclusão/revogação.
+Use a barra **Apreciação** para marcar o dispositivo ativo. **Editar o texto de um dispositivo apreciado devolve o item para "Em análise"** — formatação que não altera o texto preserva a apreciação. Marcações antigas de "aprovado" aparecem automaticamente como **Apreciado**.
 
-Os comandos **Modo artigo ampliado**, **Editar título** e **Colaboração** abrem dentro da própria Mesa:
+> "Apreciado pela comissão" é um indicador editorial de progresso; a aprovação formal ocorre fora do sistema, pela assinatura da comissão no documento final.
 
-- **Modo artigo ampliado** (artigos, parágrafos, incisos, alíneas e itens) — área ampliada de edição com **autosave** (o texto é gravado enquanto você escreve, com indicador pendente/salvando/salvo/falha), ferramentas de apoio por IA, justificativa, histórico por versão e o comando explícito **Registrar concordância**. O mesmo texto pode ser editado diretamente no documento: o dispositivo selecionado vira editor no próprio fluxo do capítulo, com o botão **Salvar versão** ao lado do indicador para criar um ponto recuperável no histórico sem interromper a escrita.
-- **Editar título** (capítulos e seções) — altera apenas o título estrutural da proposta, sem mudar número ou posição.
-- **Colaboração** — sugestões de redação, comentários, pendências e anotação pessoal privada.
+### Salvamento e histórico
 
-O autosave mantém a **persistência corrente** da redação de trabalho sem criar uma versão a cada tecla; versões históricas recuperáveis são criadas por **Salvar versão**, pela concordância e pela restauração de versões. Se a rede falhar, o texto fica preservado no navegador e pode ser restaurado. Se outra sessão alterar o mesmo dispositivo, a Mesa mostra o texto do servidor para revisão manual — nada é sobrescrito em silêncio.
+- O **autosave** grava a persistência corrente depois que você para de digitar; o indicador no topo mostra *alterações pendentes / salvando / salvo / falha*.
+- **Salvar agora** grava imediatamente; **Salvar versão** cria um marco recuperável no histórico sem interromper a edição.
+- **Histórico de versões** lista os marcos com autor e data, permite **pré-visualizar** e **Restaurar como nova versão** — nada é apagado.
+- **Recarregar** traz o texto do servidor; **Exportar cópia (JSON)** baixa uma cópia de segurança completa.
+- Se outra sessão salvar antes de você, a Mesa avisa do **conflito** e não sobrescreve nada em silêncio: exporte a cópia JSON antes de recarregar. Ao sair com alterações pendentes, o navegador avisa.
 
-**Registrar concordância** marca a versão atual como redação acordada pela comissão, com autor e data. É um marcador de progresso, não uma aprovação formal da Assembleia, e **não bloqueia** edições posteriores: se o texto mudar depois, a Mesa avisa e permite atualizar a concordância, mantendo o registro anterior no histórico.
+### Exportar documento
 
-A tela clássica do dispositivo permanece disponível como consulta e contingência para histórico, referências e recursos ainda não integrados à Mesa. Quando ela for aberta, o botão **Voltar à Mesa de Trabalho** recupera o capítulo e o dispositivo selecionados.
+O botão **Exportar documento…** (também disponível em **Visualizar nova minuta**) gera:
 
-O botão **Reorganizar** move o dispositivo diretamente na estrutura da proposta. Primeiro escolha o destino e a posição; a Mesa mostra uma prévia de todos os artigos cuja numeração será alterada. Os filhos acompanham o dispositivo, a identidade e o histórico são preservados e as referências internas ficam sinalizadas para revisão humana. Os comandos **Inserir antes** e **Inserir depois** criam dispositivos irmãos na posição escolhida, e **Adicionar dispositivo subordinado** aceita indicar a posição entre os irmãos.
+- **Imprimir / PDF** — abre uma folha limpa (A4) com cabeçalho institucional (versão, data e aviso de minuta em elaboração), legenda, rubricas marginais e rodapé; use "Imprimir → Salvar como PDF";
+- **HTML** — arquivo único já estilizado, para arquivar ou enviar;
+- **Markdown** — texto portátil com a legenda de apreciação (✓/●/○), para colar em Word/Docs.
 
-Coordenadores e administradores podem **Retirar da minuta** qualquer dispositivo (com aviso quando há filhos). A retirada é **reversível**: conteúdo, versões, sugestões, comentários, referências e vínculos são preservados, e a restauração fica disponível na seção **Retirados da minuta**, que devolve o item à posição original ou pede um novo destino quando houver conflito. Para propor a supressão de regra vigente, use **Revogar** (reversível por **Desfazer revogação**) — a revogação retira o dispositivo do texto final preservando o histórico.
+Opções: **marcas de apreciação e legenda** (ligadas por padrão), **sumário** e **somente dispositivos apreciados**. A exportação usa a **versão salva** no servidor — o diálogo avisa quando há alterações pendentes.
 
-Os **Marcos da minuta** (menu Reforma → Marcos da minuta) registram fotografias integrais do documento — árvore, conteúdos, posições, correspondências, justificativas e marcadores. Restaurar um marco aplica o estado como novo estado recuperável e guarda automaticamente um marco de segurança com o estado anterior; nada é apagado. A **Conferência** (menu Reforma → Conferência) reúne alertas automáticos antes do encaminhamento: pendências abertas, numeração divergente, dispositivos provisórios vazios, correspondências não examinadas ou ausentes, remissões a revisar, justificativas ausentes e supressões propostas — sempre como orientação à revisão humana.
+### Consulta dentro da Mesa
 
-Selecionar ou editar um dispositivo na Mesa não conclui sua redação automaticamente. A aprovação formal da proposta acontece fora do sistema, pela assinatura da comissão no documento final.
+- **Consultar documento** abre um arquivo local (.txt, .md ou .pdf) para leitura ao lado do texto;
+- **Consultar com IA · Groq** responde com base nos documentos do Esdras (documentos de fé e literatura), sem alterar a minuta;
+- no painel de apoio, **Documentos do Esdras** lista o catálogo e abre qualquer documento em leitura ampla.
+
+### Visualizar nova minuta
+
+**Mesa de Trabalho → Visualizar nova minuta** é somente leitura e acessível a todos os perfis autenticados: mostra o documento na versão salva, com o selo de apreciação nos dispositivos em análise ou apreciados, e o botão **Exportar documento…**.
+
+### Mesa anterior (legado)
+
+Os recursos do ambiente anterior continuam preservados em **Arquivo e legado → Mesa anterior** (coordenador/administrador): edição por capítulo, status de análise, concordância editorial, vínculos com o Estatuto registrado (origem e correspondências), revogação/reversão, marcos e conferência. Essas ferramentas operam sobre a **proposta histórica**, não sobre a nova minuta.
 `,
   },
   {
     id: "dispositivo",
     titulo: "A tela do dispositivo (abas)",
     markdown: `
-A tela clássica do dispositivo funciona como consulta e contingência. Ao abri-la, o trabalho fica organizado em quatro abas:
+A tela clássica do dispositivo pertence ao **ambiente anterior** e funciona como consulta e contingência (aberta pelos links da Proposta anterior, do Acompanhamento anterior ou pelo histórico dos dispositivos já existentes). O trabalho fica organizado em quatro abas:
 
 ### Análise — Rascunho comparativo
 1. **Texto vigente** — texto do Estatuto registrado (referência; editável apenas pelo administrador para corrigir extração).
@@ -171,7 +193,17 @@ O **status** fica no topo: Não iniciado → Em análise → Em discussão → R
     id: "status",
     titulo: "Status e tipos de alteração",
     markdown: `
-### Status de um dispositivo
+### Apreciação na nova minuta
+
+Na **nova minuta**, cada dispositivo tem um estado editorial simples, independente do status do ambiente anterior:
+
+| Estado | Significado |
+|--------|-------------|
+| **Pendente de análise** | Ainda não apreciado pela comissão. |
+| **Em análise** | Em estudo ou redação. |
+| **Apreciado pela comissão** | O texto atual foi apreciado; editar o texto devolve o item para "Em análise". |
+
+### Status de um dispositivo (ambiente anterior)
 
 | Status | Significado |
 |--------|-------------|
@@ -223,16 +255,18 @@ Qualquer membro pode registrar uma **questão pendente** sobre um dispositivo �
 
 Categorias: jurídica, bíblica, doutrinária, eclesiológica, administrativa, redação, referência cruzada e outra.
 
-- As pendências abertas ficam listadas no menu **Reforma → Pendências** e também na aba **Pendências** de cada dispositivo.
+- As pendências abertas ficam listadas em **Arquivo e legado → Pendências anteriores** e também na aba **Pendências** de cada dispositivo do ambiente anterior.
 - Uma pendência em aberto sinaliza que a redação ainda não deve ser concluída sem verificação.
+
+As pendências pertencem ao **ambiente anterior** (**Arquivo e legado → Pendências anteriores**) e ainda não estão integradas à nova minuta.
 `,
   },
   {
     id: "renumeracao",
     titulo: "Renumeração e referências cruzadas",
     markdown: `
-### Renumeração (Reforma → Renumeração)
-A numeração de trabalho da proposta é **derivada da ordem atual** (artigos em sequência; capítulos em romanos; revogados não ocupam número). A tela mostra duas colunas: **documento original** (numeração importada da proposta) e **proposta (ordem atual)**.
+### Renumeração (ambiente anterior — Arquivo e legado → Renumeração anterior)
+Ferramenta da **proposta histórica**; na nova minuta a numeração é derivada automaticamente da posição de cada dispositivo. A numeração de trabalho da proposta é **derivada da ordem atual** (artigos em sequência; capítulos em romanos; revogados não ocupam número). A tela mostra duas colunas: **documento original** (numeração importada da proposta) e **proposta (ordem atual)**.
 
 1. **Ordenar pela numeração do documento** — reordena os artigos de cada capítulo conforme a numeração da proposta importada (empates mantêm a ordem atual). Não cruza capítulos nem altera textos.
 2. **Mover** — reordenação manual (entre capítulos/seções ou entre irmãos), na estrutura da proposta.
@@ -249,7 +283,7 @@ Na aba **Análise**, bloco **Dispositivos relacionados**, vincule dispositivos r
     id: "coerencia",
     titulo: "Análise de coerência",
     markdown: `
-O menu **Reforma → Coerência** analisa os dispositivos com redação concluída procurando:
+A **Coerência** (**Arquivo e legado → Coerência anterior**) é uma ferramenta do ambiente anterior: analisa os dispositivos com redação concluída da proposta histórica procurando:
 
 - duplicidades e contradições;
 - nomenclaturas divergentes;
@@ -314,18 +348,18 @@ Livros doutrinários que orientam as decisões da comissão (ex.: disciplina na 
   },
   {
     id: "estatuto-construcao",
-    titulo: "Proposta em construção e Acompanhamento",
+    titulo: "Ambiente anterior: Proposta e Acompanhamento",
     markdown: `
-### Proposta em construção (Reforma → Proposta em construção)
-Mostra o **novo Estatuto sendo montado**, na ordem e numeração da proposta:
+### Proposta anterior (Proposta em construção)
+Em **Arquivo e legado → Proposta anterior**, a proposta histórica aparece montada na ordem e numeração daquele ambiente:
 
 - **Proposta completa** (padrão) — todos os dispositivos: redações concluídas, em andamento e não iniciadas; textos na prioridade consolidada → trabalho → proposta inicial → vigente; selos de status, **NOVO** e **revogado** (riscado).
 - **Redações concluídas** — apenas o texto pronto para integrar a proposta final.
 - Numeração com chip **era X** quando o número mudou em relação ao vigente; contadores de artigos, redações concluídas, em andamento, novos e revogados.
 - Filtros por capítulo, status, busca, "ocultar revogados" e "somente com texto".
-- Se a numeração ainda divergir da ordem, aparece um aviso com link para a Renumeração.
+- Se a numeração divergir da ordem, aparece um aviso com link para a Renumeração anterior.
 
-### Acompanhamento (Reforma → Acompanhamento)
+### Acompanhamento anterior
 O modo **Acompanhar a reforma** foi preparado para os membros da comissão, inclusive no celular. Ele apresenta um dispositivo por vez e permite consultar:
 
 - redação atual ou ainda parcial, texto vigente, proposta inicial, justificativa e pendências;
@@ -344,7 +378,19 @@ O modo **Quadro comparativo**, disponível no topo da mesma tela, preserva a vis
     id: "relatorios",
     titulo: "Relatórios e exportações",
     markdown: `
-O menu **Reuniões → Relatórios** exporta documentos em **.txt** gerados a partir dos dados registrados:
+### Exportar a nova minuta
+
+Na **Mesa de Trabalho** (Redigir ou Visualizar nova minuta), use **Exportar documento…**:
+
+- **Imprimir / PDF** — folha limpa (A4) com cabeçalho institucional (versão, data e aviso de minuta em elaboração), legenda de apreciação, rubricas marginais e rodapé; salve pelo diálogo de impressão do navegador;
+- **HTML** — arquivo único já estilizado, para arquivar ou enviar;
+- **Markdown** — texto portátil com a legenda (✓/●/○).
+
+Opções: marcas de apreciação e legenda (ligadas por padrão), sumário e somente dispositivos apreciados. A exportação usa a **versão salva** no servidor.
+
+### Relatórios do ambiente anterior
+
+O menu **Reuniões → Relatórios** exporta documentos em **.txt** gerados a partir dos dados históricos:
 
 - **Proposta consolidada (Estatuto consolidado)** — somente as redações concluídas, na ordem.
 - **Quadro comparativo** — redação vigente × redação proposta.
@@ -386,6 +432,11 @@ Estas telas são visíveis **somente para o Administrador** (menu **Administraç
 | **Retificação** | Correção posterior de uma ata finalizada (o texto anterior é preservado). |
 | **Anotação pessoal** | Nota privada do membro sobre um dispositivo — ninguém mais lê. |
 | **NOVO** | Dispositivo criado pela comissão durante os trabalhos. |
+| **Nova minuta** | Documento do novo Estatuto em elaboração na Mesa de Trabalho, independente do Estatuto registrado e da proposta histórica. |
+| **Apreciação** | Estado editorial de cada dispositivo da nova minuta: *Pendente de análise*, *Em análise* ou *Apreciado pela comissão*. |
+| **Rubrica marginal** | Marca discreta na margem esquerda que indica a apreciação do dispositivo (○, ● ou ✓). |
+| **Versão (marco)** | Ponto recuperável do histórico da nova minuta, criado por "Salvar versão"; restaurar cria uma nova versão sem apagar as anteriores. |
+| **Ambiente anterior (legado)** | Conjunto das telas da proposta histórica, preservado em **Arquivo e legado**. |
 `,
   },
   {
@@ -401,8 +452,14 @@ Não. O **coordenador** decide o destino da sugestão de redação (aceitar, ace
 ### O que significa "redação concluída"?
 Significa que o texto está pronto para integrar a proposta final. Não é uma votação nem a aprovação formal da comissão. A formalidade ocorrerá com a assinatura da comissão no documento encaminhado à assembleia.
 
+### O que significa "Apreciado pela comissão"?
+É o estado editorial da **nova minuta** que indica que o texto atual daquele dispositivo foi apreciado pela comissão. Não é votação nem aprovação formal: a formalidade ocorre com a assinatura da comissão no documento final. Se o texto for editado depois, o dispositivo volta para **Em análise**.
+
+### Como exporto o documento?
+Na **Mesa de Trabalho**, use **Exportar documento…** (no editor ou na visualização): **Imprimir/PDF** abre a folha limpa para salvar em PDF, **HTML** baixa o arquivo estilizado e **Markdown** baixa a versão portátil. Você pode ligar/desligar as marcas de apreciação e a legenda, incluir sumário ou exportar somente os dispositivos apreciados.
+
 ### Como marco que um dispositivo foi analisado?
-Atualize o **status** para "Em análise" e siga o fluxo. O coordenador controla os status finais (Em discussão, Redação definida, Redação concluída).
+Na **nova minuta**, use a barra **Apreciação** e marque **Em análise** ou **Apreciado pela comissão** (editar o texto de um item apreciado devolve para "Em análise"). No ambiente anterior, atualize o **status** do dispositivo; o coordenador controla os status finais (Em discussão, Redação definida, Redação concluída).
 
 ### Perdi o acesso. Como redefino a senha?
 Peça ao **administrador** para redefinir. Ao redefinir, a troca de senha volta a ser obrigatória no seu próximo acesso.
@@ -411,15 +468,14 @@ Peça ao **administrador** para redefinir. Ao redefinir, a troca de senha volta 
 Não. A IA é **assistiva**: sugere e responde, sempre rotulada. Toda alteração depende de ação humana explícita.
 
 ### Onde vejo o resultado final?
-- **Proposta em construção** (Reforma → Proposta em construção): o novo Estatuto sendo montado, com tudo em andamento.
-- **Acompanhamento** (Reforma → Acompanhamento): evolução dispositivo por dispositivo, contribuições dos membros e quadro comparativo completo.
-- **Relatórios** (Reuniões → Relatórios): exportações em .txt. Se a numeração ainda divergir da ordem, a tela avisa para reordenar/aplicar em Renumeração antes de usar o documento.
+- **Visualizar nova minuta** (Mesa de Trabalho): o documento atual, na versão salva, com o estado de apreciação de cada dispositivo.
+- **Exportar documento…**: PDF (impressão), HTML ou Markdown da nova minuta.
+- **Acompanhamento anterior** (Arquivo e legado): evolução da proposta histórica dispositivo por dispositivo, contribuições dos membros e quadro comparativo completo.
+- **Relatórios** (Reuniões → Relatórios): exportações em .txt do ambiente anterior. Se a numeração divergir da ordem, a tela avisa para reordenar/aplicar em Renumeração antes de usar o documento.
 
 ### Como vejo o Estatuto inteiro enquanto a reforma está em andamento?
-Abra **Reforma → Estatuto em revisão**. As versões anterior e atual ficam emparelhadas, na ordem atual, incluindo redações ainda não concluídas. No celular, cada par aparece um abaixo do outro.
-O texto atual usa a redação de trabalho; se estiver vazia, a proposta inicial; por último, o texto vigente. Sugestões individuais não entram automaticamente.
-As marcas **Não alterado**, **Alterado**, **Novo** e **Revogado** são separadas da etapa de análise. A comparação ignora formatação e espaços. Trechos retirados e acrescentados podem ser destacados. Revogado indica a classificação de retirada, não uma conclusão automática.
-Use busca, seleção de capítulo e filtros para localizar mudanças. Alterações de posição e numeração são indicadas usando os identificadores da importação original. **Abrir dispositivo** leva à análise; **Atualizar leitura** recarrega os dados.
+Para a **nova minuta**, abra **Mesa de Trabalho → Visualizar nova minuta** (somente leitura) ou use **Exportar documento…** para gerar a versão impressa.
+Para a **proposta histórica**, o **Arquivo e legado** reúne a Proposta anterior (texto em construção) e o Acompanhamento anterior, com busca, filtros e comparação entre a redação vigente e a proposta.
 `,
   },
 ];
