@@ -1,6 +1,18 @@
 import { cn } from "@/lib/utils";
-import { STATUS_LABELS } from "@/lib/labels";
-import { CheckCircle2, StickyNote } from "lucide-react";
+import { NOVAMESA_STATUS_LABELS, STATUS_LABELS } from "@/lib/labels";
+import { Check, CheckCircle2, StickyNote } from "lucide-react";
+
+export const NOVAMESA_STATUS_COLORS: Record<string, string> = {
+  pendente: "border-border bg-muted text-muted-foreground",
+  em_analise: "border-blue-200 bg-blue-50 text-blue-700 dark:border-blue-800 dark:bg-blue-950/40 dark:text-blue-300",
+  aprovado: "border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-300",
+};
+
+export const NOVAMESA_STATUS_DOTS: Record<string, string> = {
+  pendente: "border-zinc-400 bg-transparent",
+  em_analise: "border-blue-500 bg-blue-500",
+  aprovado: "border-emerald-500 bg-emerald-500",
+};
 
 export const STATUS_COLORS: Record<string, string> = {
   nao_iniciado: "border-border bg-muted text-muted-foreground",
@@ -100,6 +112,51 @@ export function ApprovedBadge({ className }: { className?: string }) {
     >
       <CheckCircle2 className="h-3 w-3" aria-hidden="true" />
       concluída
+    </span>
+  );
+}
+
+/** Rubrica marginal da nova minuta: forma + cor + rótulo acessível por estado. */
+export function NovaMesaStatusMark({ status, className, compact }: { status: string; className?: string; compact?: boolean }) {
+  const label = NOVAMESA_STATUS_LABELS[status] || status;
+  if (status === "aprovado") {
+    return (
+      <span
+        role="img"
+        title={label}
+        aria-label={label}
+        className={cn(
+          "inline-flex shrink-0 items-center justify-center rounded-full border border-emerald-400 bg-emerald-50 text-emerald-600",
+          compact ? "h-3 w-3" : "h-4 w-4",
+          className
+        )}
+      >
+        <Check className={compact ? "h-2 w-2" : "h-3 w-3"} aria-hidden="true" />
+      </span>
+    );
+  }
+  return (
+    <span
+      role="img"
+      title={label}
+      aria-label={label}
+      className={cn("inline-block shrink-0 rounded-full border", compact ? "h-2 w-2" : "h-2.5 w-2.5", NOVAMESA_STATUS_DOTS[status] || NOVAMESA_STATUS_DOTS.pendente, className)}
+    />
+  );
+}
+
+/** Selo compacto de apreciação para leitura e listagens. */
+export function NovaMesaStatusBadge({ status, className }: { status: string; className?: string }) {
+  return (
+    <span
+      className={cn(
+        "inline-flex h-5 w-fit items-center gap-1.5 rounded-full border px-2 py-0.5 text-[11px] font-medium whitespace-nowrap",
+        NOVAMESA_STATUS_COLORS[status] || NOVAMESA_STATUS_COLORS.pendente,
+        className
+      )}
+    >
+      <span className={cn("h-1.5 w-1.5 rounded-full", status === "aprovado" ? "bg-emerald-500" : status === "em_analise" ? "bg-blue-500" : "bg-zinc-400")} />
+      {NOVAMESA_STATUS_LABELS[status] || status}
     </span>
   );
 }

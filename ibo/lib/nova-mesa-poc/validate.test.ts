@@ -23,4 +23,22 @@ describe("validação da minuta independente",()=>{
     const oversized=draft();oversized.nodes[0].children[0].text="x".repeat(1_000_001);
     expect(()=>validateDraft(oversized)).toThrow("tamanho");
   });
+  it("aceita os três estados de apreciação e recusa valor desconhecido",()=>{
+    const emAnalise=draft();emAnalise.nodes[0].children[0].status="em_analise";
+    expect(validateDraft(emAnalise).nodes[0].children[0].status).toBe("em_analise");
+    const apreciado=draft();apreciado.nodes[0].children[0].status="aprovado";
+    expect(validateDraft(apreciado).nodes[0].children[0].status).toBe("aprovado");
+    const invalido=draft();(invalido.nodes[0].children[0] as {status?:string}).status="em_revisao";
+    expect(()=>validateDraft(invalido)).toThrow("Estado de apreciação");
+  });
+  it("converte a marcação legada approved e a remove do conteúdo salvo",()=>{
+    const legado=draft();(legado.nodes[0].children[0] as {approved?:boolean}).approved=true;
+    const normalizado=validateDraft(legado);
+    expect(normalizado.nodes[0].children[0].status).toBe("aprovado");
+    expect("approved" in normalizado.nodes[0].children[0]).toBe(false);
+    const naoApreciado=draft();(naoApreciado.nodes[0].children[0] as {approved?:boolean}).approved=false;
+    expect(validateDraft(naoApreciado).nodes[0].children[0].status).toBeUndefined();
+    const quebrado=draft();(quebrado.nodes[0].children[0] as {approved?:unknown}).approved="sim";
+    expect(()=>validateDraft(quebrado)).toThrow("Marcação de aprovação");
+  });
 });

@@ -10,6 +10,18 @@ export const STATUS_LABELS: Record<string, string> = {
   aprovada: "Finalizada",
 };
 
+export const NOVAMESA_STATUS_LABELS: Record<string, string> = {
+  pendente: "Pendente de análise",
+  em_analise: "Em análise",
+  aprovado: "Apreciado pela comissão",
+};
+
+export const NOVAMESA_STATUS_SHORT: Record<string, string> = {
+  pendente: "pendente",
+  em_analise: "em análise",
+  aprovado: "apreciado",
+};
+
 export const STATUS_VARIANTS: Record<string, string> = {
   nao_iniciado: "secondary",
   em_analise: "outline",

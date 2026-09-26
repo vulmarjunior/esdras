@@ -2,16 +2,17 @@ import Link from "next/link";
 import {redirect} from "next/navigation";
 import {getSessionUser} from "@/lib/auth";
 import {loadNovaMesaDraft} from "@/app/actions/nova-mesa-draft";
-import type {DraftNode} from "@/lib/nova-mesa-poc/model";
+import {statusOf,type DraftNode} from "@/lib/nova-mesa-poc/model";
 import {BookOpen,PenLine,FileText,Archive,CalendarDays,Library,ArrowRight,CheckCircle2} from "lucide-react";
 
 export const dynamic="force-dynamic";
 function count(nodes:DraftNode[]){
-  const result={chapters:0,articles:0,approved:0,devices:0};
+  const result={chapters:0,articles:0,apreciados:0,emAnalise:0,pendentes:0,devices:0};
   const visit=(items:DraftNode[])=>{for(const n of items){
     result.devices++;if(n.type==="chapter")result.chapters++;
     if(n.type==="article")result.articles++;
-    if(n.approved)result.approved++;
+    const status=statusOf(n);
+    if(status==="aprovado")result.apreciados++;else if(status==="em_analise")result.emAnalise++;else result.pendentes++;
     visit(n.children);
   }};visit(nodes);return result;
 }
@@ -37,7 +38,7 @@ export default async function HomePage(){
     <section aria-label="Andamento da nova minuta" className="grid gap-3 sm:grid-cols-3">
       <div className="rounded-xl border bg-card p-5"><span className="text-xs text-muted-foreground">Capítulos na nova minuta</span><p className="mt-2 text-3xl font-semibold tabular-nums">{stats?.chapters??"—"}</p></div>
       <div className="rounded-xl border bg-card p-5"><span className="text-xs text-muted-foreground">Artigos na nova minuta</span><p className="mt-2 text-3xl font-semibold tabular-nums">{stats?.articles??"—"}</p></div>
-      <div className="rounded-xl border bg-card p-5"><span className="inline-flex items-center gap-1 text-xs text-muted-foreground"><CheckCircle2 className="h-3.5 w-3.5"/>Dispositivos marcados como aprovados</span><p className="mt-2 text-3xl font-semibold tabular-nums">{stats?.approved??"—"}</p><p className="mt-1 text-xs text-muted-foreground">Entre {stats?.devices??"—"} dispositivos da nova minuta</p></div>
+      <div className="rounded-xl border bg-card p-5"><span className="inline-flex items-center gap-1 text-xs text-muted-foreground"><CheckCircle2 className="h-3.5 w-3.5"/>Apreciação dos dispositivos</span><p className="mt-2 text-3xl font-semibold tabular-nums">{stats?.apreciados??"—"}</p><p className="mt-1 text-xs text-muted-foreground">{stats?.emAnalise??"—"} em análise · {stats?.pendentes??"—"} pendentes · entre {stats?.devices??"—"} dispositivos</p></div>
     </section>
     <p className="text-xs text-muted-foreground">{updatedAt?"Última gravação da minuta: "+new Date(updatedAt).toLocaleString("pt-BR",{timeZone:"America/Porto_Velho"}):"Os dados de acompanhamento serão exibidos quando a minuta estiver disponível."} · Os indicadores acima não incluem o ambiente legado.</p>
     <section className="grid gap-3 sm:grid-cols-2">

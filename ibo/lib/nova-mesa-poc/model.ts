@@ -1,8 +1,10 @@
 import { Alignment, Mark, normalizeRuns, plainText, TextRun, toRuns, markRange } from "./rich-text";
 /** Modelo experimental isolado: não usa nem modifica dispositivos históricos. */
 export type NodeType = "chapter" | "section" | "subsection" | "article" | "paragraph" | "inciso" | "alinea" | "free";
-export type DraftNode = { id: string; type: NodeType; text: string; runs?: TextRun[]; alignment?: Alignment; approved?: boolean; children: DraftNode[] };
+export type NovaMesaStatus = "pendente" | "em_analise" | "aprovado";
+export type DraftNode = { id: string; type: NodeType; text: string; runs?: TextRun[]; alignment?: Alignment; status?: NovaMesaStatus; children: DraftNode[] };
 export type Draft = { id: string; nodes: DraftNode[] };
+export type FlatRow = { node: DraftNode; siblings: DraftNode[]; parentId: string | null; articleNumber: number; chapterNumber: number; depth: number };
 
 const letters = "abcdefghijklmnopqrstuvwxyz";
 const roman = (n: number): string => {
@@ -24,8 +26,25 @@ export function labelFor(node: DraftNode, siblings: DraftNode[], articleNumber: 
 export function findNode(nodes: DraftNode[], id: string): DraftNode | undefined {
   for (const n of nodes) { if (n.id === id) return n; const child = findNode(n.children,id); if(child) return child; }
 }
+export function flattenDraft(draft: Draft): FlatRow[] {
+  const rows: FlatRow[] = []; let articleNumber = 0, chapterNumber = 0;
+  const visit = (siblings: DraftNode[], parentId: string | null, depth: number) => {
+    for (const node of siblings) {
+      if (node.type === "chapter") chapterNumber++;
+      if (node.type === "article") articleNumber++;
+      rows.push({ node, siblings, parentId, articleNumber, chapterNumber, depth });
+      visit(node.children, node.id, depth + 1);
+    }
+  };
+  visit(draft.nodes, null, 0);
+  return rows;
+}
+export const statusOf = (node: DraftNode): NovaMesaStatus =>
+  node.status === "em_analise" || node.status === "aprovado" ? node.status : "pendente";
+/** Edição do texto derruba a apreciação anterior para revisão. */
+const rebaixar = (status: NovaMesaStatus | undefined): NovaMesaStatus | undefined => (status === "aprovado" ? "em_analise" : status);
 export function changeText(draft: Draft, id: string, text: string): Draft {
-  const visit = (nodes: DraftNode[]): DraftNode[] => nodes.map(n=>n.id===id?{...n,text,runs:toRuns(text),approved:text===n.text?n.approved:false}:{...n,children:visit(n.children)});
+  const visit = (nodes: DraftNode[]): DraftNode[] => nodes.map(n=>n.id===id?{...n,text,runs:toRuns(text),status:text===n.text?n.status:rebaixar(n.status)}:{...n,children:visit(n.children)});
   return {...draft,nodes:visit(draft.nodes)};
 }
 /** Atualiza apenas as marcas do texto do dispositivo, sem tocar em seus filhos. */
@@ -38,13 +57,14 @@ export function formatSelection(draft:Draft,id:string,start:number,end:number,ma
 export function setRichText(draft:Draft,id:string,runs:readonly TextRun[]):Draft {
   if(!findNode(draft.nodes,id))throw new Error("Dispositivo não encontrado");
   const normalized=normalizeRuns(runs),text=plainText(normalized);
-  const visit=(nodes:DraftNode[]):DraftNode[]=>nodes.map(n=>n.id===id?{...n,text,runs:normalized,approved:text===n.text?n.approved:false}:{...n,children:visit(n.children)});
+  const visit=(nodes:DraftNode[]):DraftNode[]=>nodes.map(n=>n.id===id?{...n,text,runs:normalized,status:text===n.text?n.status:rebaixar(n.status)}:{...n,children:visit(n.children)});
   return {...draft,nodes:visit(draft.nodes)};
 }
 /** Indicador editorial simples: o texto atual foi apreciado pela comissão. */
-export function setApproved(draft:Draft,id:string,approved:boolean):Draft {
+export function setStatus(draft:Draft,id:string,status:NovaMesaStatus):Draft {
   if(!findNode(draft.nodes,id))throw new Error("Dispositivo não encontrado");
-  const visit=(nodes:DraftNode[]):DraftNode[]=>nodes.map(n=>n.id===id?{...n,approved}:{...n,children:visit(n.children)});
+  const next:NovaMesaStatus|undefined=status==="pendente"?undefined:status;
+  const visit=(nodes:DraftNode[]):DraftNode[]=>nodes.map(n=>n.id===id?{...n,status:next}:{...n,children:visit(n.children)});
   return {...draft,nodes:visit(draft.nodes)};
 }
 export function setAlignment(draft:Draft,id:string,alignment:Alignment):Draft {

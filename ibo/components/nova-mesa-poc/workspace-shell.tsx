@@ -3,12 +3,14 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { listConsultationDocuments, readConsultationDocument, type ConsultationItem } from "@/app/actions/nova-mesa-consulta";
 import { ConsultaForm } from "@/components/documentos/consulta-form";
+import { NovaMesaStatusMark } from "@/components/status-badge";
 
-type OutlineEntry = { id:string; label:string; title:string; depth:number };
+type OutlineEntry = { id:string; label:string; title:string; depth:number; status?:string };
+type Summary = { pendente:number; em_analise:number; aprovado:number };
 type Reference = { name:string; kind:"text"|"pdf"; text?:string; url?:string };
 
-export default function WorkspaceShell({children,outline,onNavigate,selectedLabel}:{
-  children:ReactNode; outline:OutlineEntry[]; onNavigate:(id:string)=>void;selectedLabel:string|null;
+export default function WorkspaceShell({children,outline,onNavigate,selectedLabel,summary}:{
+  children:ReactNode; outline:OutlineEntry[]; onNavigate:(id:string)=>void;selectedLabel:string|null;summary?:Summary;
 }){
   const [outlineOpen,setOutlineOpen]=useState(true);
   const [supportOpen,setSupportOpen]=useState(false);
@@ -77,12 +79,13 @@ export default function WorkspaceShell({children,outline,onNavigate,selectedLabe
     <div className="flex min-w-0 flex-col gap-3 xl:flex-row xl:items-start">
       {outlineOpen&&<nav aria-label="Sumário da minuta" className="min-w-0 rounded-xl border bg-card p-3 xl:sticky xl:top-4 xl:w-60 xl:shrink-0">
         <h2 className="mb-2 font-semibold">Estrutura</h2>
+        {summary&&<p className="mb-2 text-xs leading-snug text-muted-foreground">{summary.aprovado} apreciados · {summary.em_analise} em análise · {summary.pendente} pendentes</p>}
         <div className="max-h-[60vh] overflow-auto xl:max-h-[75vh]">
           {outline.length===0?<p className="text-sm text-muted-foreground">Insira um capítulo ou artigo para começar.</p>:
           outline.map(item=><button type="button" key={item.id} onClick={()=>onNavigate(item.id)}
             className="block w-full rounded px-2 py-1.5 text-left text-sm leading-snug hover:bg-muted focus-visible:outline-2"
             style={{paddingLeft:8+Math.min(item.depth,3)*10}} title={item.label+" "+item.title}>
-            <span className="font-medium">{item.label}</span> <span className="line-clamp-2 break-words text-muted-foreground">{item.title}</span></button>)}
+            <span className="inline-flex items-center gap-1.5 font-medium">{item.status&&item.status!=="pendente"&&<NovaMesaStatusMark status={item.status} compact/>}{item.label}</span> <span className="line-clamp-2 break-words text-muted-foreground">{item.title}</span></button>)}
         </div>
       </nav>}
       <div className={sideBySide?"flex min-w-0 flex-1 flex-col gap-3 2xl:flex-row":"min-w-0 flex-1"}>

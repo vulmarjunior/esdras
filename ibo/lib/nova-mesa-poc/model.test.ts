@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { changeText, Draft, DraftNode, findNode, insertAfter, labelFor, moveNode, removeNode } from "./model";
+import { changeText, Draft, DraftNode, findNode, flattenDraft, insertAfter, labelFor, moveNode, removeNode, setRichText, setStatus, statusOf } from "./model";
 const node=(id:string,type:DraftNode["type"],children:DraftNode[]=[]):DraftNode=>({id,type,text:id,children});
 const base=():Draft=>({id:"nova",nodes:[node("cap","chapter",[node("a","article",[node("p1","paragraph")]),node("b","article")])]});
 describe("modelo experimental da minuta independente",()=>{
@@ -62,5 +62,36 @@ describe("modelo experimental da minuta independente",()=>{
   expect(insertAfter(withSub,"sub",null,node("art","article")).nodes[0].children[0].children[0].children[0].id).toBe("art");
   expect(()=>insertAfter(draft,"cap",null,node("invalid","subsection"))).toThrow("Hierarquia");
   expect(()=>moveNode(withSub,"sub","cap",null)).toThrow("Hierarquia");
+ });
+ it("registra e retira o estado de apreciação sem sujar o nó",()=>{
+  const apreciado=setStatus(base(),"a","aprovado");
+  expect(statusOf(findNode(apreciado.nodes,"a")!)).toBe("aprovado");
+  const limpo=setStatus(apreciado,"a","pendente");
+  expect(findNode(limpo.nodes,"a")?.status).toBeUndefined();
+  expect(statusOf(findNode(limpo.nodes,"a")!)).toBe("pendente");
+ });
+ it("editar o texto de um dispositivo apreciado devolve para em análise",()=>{
+  const apreciado=setStatus(base(),"a","aprovado");
+  const editado=changeText(apreciado,"a","Redação nova");
+  expect(statusOf(findNode(editado.nodes,"a")!)).toBe("em_analise");
+ });
+ it("formatação que não muda o texto preserva a apreciação",()=>{
+  const apreciado=setStatus(base(),"a","aprovado");
+  const formatado=setRichText(apreciado,"a",[{text:"a",marks:["bold"]}]);
+  expect(statusOf(findNode(formatado.nodes,"a")!)).toBe("aprovado");
+ });
+ it("movimentação preserva o estado do dispositivo",()=>{
+  const movido=moveNode(setStatus(base(),"a","em_analise"),"a","cap","b");
+  expect(statusOf(findNode(movido.nodes,"a")!)).toBe("em_analise");
+ });
+ it("achata a árvore com pai, numeração e profundidade",()=>{
+  const rows=flattenDraft(base());
+  const artigo=rows.find(row=>row.node.id==="a")!;
+  expect(artigo.parentId).toBe("cap");
+  expect(artigo.depth).toBe(1);
+  expect(artigo.articleNumber).toBe(1);
+  const paragrafo=rows.find(row=>row.node.id==="p1")!;
+  expect(paragrafo.parentId).toBe("a");
+  expect(paragrafo.depth).toBe(2);
  });
 });
