@@ -2,7 +2,7 @@
 
 > Documentação viva de descobertas técnicas. Atualizada automaticamente durante o desenvolvimento.
 > **Stack**: Next.js 16.3.4 (App Router, Turbopack, RSC) · React 19 · TypeScript · Tailwind 4 · Supabase Postgres (`pg`) · better-sqlite3 (só scripts) · Groq API · Vitest · fflate (EPUB)
-> **Última atualização**: 2026-09-21
+> **Última atualização**: 2026-09-26
 
 ---
 
@@ -131,6 +131,31 @@
 - **Data**: 2026-09-01
 - **Contexto**: fechamento das lacunas do PRD apontadas no PENDENCIAS.md.
 - **Observações**: `votes` já suportava `suggestion_id`; tabela `minutes_retifications` criada via `schema.sql` (aplicada no `getDb()` — sem re-seed, preservando dados do usuário).
+
+### Segurança / Banco
+
+#### RLS deny-all + revoke fecha o PostgREST sem afetar o app
+- **Status**: ✅ Confirmado
+- **Data**: 2026-09-26
+- **Contexto**: alerta de segurança — as 6 tabelas criadas por SQL (4 migrações + as 2 da nova minuta) nasceram com RLS desligado e grants default do Supabase para `anon`/`authenticated`; a chave publishable usada no Realtime é entregue ao navegador, então o PostgREST respondia 200 com dados sem login.
+- **Solução**: `scripts/migrate-rls-hardening.mjs [--local]` — `ENABLE ROW LEVEL SECURITY` sem policies (deny-all), `REVOKE ALL` de tabelas e sequências para `anon`/`authenticated` e `ALTER DEFAULT PRIVILEGES ... REVOKE` para tabelas/sequências/funções futuras. O backend conecta como dono (`postgres`), que ignora RLS sem `FORCE ROW LEVEL SECURITY` — nada quebrou no app (Mesa, Biblioteca, Marcos, export).
+- **Observações**: verificação por probe anônimo real (`HEAD /rest/v1/<tabela>` com a publishable key): passou de HTTP 200 (405 seções de literatura, 15 versões da minuta etc.) para **HTTP 401** nas seis. Aplicado em produção em 26/09/2026 com dados íntegros. `TRUNCATE`/`TRIGGER` não são alcançáveis pelo PostgREST (não há funções `rpc` em `public`), mas foram revogados por higiene.
+
+### Nova Mesa (minuta independente)
+
+#### Apreciação em 3 estados no JSONB, sem migração de banco
+- **Status**: ✅ Confirmado
+- **Data**: 2026-09-26
+- **Contexto**: a marca booleana `approved` no conteúdo JSONB de `nova_mesa_drafts` só distinguia aprovado/sem marca e aparecia como pílula-frase no meio do texto legal.
+- **Solução**: `DraftNode.status?: "pendente" | "em_analise" | "aprovado"` em `lib/nova-mesa-poc/model.ts`; editar o texto de um apreciado rebaixa para `em_analise` (`changeText`/`setRichText`), formatar sem mudar texto preserva; `lib/nova-mesa-poc/validate.ts` normaliza o legado (`approved:true` → `status:"aprovado"`) e remove o campo antigo no salvamento — abas antigas continuam válidas e nenhum script de migração é necessário. UI: rubrica marginal (ponto/✓ com `aria-label`), controle segmentado na barra, resumo no sumário, selo na visualização e contadores na home.
+- **Observações**: rótulo visível **"Apreciado pela comissão"** (alinhado à decisão de que a aprovação formal ocorre fora do sistema); `model.test.ts`/`validate.test.ts` cobrem estados, rebaixamento e conversão do legado.
+
+#### Exportação de documento (HTML, Markdown e impressão/PDF) sem dependências
+- **Status**: ✅ Confirmado
+- **Data**: 2026-09-26
+- **Contexto**: só existia "Exportar cópia (JSON)" na nova minuta; os relatórios do legado são texto puro com `===`.
+- **Solução**: `lib/nova-mesa-poc/exportar.ts` (puro): `corpoDocumento` (cabeçalho institucional com versão/data/aviso, legenda, rubricas, sumário e "somente apreciados" opcionais) compartilhado entre a página de impressão `/mesa-trabalho/imprimir` (folha limpa A4, grupo de rota `(impressao)`, `@page`, `print-color-adjust: exact`) e o HTML autocontido; `paraMarkdown` usa `✓/●/○`. Downloads por `/api/export/nova-mesa?formato=html|md&marcas=&sumario=&apreciados=`, disparados pelo diálogo "Exportar documento…" no editor e na visualização.
+- **Observações**: ordenação canônica de marcas (negrito por fora) e escape de HTML/MD testados em `exportar.test.ts`; a exportação usa a versão salva no servidor e o diálogo avisa quando há alterações pendentes.
 
 ### Deploy / E2E
 
@@ -309,6 +334,21 @@
 - **Alternativas rejeitadas**: manter em dependencies (build nativo falharia na Vercel).
 - **Data**: 2026-09-01
 
+#### Fechar o PostgREST com RLS deny-all (sem migrar para Supabase Auth)
+- **Escolha**: manter autenticação local (JWT) e bloquear `anon`/`authenticated` com RLS sem policies + revoke + default privileges.
+- **Alternativas rejeitadas**: policies por papel admin/coordenador/membro (esses papéis são locais no JWT, não existem no Postgres); migrar para Supabase Auth (decisão vigente é não migrar); deixar como estava (exposição pública real pela chave publishable).
+- **Data**: 2026-09-26
+
+#### Estado de apreciação dentro do JSONB da minuta (sem coluna/tabela nova)
+- **Escolha**: `status` opcional no nó do draft, com normalização do `approved` legado no `validate`.
+- **Alternativas rejeitadas**: coluna/tabela de status (migração + sincronização com o JSONB); manter o boolean (não cobre "em análise").
+- **Data**: 2026-09-26
+
+#### Exportação sem dependências (HTML/impressão/Markdown)
+- **Escolha**: template puro próprio, página de impressão e downloads; sem libs de PDF/DOCX.
+- **Alternativas rejeitadas**: libs de PDF/DOCX no cliente (peso/licença), geração de PDF no servidor (runtime serverless), TXT puro (não apresenta os estados de forma útil).
+- **Data**: 2026-09-26
+
 ---
 
 ## ⚠️ Armadilhas Conhecidas (Gotchas)
@@ -327,3 +367,6 @@
 - **Postgres local sem TLS**: o `pg` com `ssl: { rejectUnauthorized: false }` falha contra o Postgres do Docker (sem SSL) — `lib/db.ts` desliga SSL para localhost/127.0.0.1.
 - **Ações de server action fora do browser**: dá para testar via `POST` na página com header `Next-Action: <id>` (ids em `.next/dev/server/app/.../server-reference-manifest.json`) e corpo JSON com os argumentos; útil para E2E de escrita no banco de teste.
 - **Groq/TPM**: o plano gratuito limita ~8000 tokens por minuto por modelo; prompts com contexto grande (consultas com muitos trechos, manual inteiro) estouram com 413/429. Mantenha o orçamento em `lib/ai-budget.ts` e, em modelos de raciocínio (`gpt-oss`), `reasoning_effort: "low"` — senão o "pensamento" oculto consome o `max_tokens` e a resposta volta vazia.
+- **Supabase (default privileges)**: toda tabela criada por SQL pelo papel `postgres` nasce com `arwdDxtm` para `anon`/`authenticated` e **sem RLS** — o linter acusa e o PostgREST expõe os dados para quem tiver a publishable key (que vai no bundle). Rode `scripts/migrate-rls-hardening.mjs` após criar tabelas; o dono ignora RLS sem `FORCE ROW LEVEL SECURITY`; `TRUNCATE` não é coberto por RLS, mas o PostgREST também não o expõe.
+- **PowerShell 5.1 + `git commit -m` multilinha**: here-string com aspas quebra o argumento (o git interpreta trechos como pathspec). Escrever a mensagem em arquivo e usar `git commit -F <arquivo>`.
+- **PowerShell 5.1 + `Invoke-WebRequest`**: `-Headers @{Cookie=...}` não envia o cookie de forma confiável; usar `New-Object Microsoft.PowerShell.Commands.WebRequestSession` + `-WebSession` (e ciente de que o proxy responde 307 para `/login` quando não autenticado).
