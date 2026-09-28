@@ -41,6 +41,11 @@ export function Biblioteca({ docs }: { docs: Confissao[] }) {
                   <CardTitle className="text-base">
                     {doc.nome}
                     {doc.ano && <span className="ml-1.5 font-normal text-muted-foreground">({doc.ano})</span>}
+                    {doc.grupo && (
+                      <span className="ml-2 inline-block rounded-full border bg-muted px-2 py-0.5 align-middle text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
+                        {doc.grupo}
+                      </span>
+                    )}
                   </CardTitle>
                 </div>
                 <p className="pl-10 text-sm leading-relaxed text-muted-foreground">{doc.resumo}</p>

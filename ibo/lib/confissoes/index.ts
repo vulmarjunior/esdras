@@ -5,6 +5,8 @@ import { FE_MENSAGEM_2000 } from "./fe-mensagem-2000";
 import { CBB_DECLARACAO } from "./cbb-declaracao";
 import { PRINCIPIOS_BATISTAS } from "./principios-batistas";
 import { PACTO_IGREJAS } from "./pacto-igrejas";
+import { COMPROMISSO_MEMBRESIA } from "./compromisso-membresia";
+import { COMPROMISSO_MEMBRESIA_CRIANCAS } from "./compromisso-membresia-criancas";
 
 /** Ordem de exibição na biblioteca doutrinária. */
 export const CONFISSOES: Confissao[] = [
@@ -14,6 +16,8 @@ export const CONFISSOES: Confissao[] = [
   CBB_DECLARACAO,
   PRINCIPIOS_BATISTAS,
   PACTO_IGREJAS,
+  COMPROMISSO_MEMBRESIA,
+  COMPROMISSO_MEMBRESIA_CRIANCAS,
 ];
 
 export const CONFISSAO_BY_ID: Record<string, Confissao> = Object.fromEntries(

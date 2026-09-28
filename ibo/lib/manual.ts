@@ -176,6 +176,7 @@ Na **barra fixa**, o ícone de **documento** abre um arquivo local (.txt, .md ou
 
 - **Mostrar/Ocultar capítulos** abre o **Sumário** (com a marca de apreciação e de ponto para revisão); o resumo geral fica ao lado do botão;
 - os botões **Estatuto vigente** e **Proposta inicial** abrem o **texto integral** de cada documento em janela, com busca por trecho;
+- o botão **Documentos** lista os **compromissos de membresia** (versão integral e adaptada para crianças e adolescentes, em apreciação pela comissão) e os documentos doutrinários, abrindo cada um em janela com busca;
 - clique em qualquer dispositivo (no texto ou no sumário): a **Consulta comparativa** (à direita, em telas largas) mostra a **Redação atual** e a **Correspondência no Estatuto**; o botão **Comparar com o Estatuto…** abre a comparação em janela ampla (Vigente × Redação atual e Proposta inicial × Redação atual, com **Destacar diferenças**). Em telas menores, um botão fixo embaixo abre a comparação;
 - a página é atualizada automaticamente quando o redator salva (atualização em tempo real).
 

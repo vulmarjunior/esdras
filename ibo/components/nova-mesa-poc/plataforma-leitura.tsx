@@ -17,7 +17,8 @@ const DOCUMENTOS = [
   { id: "statute:current", rotulo: "Estatuto vigente", titulo: "Abrir o texto original do Estatuto vigente" },
   { id: "statute:initial", rotulo: "Proposta inicial", titulo: "Abrir a primeira proposta da reforma" },
 ] as const;
-type DocumentoId = (typeof DOCUMENTOS)[number]["id"];
+
+export type DocumentoConsultavel = { id: string; nome: string; grupo: string; resumo: string };
 
 function resumoDaMinuta(rows: FlatRow[]) {
   const resumo = { apreciados: 0, emAnalise: 0, pendentes: 0, revisoes: 0 };
@@ -56,12 +57,13 @@ function Correspondencias({ vinculados }: { vinculados: CandidatoVinculo[] }) {
   );
 }
 
-export default function PlataformaLeitura({ draft, candidatos }: { draft: Draft; candidatos: CandidatoVinculo[] }) {
+export default function PlataformaLeitura({ draft, candidatos, documentos }: { draft: Draft; candidatos: CandidatoVinculo[]; documentos: DocumentoConsultavel[] }) {
   const [selecionado, setSelecionado] = useState<string | null>(null);
   const [destacar, setDestacar] = useState(true);
   const [sumarioAberto, setSumarioAberto] = useState(false);
   const [compararAberto, setCompararAberto] = useState(false);
-  const [documento, setDocumento] = useState<{ id: DocumentoId; title: string; text: string } | null>(null);
+  const [catalogoAberto, setCatalogoAberto] = useState(false);
+  const [documento, setDocumento] = useState<{ id: string; title: string; text: string } | null>(null);
   const [documentoCarregando, setDocumentoCarregando] = useState(false);
   const [documentoErro, setDocumentoErro] = useState("");
   const [buscaDocumento, setBuscaDocumento] = useState("");
@@ -71,12 +73,20 @@ export default function PlataformaLeitura({ draft, candidatos }: { draft: Draft;
   const capitulos = rows.filter((row) => row.node.type === "chapter");
   const ativo = selecionado ? rows.find((row) => row.node.id === selecionado) : undefined;
   const vinculados = ativo ? vinculosOf(ativo.node).map((id) => mapa.get(id)).filter((c): c is CandidatoVinculo => !!c) : [];
+  const gruposDocumentos = documentos
+    .reduce<{ grupo: string; itens: DocumentoConsultavel[] }[]>((acc, doc) => {
+      const existente = acc.find((item) => item.grupo === doc.grupo);
+      if (existente) existente.itens.push(doc);
+      else acc.push({ grupo: doc.grupo, itens: [doc] });
+      return acc;
+    }, [])
+    .sort((a, b) => (a.grupo === "Compromissos de membresia" ? -1 : b.grupo === "Compromissos de membresia" ? 1 : 0));
 
   const selecionar = (id: string) => {
     setSelecionado(id);
     document.getElementById("dispositivo-" + id)?.scrollIntoView({ behavior: "smooth", block: "center" });
   };
-  const abrirDocumento = async (id: DocumentoId) => {
+  const abrirDocumento = async (id: string) => {
     setDocumento(null); setDocumentoErro(""); setBuscaDocumento(""); setDocumentoCarregando(true);
     try {
       const resultado = await readConsultationDocument(id);
@@ -100,6 +110,9 @@ export default function PlataformaLeitura({ draft, candidatos }: { draft: Draft;
             {item.rotulo}
           </button>
         ))}
+        <button type="button" className="rounded border px-3 py-2" title="Compromissos de membresia e documentos doutrinários" onClick={() => setCatalogoAberto(true)}>
+          Documentos
+        </button>
         <span className="text-xs text-muted-foreground">
           {resumo.apreciados} apreciados · {resumo.emAnalise} em análise · {resumo.pendentes} pendentes
           {resumo.revisoes > 0 ? " · " + resumo.revisoes + (resumo.revisoes > 1 ? " pontos para revisão" : " ponto para revisão") : ""}
@@ -225,6 +238,33 @@ export default function PlataformaLeitura({ draft, candidatos }: { draft: Draft;
                 </pre>
               </>
             )}
+          </div>
+        </div>
+      )}
+
+      {catalogoAberto && (
+        <div role="dialog" aria-modal="true" aria-label="Documentos para consulta" onClick={() => setCatalogoAberto(false)}
+          className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 p-2 sm:items-center">
+          <div className="max-h-[92vh] w-full max-w-3xl overflow-y-auto rounded-t-2xl border bg-background p-4 shadow-2xl sm:rounded-2xl"
+            onClick={(event) => event.stopPropagation()}>
+            <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+              <h2 className="font-semibold">Documentos para consulta</h2>
+              <button type="button" className="rounded border px-3 py-1.5 text-sm" onClick={() => setCatalogoAberto(false)}>Fechar</button>
+            </div>
+            <div className="space-y-4">
+              {gruposDocumentos.map((grupo) => (
+                <section key={grupo.grupo} className="space-y-1">
+                  <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{grupo.grupo}</h3>
+                  {grupo.itens.map((doc) => (
+                    <button key={doc.id} type="button" className="block w-full rounded border bg-card p-3 text-left transition-colors hover:bg-muted"
+                      onClick={() => { setCatalogoAberto(false); void abrirDocumento("confession:" + doc.id); }}>
+                      <strong className="block text-sm">{doc.nome}</strong>
+                      <span className="text-xs text-muted-foreground">{doc.resumo}</span>
+                    </button>
+                  ))}
+                </section>
+              ))}
+            </div>
           </div>
         </div>
       )}

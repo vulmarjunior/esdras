@@ -171,9 +171,72 @@ function parseSecaoDocumentosDeFe(indice, tituloIntro = "Introdução") {
   return itens.filter((i) => i.conteudo.trim());
 }
 
+// ---------- Compromissos de membresia da IBO (TXT com capítulos numerados) ----------
+function parseCompromisso(arquivo) {
+  const linhas = ler(arquivo).split(/\r?\n/);
+  const itens = [];
+  let capitulo = "";
+  let atual = null;
+  let preambulo = "";
+  const separador = (linha) => /^[=-]{5,}$/.test((linha || "").trim());
+  const fechar = () => {
+    if (atual) {
+      atual.conteudo = atual.conteudo.trim();
+      if (atual.conteudo) itens.push(atual);
+      atual = null;
+    }
+  };
+  for (let i = 0; i < linhas.length; i++) {
+    const s = limparLinha(linhas[i]);
+    if (!s || separador(linhas[i])) continue;
+    if (/^IGREJA BATISTA OLARIA$/i.test(s)) continue;
+    if (/^COMPROMISSO DE MEMBRESIA/i.test(s)) continue;
+    if (/^MINUTA\b/i.test(s)) {
+      preambulo += (preambulo ? "\n\n" : "") + s;
+      continue;
+    }
+    const cap = s.match(/^CAP[ÍI]TULO\s+([IVXLC]+)\s*[—–-]\s*(.+)$/i);
+    if (cap) {
+      fechar();
+      capitulo = `Capítulo ${cap[1]} — ${cap[2].trim()}`;
+      continue;
+    }
+    const sec = s.match(/^(\d+)\.\s+(.+)$/);
+    if (sec) {
+      fechar();
+      atual = { titulo: (capitulo ? capitulo + " · " : "") + `${sec[1]}. ${sec[2].trim()}`, conteudo: "" };
+      continue;
+    }
+    const realce = separador(linhas[i - 1]) && separador(linhas[i + 1]);
+    const grito = /^[A-ZÁÉÍÓÚÂÊÔÃÕÇ][A-ZÁÉÍÓÚÂÊÔÃÕÇ\s\-–—º]{5,}$/.test(s);
+    if (realce || grito) {
+      fechar();
+      atual = { titulo: s.replace(/\s+/g, " ").trim(), conteudo: "" };
+      continue;
+    }
+    if (!atual) {
+      preambulo += (preambulo ? "\n\n" : "") + s;
+      continue;
+    }
+    anexar(atual, linhas[i]);
+  }
+  fechar();
+  if (preambulo.trim()) {
+    const primeiro = itens[0];
+    if (primeiro && /^apresenta[çc][ãa]o$/i.test(primeiro.titulo)) {
+      primeiro.conteudo = preambulo.trim() + (primeiro.conteudo ? "\n\n" + primeiro.conteudo : "");
+    } else {
+      itens.unshift({ titulo: "Apresentação", conteudo: preambulo.trim() });
+    }
+  }
+  return itens;
+}
+
 gravar("londres-1689.json", parseLondres());
 gravar("new-hampshire-1833.json", parseNewHampshire());
 gravar("fe-mensagem-2000.json", parseFeMensagem());
 gravar("cbb-declaracao.json", parseSecaoDocumentosDeFe(1));
 gravar("principios-batistas.json", parseSecaoDocumentosDeFe(2));
 gravar("pacto-igrejas.json", parseSecaoDocumentosDeFe(3, "Pacto das Igrejas Batistas"));
+gravar("compromisso-membresia.json", parseCompromisso("Compromisso_de_Membresia_IBO_versao_final.txt"));
+gravar("compromisso-membresia-criancas.json", parseCompromisso("Compromisso_de_Membresia_IBO_Criancas_e_Adolescentes.txt"));

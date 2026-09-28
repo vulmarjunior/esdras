@@ -14,10 +14,10 @@ export default async function DocumentosPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="text-2xl font-semibold tracking-tight">Documentos doutrinários</h2>
+        <h2 className="text-2xl font-semibold tracking-tight">Documentos para consulta</h2>
         <p className="text-sm text-muted-foreground">
-          Textos integrais dos documentos confessionais e de princípios utilizados como fundamento doutrinário da
-          reforma estatutária.
+          Textos integrais dos documentos confessionais, de princípios e dos compromissos de membresia em apreciação
+          pela comissão, usados como fundamento doutrinário da reforma estatutária.
         </p>
       </div>
 

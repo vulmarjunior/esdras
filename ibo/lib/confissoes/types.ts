@@ -9,5 +9,7 @@ export interface Confissao {
   ano: number | null;
   origem: string;
   resumo: string;
+  /** Agrupamento na consulta (padrão: "Documentos doutrinários"). */
+  grupo?: string;
   itens: ItemConfissao[];
 }

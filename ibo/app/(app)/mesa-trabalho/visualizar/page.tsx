@@ -3,8 +3,9 @@ import { redirect } from "next/navigation";
 import { getSessionUser } from "@/lib/auth";
 import { loadNovaMesaDraft } from "@/app/actions/nova-mesa-draft";
 import { carregarCandidatosVinculo } from "@/lib/nova-mesa-vinculos";
+import { CONFISSOES } from "@/lib/confissoes";
 import { flattenDraft, vinculosOf } from "@/lib/nova-mesa-poc/model";
-import PlataformaLeitura from "@/components/nova-mesa-poc/plataforma-leitura";
+import PlataformaLeitura, { type DocumentoConsultavel } from "@/components/nova-mesa-poc/plataforma-leitura";
 import ExportarDocumento from "@/components/nova-mesa-poc/exportar-dialog";
 
 export const dynamic = "force-dynamic";
@@ -17,6 +18,9 @@ export default async function VisualizarNovaMesa() {
   const ids = new Set<string>();
   for (const row of flattenDraft(snapshot.draft)) for (const id of vinculosOf(row.node)) ids.add(id);
   const candidatos = (ids.size ? await carregarCandidatosVinculo() : []).filter((candidato) => ids.has(candidato.id));
+  const documentos: DocumentoConsultavel[] = CONFISSOES.map((doc) => ({
+    id: doc.id, nome: doc.nome, grupo: doc.grupo ?? "Documentos doutrinários", resumo: doc.resumo,
+  }));
   return <div data-nova-mesa-root className="min-w-0 w-full space-y-4">
     <header className="flex flex-wrap items-center justify-between gap-3">
       <div><h1 className="text-2xl font-semibold">Nova minuta do Estatuto</h1>
@@ -26,6 +30,6 @@ export default async function VisualizarNovaMesa() {
         {canEdit && <Link href="/mesa-trabalho" className="rounded border px-3 py-2 text-sm">Abrir editor</Link>}
       </div>
     </header>
-    <PlataformaLeitura draft={snapshot.draft} candidatos={candidatos} />
+    <PlataformaLeitura draft={snapshot.draft} candidatos={candidatos} documentos={documentos} />
   </div>;
 }

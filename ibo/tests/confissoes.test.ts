@@ -9,10 +9,12 @@ const IDS_ESPERADOS = [
   "cbb-declaracao",
   "principios-batistas",
   "pacto-igrejas",
+  "compromisso-membresia",
+  "compromisso-membresia-criancas",
 ];
 
 describe("biblioteca doutrinária", () => {
-  it("tem os 6 documentos previstos e não inclui Filadélfia", () => {
+  it("tem os documentos previstos (confessionais e compromissos) e não inclui Filadélfia", () => {
     const ids = CONFISSOES.map((c) => c.id).sort();
     expect(ids).toEqual([...IDS_ESPERADOS].sort());
     expect(ids.some((id) => id.includes("filadelfia"))).toBe(false);

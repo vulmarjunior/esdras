@@ -7,7 +7,7 @@ import { CONFISSOES } from "@/lib/confissoes";
 import { all } from "@/lib/db";
 import { htmlToText, isHtml } from "@/lib/rich-text";
 
-export type ConsultationItem = { id:string; title:string; group:"Estatutos"|"Documentos doutrinários"|"Biblioteca de literatura" };
+export type ConsultationItem = { id:string; title:string; group:"Estatutos"|"Documentos doutrinários"|"Compromissos de membresia"|"Biblioteca de literatura" };
 export type ConsultationResult = { title:string; text:string };
 
 /** Catálogo apenas de documentos já disponíveis no Esdras; sem duplicar fontes na minuta. */
@@ -18,7 +18,7 @@ export async function listConsultationDocuments():Promise<ConsultationItem[]> {
     {id:"statute:current",title:"Estatuto vigente (versão histórica)",group:"Estatutos"},
     {id:"statute:initial",title:"Proposta inicial (primeira versão da reforma)",group:"Estatutos"},
     {id:"statute:proposal",title:"Proposta em elaboração na Mesa existente",group:"Estatutos"},
-    ...CONFISSOES.map(doc=>({id:"confession:"+doc.id,title:doc.nome,group:"Documentos doutrinários" as const})),
+    ...CONFISSOES.map(doc=>({id:"confession:"+doc.id,title:doc.nome,group:(doc.grupo ?? "Documentos doutrinários") as ConsultationItem["group"]})),
     ...books.map(book=>({id:"book:"+book.id,title:book.titulo+(book.autor?" — "+book.autor:""),group:"Biblioteca de literatura" as const})),
   ];
 }
