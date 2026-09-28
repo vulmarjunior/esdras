@@ -1,5 +1,5 @@
 import { cn } from "@/lib/utils";
-import { NOVAMESA_STATUS_LABELS, STATUS_LABELS } from "@/lib/labels";
+import { NOVAMESA_STATUS_LABELS, REVISAO_LABEL, STATUS_LABELS } from "@/lib/labels";
 import { Check, CheckCircle2, StickyNote } from "lucide-react";
 
 export const NOVAMESA_STATUS_COLORS: Record<string, string> = {
@@ -141,6 +141,22 @@ export function NovaMesaStatusMark({ status, className, compact }: { status: str
       title={label}
       aria-label={label}
       className={cn("inline-block shrink-0 rounded-full border", compact ? "h-2 w-2" : "h-2.5 w-2.5", NOVAMESA_STATUS_DOTS[status] || NOVAMESA_STATUS_DOTS.pendente, className)}
+    />
+  );
+}
+
+/** Marcador de ponto para revisão em aberto (alerta editorial da nova minuta). */
+export function ReviewMark({ className, compact }: { className?: string; compact?: boolean }) {
+  return (
+    <span
+      role="img"
+      title={REVISAO_LABEL}
+      aria-label={REVISAO_LABEL}
+      className={cn(
+        "inline-block shrink-0 rounded-full bg-amber-500 ring-2 ring-amber-200 dark:ring-amber-900/60",
+        compact ? "h-2 w-2" : "h-2.5 w-2.5",
+        className
+      )}
     />
   );
 }

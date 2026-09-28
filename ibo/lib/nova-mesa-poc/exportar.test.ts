@@ -97,4 +97,31 @@ describe("exportação da nova minuta", () => {
     const md = paraMarkdown(semApreciados, meta, { somenteApreciados: true });
     expect(md).toContain("(Nenhum dispositivo apreciado pela comissão.)");
   });
+
+  it("mostra pontos para revisão sempre, inclusive no modo somente apreciados", () => {
+    const comAlerta: Draft = {
+      id: "estatuto-ibo-2026",
+      nodes: [
+        {
+          id: "cap-1",
+          type: "chapter",
+          text: "Dos fins",
+          children: [artigo("art-1", "Pendente com alerta."), artigo("art-2", "Apreciado.", "aprovado")],
+        },
+      ],
+    };
+    comAlerta.nodes[0].children[0].revisao = "Definir prazos & quóruns.";
+    const html = paraHtml(comAlerta, meta);
+    expect(html).toContain('class="review-mark"');
+    expect(html).toContain('<details class="review"><summary>Ponto para revisão</summary><p>Definir prazos &amp; quóruns.</p></details>');
+    const md = paraMarkdown(comAlerta, meta);
+    expect(md).toContain("⚠ Ponto para revisão");
+    expect(md).toContain("> ⚠ **Ponto para revisão:** Definir prazos &amp; quóruns.");
+    const somente = paraMarkdown(comAlerta, meta, { somenteApreciados: true });
+    expect(somente).toContain("Art. 1º");
+    expect(somente).toContain("Art. 2º");
+    const semMarcas = paraHtml(comAlerta, meta, { marcas: false });
+    expect(semMarcas).not.toContain('class="rubrica');
+    expect(semMarcas).toContain('class="review-mark"');
+  });
 });

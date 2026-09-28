@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { changeText, Draft, DraftNode, findNode, flattenDraft, insertAfter, labelFor, moveNode, removeNode, setRichText, setStatus, statusOf } from "./model";
+import { changeText, Draft, DraftNode, findNode, flattenDraft, insertAfter, labelFor, moveNode, removeNode, revisaoOf, setRevisao, setRichText, setStatus, setVinculos, statusOf, vinculosOf } from "./model";
 const node=(id:string,type:DraftNode["type"],children:DraftNode[]=[]):DraftNode=>({id,type,text:id,children});
 const base=():Draft=>({id:"nova",nodes:[node("cap","chapter",[node("a","article",[node("p1","paragraph")]),node("b","article")])]});
 describe("modelo experimental da minuta independente",()=>{
@@ -36,6 +36,12 @@ describe("modelo experimental da minuta independente",()=>{
  });
  it("rejeita identidades repetidas em subárvores",()=>{
   expect(()=>insertAfter(base(),"cap",null,node("novo","article",[node("p1","paragraph")]))).toThrow("duplicada");
+ });
+ it("aceita inciso sob parágrafo e alínea sob inciso",()=>{
+  const comInciso=insertAfter(base(),"a","p1",node("inc","inciso"));
+  expect(findNode(comInciso.nodes,"inc")?.id).toBe("inc");
+  const comAlinea=insertAfter(comInciso,"inc",null,node("al","alinea"));
+  expect(findNode(comAlinea.nodes,"al")?.id).toBe("al");
  });
  it("aceita bloco livre dentro de artigo sem renumerar parágrafos",()=>{
   const draft=insertAfter(base(),"a","p1",node("rascunho","free"));
@@ -93,5 +99,27 @@ describe("modelo experimental da minuta independente",()=>{
   const paragrafo=rows.find(row=>row.node.id==="p1")!;
   expect(paragrafo.parentId).toBe("a");
   expect(paragrafo.depth).toBe(2);
+ });
+ it("registra e remove o ponto para revisão sem tocar na apreciação",()=>{
+  const apreciado=setStatus(base(),"a","aprovado");
+  const marcado=setRevisao(apreciado,"a","  Conferir quórum.  ");
+  expect(revisaoOf(findNode(marcado.nodes,"a")!)).toBe("Conferir quórum.");
+  expect(statusOf(findNode(marcado.nodes,"a")!)).toBe("aprovado");
+  const limpo=setRevisao(marcado,"a","   ");
+  expect(findNode(limpo.nodes,"a")?.revisao).toBeUndefined();
+  expect(revisaoOf(findNode(limpo.nodes,"a")!)).toBeNull();
+  expect(statusOf(findNode(limpo.nodes,"a")!)).toBe("aprovado");
+ });
+ it("editar a redação preserva o ponto para revisão",()=>{
+  const marcado=setRevisao(base(),"a","Definir prazos.");
+  expect(findNode(changeText(marcado,"a","Nova redação").nodes,"a")?.revisao).toBe("Definir prazos.");
+  expect(findNode(setRichText(marcado,"a",[{text:"a",marks:["bold"]}]).nodes,"a")?.revisao).toBe("Definir prazos.");
+ });
+ it("registra e remove vínculos com o Estatuto sem duplicatas",()=>{
+  const vinculado=setVinculos(base(),"a",["art-1","art-1"," art-2 "]);
+  expect(vinculosOf(findNode(vinculado.nodes,"a")!)).toEqual(["art-1","art-2"]);
+  const limpo=setVinculos(vinculado,"a",[]);
+  expect(findNode(limpo.nodes,"a")?.vinculos).toBeUndefined();
+  expect(findNode(changeText(vinculado,"a","Nova redação").nodes,"a")?.vinculos).toEqual(["art-1","art-2"]);
  });
 });

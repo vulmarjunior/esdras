@@ -2,21 +2,29 @@
 
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import {loadNovaMesaDraft,saveNovaMesaDraft,checkpointNovaMesaVersion,listNovaMesaVersions,readNovaMesaVersion,restoreNovaMesaVersion} from "@/app/actions/nova-mesa-draft";
+import {listarCandidatosVinculo} from "@/app/actions/nova-mesa-vinculos";
 import {
   canContain, Draft, DraftNode, findNode, flattenDraft, formatSelection, insertAfter,
-  labelFor, moveNode, newNode, NodeType, NovaMesaStatus, removeNode, setAlignment, setRichText, setStatus, statusOf,
+  labelFor, moveNode, newNode, NodeType, NovaMesaStatus, removeNode, revisaoOf, setAlignment, setRevisao, setRichText, setStatus, setVinculos, statusOf, vinculosOf,
 } from "@/lib/nova-mesa-poc/model";
+import {rotuloCandidato,sugerirLote,sugerirVinculos,type CandidatoVinculo} from "@/lib/nova-mesa-poc/vinculos";
 import { NOVAMESA_STATUS_LABELS } from "@/lib/labels";
-import { NovaMesaStatusMark } from "@/components/status-badge";
+import { NovaMesaStatusMark, ReviewMark } from "@/components/status-badge";
+import { AlignCenter, AlignJustify, AlignLeft, AlignRight, FileText, Sparkles } from "lucide-react";
 
 import { Alignment, Mark, TextRun, toRuns } from "@/lib/nova-mesa-poc/rich-text";
-import WorkspaceShell from "./workspace-shell";
+import WorkspaceShell, { type AcoesConsultaMesa } from "./workspace-shell";
 import ExportarDocumento from "./exportar-dialog";
+import ImportarDocumento from "./importar-dialog";
+import VinculosPanel from "./vinculos-panel";
+import CompararEstatuto from "./comparar-estatuto";
 
 const names: Record<NodeType,string> = {
   chapter:"Capítulo", section:"Seção", subsection:"Subseção", article:"Artigo", paragraph:"Parágrafo",
   inciso:"Inciso", alinea:"Alínea", free:"Texto livre",
 };
+const STATUS_CURTO: Record<NovaMesaStatus,string> = { pendente:"Pendente", em_analise:"Em análise", aprovado:"Apreciado" };
+const ALINHAMENTO_LABELS: Record<Alignment,string> = { left:"Alinhar à esquerda", center:"Centralizar", right:"Alinhar à direita", justify:"Justificar" };
 const initial:Draft={id:"estatuto-ibo-2026",nodes:[]};
 type Location={id:string,parentId:string|null};
 function bodyFrom(target:Node|null):HTMLElement|null{
@@ -54,12 +62,23 @@ export default function ContinuousEditorLab({canEdit}:{canEdit:boolean}){
   const live=useRef<Draft>(draft);
   const [selected,setSelected]=useState<Location|null>(null);
   const [hovered,setHovered]=useState<string|null>(null);
+  const [apoioAberto,setApoioAberto]=useState(true);
+  const [sumarioAberto,setSumarioAberto]=useState(true);
   const [insertOpen,setInsertOpen]=useState(false);
   const [transferOpen,setTransferOpen]=useState(false);
+  const [acoesOpen,setAcoesOpen]=useState(false);
+  const [candidatos,setCandidatos]=useState<CandidatoVinculo[]|null>(null);
+  const [candidatosErro,setCandidatosErro]=useState("");
+  const [loteAberto,setLoteAberto]=useState(false);
+  const [lotePrevia,setLotePrevia]=useState<ReturnType<typeof sugerirLote>|null>(null);
+  const [compararAberto,setCompararAberto]=useState(false);
   const [targetChapter,setTargetChapter]=useState("");
   const [targetAfter,setTargetAfter]=useState("__end__");
   const insertMenuRef=useRef<HTMLDivElement|null>(null);
   const insertButtonRef=useRef<HTMLButtonElement|null>(null);
+  const acoesRef=useRef<HTMLDivElement|null>(null);
+  const acoesButtonRef=useRef<HTMLButtonElement|null>(null);
+  const acoesConsulta=useRef<AcoesConsultaMesa|null>(null);
   const stickyBarRef=useRef<HTMLDivElement|null>(null);
   const [insertLeft,setInsertLeft]=useState(8);
   useEffect(()=>{
@@ -73,6 +92,24 @@ export default function ContinuousEditorLab({canEdit}:{canEdit:boolean}){
     document.addEventListener("keydown",closeEscape);
     return()=>{document.removeEventListener("pointerdown",closeOutside);document.removeEventListener("keydown",closeEscape);};
   },[insertOpen]);
+  useEffect(()=>{
+    if(!acoesOpen)return;
+    const closeOutside=(event:PointerEvent)=>{
+      const target=event.target as Node;
+      if(!acoesRef.current?.contains(target)&&!acoesButtonRef.current?.contains(target))setAcoesOpen(false);
+    };
+    const closeEscape=(event:KeyboardEvent)=>{if(event.key==="Escape"){setAcoesOpen(false);acoesButtonRef.current?.focus();}};
+    document.addEventListener("pointerdown",closeOutside);
+    document.addEventListener("keydown",closeEscape);
+    return()=>{document.removeEventListener("pointerdown",closeOutside);document.removeEventListener("keydown",closeEscape);};
+  },[acoesOpen]);
+  useEffect(()=>{
+    let ativo=true;
+    void listarCandidatosVinculo()
+      .then((itens)=>{if(ativo)setCandidatos(itens);})
+      .catch(()=>{if(ativo)setCandidatosErro("Não foi possível carregar o Estatuto registrado.");});
+    return ()=>{ativo=false;};
+  },[]);
   const selectedRef=useRef<Location|null>(null);
   const [notice,setNotice]=useState("");
   const [revision,setRevision]=useState(0);
@@ -190,7 +227,7 @@ export default function ContinuousEditorLab({canEdit}:{canEdit:boolean}){
   const root=useRef<HTMLDivElement|null>(null);
   const pendingFocus=useRef<string|null>(null);
   const rows=flattenDraft(draft);
-  const resumo=rows.reduce((acc,row)=>{acc[statusOf(row.node)]++;return acc;},{pendente:0,em_analise:0,aprovado:0});
+  const resumo=rows.reduce((acc,row)=>{acc[statusOf(row.node)]++;if(revisaoOf(row.node))acc.revisoes++;return acc;},{pendente:0,em_analise:0,aprovado:0,revisoes:0});
 
   // A redação digitada é registrada no modelo sem recriar o DOM a cada tecla.
   // Somente operações estruturais remontam os elementos e reposicionam o cursor.
@@ -232,7 +269,8 @@ export default function ContinuousEditorLab({canEdit}:{canEdit:boolean}){
       type==="section"?nearest(["chapter"]):
       type==="subsection"?nearest(["section"]):
       type==="article"?nearest(["subsection","section","chapter"]):
-      type==="paragraph"||type==="inciso"?nearest(["article"]):
+      type==="paragraph"?nearest(["article"]):
+      type==="inciso"?nearest(["paragraph","article"]):
       type==="alinea"?nearest(["inciso"]):
       existing&&["chapter","section","subsection","article"].includes(existing.type)?existing.id:current?.parentId??null;
     const parent=parentId?findNode(live.current.nodes,parentId):undefined;
@@ -246,6 +284,10 @@ export default function ContinuousEditorLab({canEdit}:{canEdit:boolean}){
     }catch(error){setNotice(error instanceof Error?error.message:"Não foi possível inserir.");}
   };
   const activeRow=selected?rows.find(row=>row.node.id===selected.id):undefined;
+  const candidatoMapa=new Map((candidatos??[]).map(candidato=>[candidato.id,candidato]));
+  const vinculosAtivos=activeRow?vinculosOf(activeRow.node):[];
+  const sugestoesAtivas=activeRow&&candidatos?sugerirVinculos(activeRow.node,candidatos,{limite:3}):[];
+  const candidatosAtivos=vinculosAtivos.map(id=>candidatoMapa.get(id)).filter((candidato):candidato is CandidatoVinculo=>!!candidato);
   const suggested:NodeType=activeRow?.node.type==="inciso"?"inciso":activeRow?.node.type==="alinea"?"alinea":activeRow?.node.type==="paragraph"?"paragraph":activeRow?.node.type==="article"?(activeRow.node.children.some(n=>n.type==="inciso")?"inciso":activeRow.node.children.some(n=>n.type==="paragraph")?"paragraph":"article"):activeRow?.node.type==="chapter"?"article":activeRow?.node.type==="section"?"article":activeRow?.node.type==="subsection"?"article":"chapter";
   const contextualTypes=([suggested,"article","paragraph","inciso","alinea","chapter","section","subsection","free"] as NodeType[]).filter((type,index,array)=>array.indexOf(type)===index);
   useEffect(()=>{
@@ -363,9 +405,9 @@ export default function ContinuousEditorLab({canEdit}:{canEdit:boolean}){
     anchor.click();URL.revokeObjectURL(url);setSavedLocal(true);
     setNotice("Cópia JSON exportada. Não substitui salvamento no servidor.");
   };
-  const outline=rows.filter(row=>["chapter","section","subsection","article"].includes(row.node.type)).map(row=>({
+  const outline=rows.filter(row=>row.node.type==="chapter").map(row=>({
     id:row.node.id,label:labelFor(row.node,row.siblings,row.articleNumber,row.chapterNumber).trim(),
-    title:row.node.text,depth:row.depth,status:statusOf(row.node),
+    title:row.node.text,depth:row.depth,status:statusOf(row.node),revisao:revisaoOf(row.node)!==null,
   }));
   const navigate=(id:string)=>{
     const row=rows.find(entry=>entry.node.id===id);if(!row)return;
@@ -373,53 +415,127 @@ export default function ContinuousEditorLab({canEdit}:{canEdit:boolean}){
     Array.from(root.current?.querySelectorAll<HTMLElement>("[data-node-id]")??[])
       .find(element=>element.dataset.nodeId===id)?.scrollIntoView({behavior:"smooth",block:"center"});
   };
+  const salvarRevisao=(texto:string)=>{
+    const current=selectedRef.current;
+    if(!editable||!current||!texto.trim())return;
+    commit(setRevisao(live.current,current.id,texto),current.id);
+    setNotice("Ponto para revisão registrado.");
+  };
+  const resolverRevisao=()=>{
+    const current=selectedRef.current;
+    if(!editable||!current)return;
+    commit(setRevisao(live.current,current.id,""),current.id);
+    setNotice("Ponto para revisão resolvido.");
+  };
+  const adicionarVinculo=(id:string)=>{
+    const current=selectedRef.current;
+    if(!editable||!current)return;
+    const node=findNode(live.current.nodes,current.id);
+    if(!node)return;
+    commit(setVinculos(live.current,current.id,[...vinculosOf(node),id]),current.id);
+    setNotice("Vínculo com o Estatuto registrado.");
+  };
+  const removerVinculo=(id:string)=>{
+    const current=selectedRef.current;
+    if(!editable||!current)return;
+    const node=findNode(live.current.nodes,current.id);
+    if(!node)return;
+    commit(setVinculos(live.current,current.id,vinculosOf(node).filter(item=>item!==id)),current.id);
+    setNotice("Vínculo removido.");
+  };
+  const abrirSugestaoLote=()=>{
+    if(!editable||!candidatos)return;
+    setLotePrevia(sugerirLote(live.current,candidatos));
+    setLoteAberto(true);
+  };
+  const aplicarSugestaoLote=()=>{
+    if(!editable||!lotePrevia)return;
+    let next=live.current;
+    for(const item of lotePrevia.alta) next=setVinculos(next,item.nodeId,[item.sugestao.id]);
+    commit(next);
+    setLoteAberto(false);
+    setNotice(lotePrevia.alta.length?`${lotePrevia.alta.length} vínculo(s) de alta confiança aplicado(s).`:"Nenhum vínculo de alta confiança encontrado.");
+  };
   return <WorkspaceShell outline={outline} onNavigate={navigate} summary={resumo}
-    selectedLabel={selected?names[findNode(draft.nodes,selected.id)?.type??"free"]:null}>
+    selectedLabel={selected?names[findNode(draft.nodes,selected.id)?.type??"free"]:null}
+    selectedId={selected?.id??null}
+    sumarioAberto={sumarioAberto} apoioAberto={apoioAberto} onSumarioChange={setSumarioAberto} onApoioChange={setApoioAberto} acoesRef={acoesConsulta}
+    revisao={activeRow?revisaoOf(activeRow.node):null}
+    podeEditarRevisao={editable}
+    onSalvarRevisao={salvarRevisao} onResolverRevisao={resolverRevisao}
+    apoioDispositivo={<VinculosPanel candidatos={candidatos} erro={candidatosErro} vinculos={vinculosAtivos} sugestoes={sugestoesAtivas}
+      podeEditar={editable} dispositivoAtivo={!!selected} onVincular={adicionarVinculo} onRemover={removerVinculo}
+      onSugerirLote={abrirSugestaoLote} onComparar={()=>setCompararAberto(true)}/>}>
     <main className="min-w-0">
 
 
-    <div ref={stickyBarRef} className="sticky top-0 z-30 mb-2 md:top-12 flex flex-wrap items-center gap-2 rounded-lg border bg-background/95 px-3 py-2 text-sm shadow-md backdrop-blur">
-      <span role="status">{loading?"Carregando minuta…":loadingError?"Carregamento indisponível":conflict?"Conflito de versões":saving?"Salvando…":marking?"Registrando marco histórico…":dirty?"Alterações pendentes · autosave em 2,5 s":"Minuta salva"}{!loading&&!loadingError?" · versão "+version:""}</span>
-      <button type="button" disabled={!canEdit||loading||!!loadingError||conflict||saving||marking} className="rounded border border-primary/40 bg-primary/10 px-3 py-2 font-semibold text-foreground disabled:opacity-50" onClick={()=>{if(dirtyRef.current){if(autoTimer.current){clearTimeout(autoTimer.current);autoTimer.current=null;}void save();}else setNotice("Todas as alterações já estão salvas no servidor · versão "+versionRef.current+".");}}>{saving?"Salvando…":"Salvar agora"}</button>
-      <button type="button" disabled={!canEdit||loading||!!loadingError||conflict||saving||marking} className="rounded border px-3 py-2 font-semibold disabled:opacity-50" onClick={()=>{void saveVersion();}}>{marking?"Registrando versão…":"Salvar versão"}</button>
-      <button ref={insertButtonRef} type="button" disabled={!editable} aria-expanded={insertOpen} aria-controls="nova-mesa-insert-menu" className="rounded border border-blue-500 bg-blue-50 px-3 py-2 font-semibold text-blue-900 disabled:opacity-50" onClick={()=>{const bar=stickyBarRef.current?.getBoundingClientRect(),button=insertButtonRef.current?.getBoundingClientRect();if(bar&&button)setInsertLeft(Math.max(8,Math.min(button.left-bar.left,bar.width-360)));setInsertOpen(v=>!v);}}>+ Inserir dispositivo</button>
-      <span className="rounded bg-muted px-2 py-1 font-medium">{activeRow?labelFor(activeRow.node,activeRow.siblings,activeRow.articleNumber,activeRow.chapterNumber).trim()+" · "+names[activeRow.node.type]+" ativo":"Nenhum dispositivo ativo"}</span>
-      <button type="button" disabled={loading||dirty||saving||marking} className="rounded border px-3 py-2 disabled:opacity-50" onClick={()=>{void load();}}>Recarregar</button>
-      <button type="button" disabled={loading||!!loadingError} className="rounded border px-3 py-2 disabled:opacity-50" onClick={()=>{void showHistory();}}>Histórico de versões</button>
-      {loadingError&&<p role="alert" className="w-full text-red-700">{loadingError}</p>}
-      <span className="text-xs text-muted-foreground">Autosave preserva o rascunho; «Salvar versão» cria um marco no histórico.</span>
-      {saveError&&<p role="alert" className="w-full text-red-700">{saveError}</p>}
-      {!canEdit&&<p className="w-full text-amber-700">Acesso somente leitura: seu perfil não pode alterar a nova minuta.</p>}
-      <div className="w-full">
-    <div role="toolbar" aria-label="Formatação do dispositivo ativo" className="flex flex-wrap items-center gap-1.5 border-t pt-2">
-      {(["bold","italic","underline"] as Mark[]).map(mark=>
-        <button type="button" key={mark} title={mark} disabled={!editable} onMouseDown={event=>event.preventDefault()} onClick={()=>format(mark)}
-          className="rounded border px-2.5 py-1.5 text-sm">{mark==="bold"?<strong>B</strong>:mark==="italic"?<em>I</em>:<u>U</u>}</button>)}
-      {(["left","center","right","justify"] as Alignment[]).map(alignment=>
-        <button type="button" key={alignment} title={alignment} disabled={!editable} onMouseDown={event=>event.preventDefault()} onClick={()=>align(alignment)}
-          className="rounded border px-3 py-2 text-sm">{alignment==="left"?"Esquerda":alignment==="center"?"Centro":alignment==="right"?"Direita":"Justificar"}</button>)}
-      <div role="toolbar" aria-label="Organização dos dispositivos" className="flex flex-wrap items-center gap-1.5 border-t pt-2">
-        <span className="mr-1 text-xs font-semibold text-muted-foreground">Organização</span>
-      <div role="toolbar" aria-label="Apreciação do dispositivo ativo" className="flex flex-wrap items-center gap-1">
-        {(["pendente","em_analise","aprovado"] as NovaMesaStatus[]).map(status=>{const ativo=activeRow?statusOf(activeRow.node)===status:false;return (
-          <button key={status} type="button" disabled={!editable||!activeRow} aria-pressed={ativo} onMouseDown={event=>event.preventDefault()} onClick={()=>changeStatus(status)}
-            className={"rounded border px-2.5 py-1.5 text-sm font-semibold disabled:opacity-50 "+(ativo?(status==="aprovado"?"border-emerald-500 bg-emerald-50 text-emerald-800":status==="em_analise"?"border-blue-500 bg-blue-50 text-blue-800":"border-zinc-400 bg-zinc-100 text-zinc-700"):"")}>
-            {status==="aprovado"&&<span aria-hidden="true">✓ </span>}{NOVAMESA_STATUS_LABELS[status]}
-          </button>
-        );})}
+    <div ref={stickyBarRef} className="sticky top-0 z-30 mb-2 rounded-lg border bg-background/95 px-3 py-2 text-sm shadow-md backdrop-blur md:top-12">
+      <div className="flex flex-wrap items-center gap-2">
+        <span role="status" title="Autosave preserva o rascunho; «Salvar versão» cria um marco no histórico.">
+          {loading?"Carregando minuta…":loadingError?"Carregamento indisponível":conflict?"Conflito de versões":saving?"Salvando…":marking?"Registrando marco…":dirty?"Alterações pendentes":"Minuta salva"}{!loading&&!loadingError?" · v"+version:""}
+        </span>
+        <button type="button" disabled={!canEdit||loading||!!loadingError||conflict||saving||marking} className="rounded border border-primary/40 bg-primary/10 px-3 py-1.5 font-semibold text-foreground disabled:opacity-50" onClick={()=>{if(dirtyRef.current){if(autoTimer.current){clearTimeout(autoTimer.current);autoTimer.current=null;}void save();}else setNotice("Todas as alterações já estão salvas no servidor · versão "+versionRef.current+".");}}>{saving?"Salvando…":"Salvar agora"}</button>
+        <button type="button" disabled={!canEdit||loading||!!loadingError||conflict||saving||marking} className="rounded border px-3 py-1.5 font-semibold disabled:opacity-50" onClick={()=>{void saveVersion();}}>{marking?"Registrando…":"Salvar versão"}</button>
+        <button ref={insertButtonRef} type="button" disabled={!editable} aria-expanded={insertOpen} aria-controls="nova-mesa-insert-menu" className="rounded border border-blue-500 bg-blue-50 px-3 py-1.5 font-semibold text-blue-900 disabled:opacity-50" onClick={()=>{const bar=stickyBarRef.current?.getBoundingClientRect(),button=insertButtonRef.current?.getBoundingClientRect();if(bar&&button)setInsertLeft(Math.max(8,Math.min(button.left-bar.left,bar.width-360)));setInsertOpen(v=>!v);}}>+ Inserir dispositivo</button>
+        <span className="rounded bg-muted px-2 py-1 font-medium">{activeRow?labelFor(activeRow.node,activeRow.siblings,activeRow.articleNumber,activeRow.chapterNumber).trim()+" · "+names[activeRow.node.type]+" ativo":"Nenhum dispositivo ativo"}</span>
+        <span className="h-5 w-px bg-border" aria-hidden="true"/>
+        <div role="group" aria-label="Painéis e consulta" className="flex items-center gap-1">
+          <button type="button" aria-pressed={sumarioAberto} title={sumarioAberto?"Ocultar sumário":"Mostrar sumário"}
+            className={"inline-flex items-center gap-1.5 rounded border px-2.5 py-1.5 text-sm "+(sumarioAberto?"":"border-primary/50 bg-primary/10 font-semibold")}
+            onClick={()=>setSumarioAberto(!sumarioAberto)}>{sumarioAberto?"Sumário":"Mostrar sumário"}</button>
+          <button type="button" aria-pressed={apoioAberto} title={apoioAberto?"Ocultar apoio":"Mostrar apoio"}
+            className={"inline-flex items-center gap-1.5 rounded border px-2.5 py-1.5 text-sm "+(apoioAberto?"":"border-primary/50 bg-primary/10 font-semibold")}
+            onClick={()=>setApoioAberto(!apoioAberto)}>{apoioAberto?"Apoio":"Mostrar apoio"}</button>
+          <button type="button" title="Consultar documento (TXT, MD ou PDF)" aria-label="Consultar documento" className="rounded border px-2 py-1.5" onClick={()=>acoesConsulta.current?.abrirArquivoLocal()}><FileText className="h-4 w-4"/></button>
+          <button type="button" title="Consultar com IA · Groq" aria-label="Consultar com IA · Groq" className="rounded border px-2 py-1.5" onClick={()=>acoesConsulta.current?.abrirConsultaIA()}><Sparkles className="h-4 w-4"/></button>
+        </div>
+        <span className="ml-auto flex flex-wrap items-center gap-2">
+          <button type="button" disabled={loading||dirty||saving||marking} className="rounded border px-3 py-1.5 disabled:opacity-50" onClick={()=>{void load();}}>Recarregar</button>
+          <button type="button" disabled={loading||!!loadingError} className="rounded border px-3 py-1.5 disabled:opacity-50" onClick={()=>{void showHistory();}}>Histórico</button>
+        </span>
       </div>
-      <button type="button" className="rounded border px-2.5 py-1.5 text-sm disabled:opacity-50" title="Mover o dispositivo ativo para cima" disabled={!editable||!selected} onMouseDown={event=>event.preventDefault()} onClick={()=>move(-1)}>↑ Mover</button>
-      <button type="button" className="rounded border px-2.5 py-1.5 text-sm disabled:opacity-50" title="Mover o dispositivo ativo para baixo" disabled={!editable||!selected} onMouseDown={event=>event.preventDefault()} onClick={()=>move(1)}>↓ Mover</button>
-      <button type="button" className="rounded border px-2.5 py-1.5 text-sm disabled:opacity-50" title="Transferir o artigo ativo para outro capítulo" disabled={!editable||!movingArticle||chapters.length===0} onMouseDown={event=>event.preventDefault()} onClick={()=>{if(!movingArticle)return;const initial=chapters.find(row=>row.node.id!==movingArticle.parentId)??chapters[0];setTargetChapter(initial.node.id);setTargetAfter("__end__");setTransferOpen(v=>!v);setInsertOpen(false);}}>Mover para capítulo…</button>
-      <button type="button" className="rounded border px-2.5 py-1.5 text-sm disabled:opacity-50" title="Remover dispositivo ativo" disabled={!editable||!selected} onMouseDown={event=>event.preventDefault()} onClick={()=>{
-        const current=selectedRef.current;if(!current)return;commit(removeNode(live.current,current.id));selectedRef.current=null;setSelected(null);
-      }}>Retirar</button>
-      <button type="button" className="rounded border px-2.5 py-1.5 text-sm disabled:opacity-50" title="Desfazer a última alteração estrutural" disabled={!editable||!undo.length} onMouseDown={event=>event.preventDefault()} onClick={()=>{
-        const prior=undo.at(-1);if(!prior)return;live.current=prior;setDraft(prior);setRevision(n=>n+1);
-        setUndo(history=>history.slice(0,-1));selectedRef.current=null;setSelected(null);markDirty();
-      }}>Desfazer estrutura</button>
-      </div>
-    </div>
+      {(loadingError||saveError||!canEdit)&&<div className="mt-1 space-y-1">
+        {loadingError&&<p role="alert" className="text-red-700">{loadingError}</p>}
+        {saveError&&<p role="alert" className="text-red-700">{saveError}</p>}
+        {!canEdit&&<p className="text-amber-700">Acesso somente leitura: seu perfil não pode alterar a nova minuta.</p>}
+      </div>}
+      <div role="toolbar" aria-label="Ações sobre o dispositivo ativo" className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-2 border-t pt-2">
+        <div role="group" aria-label="Formatação" className="flex items-center gap-1">
+          {(["bold","italic","underline"] as Mark[]).map(mark=>
+            <button type="button" key={mark} title={mark} disabled={!editable} onMouseDown={event=>event.preventDefault()} onClick={()=>format(mark)}
+              className="rounded border px-2.5 py-1.5 text-sm">{mark==="bold"?<strong>B</strong>:mark==="italic"?<em>I</em>:<u>U</u>}</button>)}
+        </div>
+        <span className="h-5 w-px bg-border" aria-hidden="true"/>
+        <div role="group" aria-label="Alinhamento" className="flex items-center gap-1">
+          {([["left",AlignLeft],["center",AlignCenter],["right",AlignRight],["justify",AlignJustify]] as const).map(([alignment,Icon])=>
+            <button type="button" key={alignment} title={ALINHAMENTO_LABELS[alignment]} aria-label={ALINHAMENTO_LABELS[alignment]} disabled={!editable} onMouseDown={event=>event.preventDefault()} onClick={()=>align(alignment)}
+              className="rounded border px-2.5 py-1.5 disabled:opacity-50"><Icon className="h-4 w-4"/></button>)}
+        </div>
+        <span className="h-5 w-px bg-border" aria-hidden="true"/>
+        <div role="group" aria-label="Apreciação do dispositivo ativo" className="flex items-center gap-1">
+          {(["pendente","em_analise","aprovado"] as NovaMesaStatus[]).map(status=>{const ativo=activeRow?statusOf(activeRow.node)===status:false;return (
+            <button key={status} type="button" disabled={!editable||!activeRow} aria-pressed={ativo} title={NOVAMESA_STATUS_LABELS[status]} onMouseDown={event=>event.preventDefault()} onClick={()=>changeStatus(status)}
+              className={"rounded border px-2.5 py-1.5 text-sm font-semibold disabled:opacity-50 "+(ativo?(status==="aprovado"?"border-emerald-500 bg-emerald-50 text-emerald-800":status==="em_analise"?"border-blue-500 bg-blue-50 text-blue-800":"border-zinc-400 bg-zinc-100 text-zinc-700"):"")}>
+              {status==="aprovado"&&<span aria-hidden="true">✓ </span>}{STATUS_CURTO[status]}
+            </button>
+          );})}
+        </div>
+        <span className="h-5 w-px bg-border" aria-hidden="true"/>
+        <div className="flex items-center gap-1">
+          <button type="button" className="rounded border px-2.5 py-1.5 text-sm disabled:opacity-50" title="Mover o dispositivo ativo para cima" disabled={!editable||!selected} onMouseDown={event=>event.preventDefault()} onClick={()=>move(-1)}>↑</button>
+          <button type="button" className="rounded border px-2.5 py-1.5 text-sm disabled:opacity-50" title="Mover o dispositivo ativo para baixo" disabled={!editable||!selected} onMouseDown={event=>event.preventDefault()} onClick={()=>move(1)}>↓</button>
+          <div className="relative" ref={acoesRef}>
+            <button ref={acoesButtonRef} type="button" aria-expanded={acoesOpen} className="rounded border px-2.5 py-1.5 text-sm font-semibold" onMouseDown={event=>event.preventDefault()} onClick={()=>{setAcoesOpen(v=>!v);setInsertOpen(false);setTransferOpen(false);}}>Mais ações ▾</button>
+            {acoesOpen&&<div className="absolute right-0 top-full z-50 mt-1 w-60 space-y-1 rounded-lg border bg-background p-2 text-left shadow-xl">
+              <button type="button" className="w-full rounded border px-3 py-2 text-left text-sm disabled:opacity-50" title="Transferir o artigo ativo para outro capítulo" disabled={!editable||!movingArticle||chapters.length===0}
+                onClick={()=>{if(!movingArticle)return;const initial=chapters.find(row=>row.node.id!==movingArticle.parentId)??chapters[0];setTargetChapter(initial.node.id);setTargetAfter("__end__");setTransferOpen(true);setInsertOpen(false);setAcoesOpen(false);}}>Mover para capítulo…</button>
+              <button type="button" className="w-full rounded border px-3 py-2 text-left text-sm disabled:opacity-50" title="Remover o dispositivo ativo da minuta" disabled={!editable||!selected}
+                onClick={()=>{const current=selectedRef.current;if(!current)return;commit(removeNode(live.current,current.id));selectedRef.current=null;setSelected(null);setAcoesOpen(false);}}>Retirar dispositivo</button>
+              <button type="button" className="w-full rounded border px-3 py-2 text-left text-sm disabled:opacity-50" title="Desfazer a última alteração estrutural" disabled={!editable||!undo.length}
+                onClick={()=>{const prior=undo.at(-1);if(!prior)return;live.current=prior;setDraft(prior);setRevision(n=>n+1);setUndo(history=>history.slice(0,-1));selectedRef.current=null;setSelected(null);markDirty();setAcoesOpen(false);}}>Desfazer estrutura</button>
+            </div>}
+          </div>
+        </div>
       </div>
       {transferOpen&&movingArticle&&<section className="absolute top-full right-2 z-50 mt-1 w-[min(420px,calc(100vw-32px))] space-y-3 rounded-lg border bg-background p-3 shadow-xl" aria-label="Transferir artigo para outro capítulo">
         <div className="flex items-center justify-between gap-2"><strong className="text-sm">Mover artigo para outro capítulo</strong><button type="button" className="rounded border px-2 py-1 text-xs" onClick={()=>setTransferOpen(false)}>Fechar</button></div>
@@ -438,8 +554,41 @@ export default function ContinuousEditorLab({canEdit}:{canEdit:boolean}){
         </label>
         <button type="button" className="rounded border border-blue-500 bg-blue-50 px-3 py-2 text-sm font-semibold text-blue-900 disabled:opacity-50" disabled={!editable||!destination||targetChapter===movingArticle.parentId&&targetAfter==="__end__"} onClick={transferArticle}>Confirmar transferência</button>
       </section>}
+
       {insertOpen&&<div id="nova-mesa-insert-menu" ref={insertMenuRef} style={{left:insertLeft}} className="absolute top-full z-50 mt-1 grid max-h-[min(65vh,450px)] w-[min(360px,calc(100vw-32px))] grid-cols-2 gap-1.5 overflow-y-auto rounded-lg border bg-background p-3 shadow-xl" role="group" aria-label="Inserir dispositivo"><span className="col-span-2 mb-1 text-xs text-muted-foreground">Sugestão: {names[suggested]}. Escolha o dispositivo para continuar a redação.</span>{contextualTypes.map(type=><button type="button" key={type} disabled={!editable} className={"rounded border px-2 py-2 text-left text-sm disabled:opacity-50 "+(type===suggested?"border-blue-500 bg-blue-50 font-semibold text-blue-900":"")} onClick={()=>add(type)}>+ {names[type]}{type===suggested?" · sugerido":""}</button>)}</div>}
     </div>
+
+    {compararAberto&&activeRow&&<section aria-label="Comparar com o Estatuto" className="mb-4 min-w-0 rounded-lg border p-4">
+      <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+        <h2 className="font-semibold">Comparar com o Estatuto · {labelFor(activeRow.node,activeRow.siblings,activeRow.articleNumber,activeRow.chapterNumber).trim()}</h2>
+        <button type="button" className="rounded border px-3 py-1" onClick={()=>setCompararAberto(false)}>Fechar</button>
+      </div>
+      <CompararEstatuto redacaoAtual={activeRow.node.text} candidatos={candidatosAtivos}/>
+    </section>}
+
+    {loteAberto&&lotePrevia&&<section aria-label="Sugestões de vínculo" className="mb-4 min-w-0 rounded-lg border p-4">
+      <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+        <h2 className="font-semibold">Sugerir vínculos com o Estatuto</h2>
+        <button type="button" className="rounded border px-3 py-1" onClick={()=>setLoteAberto(false)}>Fechar</button>
+      </div>
+      <p className="mb-2 text-sm text-muted-foreground">Alta confiança: <strong>{lotePrevia.alta.length}</strong> · para revisar: <strong>{lotePrevia.revisar.length}</strong> · sem sugestão: <strong>{lotePrevia.semSugestao.length}</strong>. Dispositivos já vinculados não são alterados.</p>
+      {lotePrevia.alta.length>0&&<div className="mb-3 max-h-60 min-w-0 space-y-1 overflow-y-auto rounded border p-2 text-xs">
+        {lotePrevia.alta.slice(0,40).map(item=>{const row=rows.find(entry=>entry.node.id===item.nodeId);const candidato=candidatoMapa.get(item.sugestao.id);return <p key={item.nodeId}>
+          <strong>{row?labelFor(row.node,row.siblings,row.articleNumber,row.chapterNumber).trim():item.nodeId}</strong> → {candidato?rotuloCandidato(candidato):item.sugestao.id} {item.sugestao.igual?"(texto igual)":"("+Math.round(item.sugestao.score*100)+"%)"}
+        </p>;})}
+        {lotePrevia.alta.length>40&&<p className="text-muted-foreground">… e mais {lotePrevia.alta.length-40}.</p>}
+      </div>}
+      {lotePrevia.revisar.length>0&&<div className="mb-3 max-h-40 min-w-0 space-y-0.5 overflow-y-auto rounded border border-dashed p-2 text-xs">
+        <p className="font-semibold text-muted-foreground">Para revisar individualmente (clique para abrir o dispositivo)</p>
+        {lotePrevia.revisar.slice(0,20).map(item=>{const row=rows.find(entry=>entry.node.id===item.nodeId);const candidato=candidatoMapa.get(item.sugestao.id);return <button type="button" key={item.nodeId} className="block w-full rounded px-1 py-0.5 text-left hover:bg-muted" onClick={()=>navigate(item.nodeId)}>
+          <strong>{row?labelFor(row.node,row.siblings,row.articleNumber,row.chapterNumber).trim():item.nodeId}</strong> → {candidato?rotuloCandidato(candidato):item.sugestao.id} ({Math.round(item.sugestao.score*100)}%)
+        </button>;})}
+        {lotePrevia.revisar.length>20&&<p className="text-muted-foreground">… e mais {lotePrevia.revisar.length-20}.</p>}
+      </div>}
+      <button type="button" disabled={!editable||lotePrevia.alta.length===0} className="rounded border border-sky-400 bg-sky-100 px-3 py-2 text-sm font-semibold text-sky-900 disabled:opacity-50" onClick={aplicarSugestaoLote}>
+        Aplicar {lotePrevia.alta.length} vínculo(s) de alta confiança
+      </button>
+    </section>}
 
     {historyOpen&&<section aria-label="Histórico de versões da nova minuta" className="mb-4 min-w-0 rounded-lg border p-4">
       <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
@@ -469,13 +618,10 @@ export default function ContinuousEditorLab({canEdit}:{canEdit:boolean}){
       </div>}
     </section>}
 
-    <div className="mb-3 flex flex-wrap gap-2">
-      {(["chapter","section","subsection","article","paragraph","inciso","alinea","free"] as NodeType[]).map(type=>
-        <button type="button" key={type} disabled={!editable} className="rounded border px-3 py-2 text-sm" onClick={()=>add(type)}>+ {names[type]}</button>)}
-    </div>
     <div className="mb-2 flex flex-wrap items-center gap-1.5">
       <button type="button" className="rounded border px-3 py-1" onClick={download}>Exportar cópia (JSON)</button>
       <ExportarDocumento versao={version} dirty={dirty}/>
+      <ImportarDocumento versao={version} dirty={dirty} draft={draft} onImportado={async(novaVersao)=>{dirtyRef.current=false;setDirty(false);await load();setNotice("Minuta importada · versão "+novaVersao+".");}}/>
       <span className="text-xs text-amber-700">{savedLocal?"Cópia JSON exportada; alterações posteriores requerem nova exportação.":dirty?"Alterações locais pendentes: salve antes de sair.":"Use Exportar JSON para criar uma cópia independente."}</span>
 
 
@@ -496,6 +642,9 @@ export default function ContinuousEditorLab({canEdit}:{canEdit:boolean}){
         <div className="min-w-0 flex-1">
         {selected?.id===row.node.id&&<div contentEditable={false} className="mb-1 flex flex-wrap items-center gap-2 text-xs text-blue-800"><strong>{names[row.node.type]} ativo</strong><span className="font-medium text-blue-700">{NOVAMESA_STATUS_LABELS[status]}</span><button type="button" disabled={!editable} className="rounded border border-blue-400 bg-white px-2 py-1 font-semibold disabled:opacity-50" onMouseDown={event=>event.preventDefault()} onClick={()=>{setInsertOpen(v=>!v);}}>+ Inserir após / dentro</button><button type="button" disabled={!editable} className="rounded border bg-white px-2 py-1 disabled:opacity-50" onMouseDown={event=>event.preventDefault()} onClick={()=>add(suggested)}>+ {names[suggested]} sugerido</button></div>}
         <span contentEditable={false} className="select-none font-semibold">{labelFor(row.node,row.siblings,row.articleNumber,row.chapterNumber)}</span>
+        {revisaoOf(row.node)&&<button type="button" contentEditable={false} title={"Ponto para revisão: "+revisaoOf(row.node)} aria-label="Ponto para revisão — abrir no painel de apoio"
+          className="mx-1 mt-1 inline-flex shrink-0 align-middle" onMouseDown={event=>event.preventDefault()}
+          onClick={()=>{choose({id:row.node.id,parentId:row.parentId});setApoioAberto(true);}}><ReviewMark/></button>}
         <span contentEditable={editable} suppressContentEditableWarning onInput={onInput} onBeforeInput={event=>onBeforeInput(event.nativeEvent as InputEvent)} onPaste={onPaste} data-body-id={row.node.id} data-poc-body="true" className={"inline-block min-w-[55%] whitespace-pre-wrap align-top outline-offset-2 "+(["chapter","section","subsection"].includes(row.node.type)?"font-bold":"")}
           style={{textAlign:row.node.alignment??(["chapter","section","subsection"].includes(row.node.type)?"center":"justify")}} data-placeholder={row.node.type==="free"?"Texto livre reservado":"Redação pendente"}></span>
         {row.node.type==="free"&&<span contentEditable={false} className="ml-2 select-none text-xs text-amber-700">Provisório · reservado</span>}

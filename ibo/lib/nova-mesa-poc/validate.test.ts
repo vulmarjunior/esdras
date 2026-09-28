@@ -41,4 +41,24 @@ describe("validação da minuta independente",()=>{
     const quebrado=draft();(quebrado.nodes[0].children[0] as {approved?:unknown}).approved="sim";
     expect(()=>validateDraft(quebrado)).toThrow("Marcação de aprovação");
   });
+  it("normaliza o ponto para revisão e recusa valores inválidos",()=>{
+    const comPonto=draft();comPonto.nodes[0].children[0].revisao="  Conferir prazos.  ";
+    expect(validateDraft(comPonto).nodes[0].children[0].revisao).toBe("Conferir prazos.");
+    const vazio=draft();vazio.nodes[0].children[0].revisao="   ";
+    expect(validateDraft(vazio).nodes[0].children[0].revisao).toBeUndefined();
+    const quebrado=draft();(quebrado.nodes[0].children[0] as {revisao?:unknown}).revisao=42;
+    expect(()=>validateDraft(quebrado)).toThrow("Ponto de revisão");
+    const longo=draft();longo.nodes[0].children[0].revisao="x".repeat(2_001);
+    expect(()=>validateDraft(longo)).toThrow("Ponto de revisão");
+  });
+  it("normaliza vínculos e recusa listas inválidas",()=>{
+    const comVinculos=draft();comVinculos.nodes[0].children[0].vinculos=["art-1","art-1"," art-2 "];
+    expect(validateDraft(comVinculos).nodes[0].children[0].vinculos).toEqual(["art-1","art-2"]);
+    const vazios=draft();vazios.nodes[0].children[0].vinculos=["  "];
+    expect(validateDraft(vazios).nodes[0].children[0].vinculos).toBeUndefined();
+    const muitos=draft();muitos.nodes[0].children[0].vinculos=Array.from({length:11},(_,i)=>"provision-"+i);
+    expect(()=>validateDraft(muitos)).toThrow("Vínculos");
+    const quebrado=draft();(quebrado.nodes[0].children[0] as {vinculos?:unknown}).vinculos=[1];
+    expect(()=>validateDraft(quebrado)).toThrow("Vínculo inválido");
+  });
 });

@@ -22,6 +22,9 @@ export const NOVAMESA_STATUS_SHORT: Record<string, string> = {
   aprovado: "apreciado",
 };
 
+/** Alerta editorial da nova minuta, independente da apreciação. */
+export const REVISAO_LABEL = "Ponto para revisão";
+
 export const STATUS_VARIANTS: Record<string, string> = {
   nao_iniciado: "secondary",
   em_analise: "outline",

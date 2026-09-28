@@ -43,6 +43,19 @@ export function validateDraft(value:unknown):Draft{
       if(node.runs!==undefined)clean.runs=node.runs;
       if(node.alignment!==undefined)clean.alignment=node.alignment;
       if(status!=="pendente")clean.status=status;
+      if(node.revisao!==undefined){
+        if(typeof node.revisao!=="string"||node.revisao.length>2_000)throw new Error("Ponto de revisão inválido.");
+        const revisao=node.revisao.trim();
+        if(revisao)clean.revisao=revisao;
+      }
+      if(node.vinculos!==undefined){
+        if(!Array.isArray(node.vinculos)||node.vinculos.length>10)throw new Error("Vínculos inválidos.");
+        const vinculos=[...new Set(node.vinculos.map(item=>{
+          if(typeof item!=="string"||item.length>120)throw new Error("Vínculo inválido.");
+          return item.trim();
+        }).filter(Boolean))];
+        if(vinculos.length)clean.vinculos=vinculos;
+      }
       normalized.push(clean);
     }
     return normalized;

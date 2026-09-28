@@ -272,3 +272,21 @@ CREATE TABLE IF NOT EXISTS audit_logs (
   detail TEXT,
   created_at TEXT NOT NULL DEFAULT (to_char(now(), 'YYYY-MM-DD HH24:MI:SS'))
 );
+
+CREATE TABLE IF NOT EXISTS nova_mesa_drafts (
+  id TEXT PRIMARY KEY,
+  content JSONB NOT NULL,
+  version INTEGER NOT NULL DEFAULT 0 CHECK (version >= 0),
+  updated_by BIGINT REFERENCES users(id),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS nova_mesa_draft_versions (
+  id BIGSERIAL PRIMARY KEY,
+  draft_id TEXT NOT NULL REFERENCES nova_mesa_drafts(id) ON DELETE RESTRICT,
+  version INTEGER NOT NULL,
+  content JSONB NOT NULL,
+  author_id BIGINT REFERENCES users(id),
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  UNIQUE (draft_id, version)
+);

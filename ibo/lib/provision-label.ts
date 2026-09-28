@@ -1,7 +1,7 @@
 import type { Provision } from "./types";
 
 /** Rótulo exibido para um dispositivo. Módulo puro (sem dependências de banco). */
-export function provisionLabel(p: Provision): string {
+export function provisionLabel(p: Pick<Provision, "id" | "type" | "numero" | "titulo">): string {
   const novoTipo = (tipo: string) => `NOVO ${tipo}`;
   const artigoNumero = p.numero && /^\d+$/.test(p.numero)
     ? (Number(p.numero) < 10 ? `${p.numero}º` : p.numero)

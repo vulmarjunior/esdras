@@ -16,18 +16,20 @@ export async function listConsultationDocuments():Promise<ConsultationItem[]> {
   const books=await all<{id:number;titulo:string;autor:string|null}>("SELECT id, titulo, autor FROM library_books ORDER BY ordem, titulo");
   return [
     {id:"statute:current",title:"Estatuto vigente (versão histórica)",group:"Estatutos"},
+    {id:"statute:initial",title:"Proposta inicial (primeira versão da reforma)",group:"Estatutos"},
     {id:"statute:proposal",title:"Proposta em elaboração na Mesa existente",group:"Estatutos"},
     ...CONFISSOES.map(doc=>({id:"confession:"+doc.id,title:doc.nome,group:"Documentos doutrinários" as const})),
     ...books.map(book=>({id:"book:"+book.id,title:book.titulo+(book.autor?" — "+book.autor:""),group:"Biblioteca de literatura" as const})),
   ];
 }
 
-function asReadableText(nodes:TreeNode[],version:"current"|"proposal"):string {
+function asReadableText(nodes:TreeNode[],version:"current"|"proposal"|"initial"):string {
   const lines:string[]=[];
   const visit=(siblings:TreeNode[],depth:number)=>{
     for(const node of siblings){
       const label=provisionLabel(node);
       const text=version==="current"?node.texto_vigente:
+        version==="initial"?node.proposta_inicial:
         node.redacao_trabalho||node.proposta_inicial||node.redacao_consolidada||"";
       // Referência somente leitura. HTML legado é convertido em texto sem execução.
       const heading=[label,node.titulo].filter(Boolean).join(" — ");
@@ -46,6 +48,10 @@ export async function readConsultationDocument(id:string):Promise<ConsultationRe
   if(id==="statute:current")return {
     title:"Estatuto vigente (versão histórica)",
     text:asReadableText(await getVigenteTree(),"current"),
+  };
+  if(id==="statute:initial")return {
+    title:"Proposta inicial (primeira versão da reforma)",
+    text:asReadableText(await getProposalTree(),"initial"),
   };
   if(id==="statute:proposal")return {
     title:"Proposta em elaboração na Mesa existente",

@@ -2,10 +2,21 @@
 
 import {all,get,transaction} from "@/lib/db";
 import {requireRole,requireUser} from "@/lib/auth";
+import {publishRealtime} from "@/lib/realtime";
 import {validateDraft} from "@/lib/nova-mesa-poc/validate";
+import {importarMinuta} from "@/lib/nova-mesa-poc/importar";
 import type {Draft} from "@/lib/nova-mesa-poc/model";
 
 const DRAFT_ID="estatuto-ibo-2026";
+
+/** Avisa as demais sessões (no máximo a cada 10 s) para renovarem a minuta. */
+let ultimoAviso=0;
+function avisarAtualizacao():void{
+  const agora=Date.now();
+  if(agora-ultimoAviso<10_000)return;
+  ultimoAviso=agora;
+  void publishRealtime({origem:"nova-mesa"});
+}
 type Row={content:Draft;version:number;updated_at:string};
 export type DraftSnapshot={draft:Draft;version:number;updatedAt:string|null};
 export type DraftSaveResult={ok:true;version:number}|{ok:false;conflict:true;version:number}|{ok:false;error:string};
@@ -24,7 +35,7 @@ export async function saveNovaMesaDraft(candidate:unknown,expectedVersion:number
   if(!Number.isSafeInteger(expectedVersion)||expectedVersion<0)return {ok:false,error:"Versão esperada inválida."};
   let draft:Draft;
   try{draft=validateDraft(candidate);}catch(error){return {ok:false,error:error instanceof Error?error.message:"Minuta inválida."};}
-  return transaction(async():Promise<DraftSaveResult>=>{
+  const resultado=await transaction(async():Promise<DraftSaveResult>=>{
     if(expectedVersion===0){
       const inserted=await all<{version:number}>(`INSERT INTO nova_mesa_drafts (id,content,version,updated_by)
         VALUES (?,?::jsonb,1,?) ON CONFLICT (id) DO NOTHING RETURNING version`,
@@ -44,6 +55,8 @@ export async function saveNovaMesaDraft(candidate:unknown,expectedVersion:number
     const current=await get<{version:number}>("SELECT version FROM nova_mesa_drafts WHERE id = ?",[DRAFT_ID]);
     return {ok:false,conflict:true,version:current?.version??0};
   });
+  if(resultado.ok)avisarAtualizacao();
+  return resultado;
 }
 
 /** Cria um marco explícito da revisão já salva; não altera o rascunho nem as versões antigas. */
@@ -51,7 +64,7 @@ export async function checkpointNovaMesaVersion(expectedVersion:number):Promise<
   const user=await requireRole("admin","coordenador");
   if(!Number.isSafeInteger(expectedVersion)||expectedVersion<1)
     return {ok:false,error:"Salve a minuta antes de registrar uma versão."};
-  return transaction(async():Promise<DraftSaveResult>=>{
+  const resultado=await transaction(async():Promise<DraftSaveResult>=>{
     const row=await get<Row>("SELECT content,version,updated_at FROM nova_mesa_drafts WHERE id=? FOR UPDATE",[DRAFT_ID]);
     if(!row)return {ok:false,error:"Minuta não encontrada."};
     if(row.version!==expectedVersion)return {ok:false,conflict:true,version:row.version};
@@ -61,6 +74,8 @@ export async function checkpointNovaMesaVersion(expectedVersion:number):Promise<
       [DRAFT_ID,row.version,content,user.id]);
     return {ok:true,version:row.version};
   });
+  if(resultado.ok)avisarAtualizacao();
+  return resultado;
 }
 
 /** Histórico imutável, lido sob sessão; restauração exigirá uma nova revisão explícita. */
@@ -87,7 +102,7 @@ export async function restoreNovaMesaVersion(sourceVersion:number,expectedVersio
   const user=await requireRole("admin","coordenador");
   if(!Number.isSafeInteger(sourceVersion)||sourceVersion<1||!Number.isSafeInteger(expectedVersion)||expectedVersion<1)
     return {ok:false,error:"Versão inválida."};
-  return transaction(async():Promise<DraftSaveResult>=>{
+  const resultado=await transaction(async():Promise<DraftSaveResult>=>{
     const current=await get<{version:number}>("SELECT version FROM nova_mesa_drafts WHERE id=? FOR UPDATE",[DRAFT_ID]);
     if(!current)return {ok:false,error:"Minuta não encontrada."};
     if(current.version!==expectedVersion)return {ok:false,conflict:true,version:current.version};
@@ -102,4 +117,44 @@ export async function restoreNovaMesaVersion(sourceVersion:number,expectedVersio
       [DRAFT_ID,nextVersion,content,user.id]);
     return {ok:true,version:nextVersion};
   });
+  if(resultado.ok)avisarAtualizacao();
+  return resultado;
+}
+
+/**
+ * Importa um arquivo (formato consolidado ou nativo) substituindo a minuta atual.
+ * Cria um marco de segurança da versão corrente antes de gravar e registra auditoria.
+ */
+export async function importarNovaMesaDraft(candidate:unknown,expectedVersion:number):Promise<DraftSaveResult>{
+  const user=await requireRole("admin","coordenador");
+  if(!Number.isSafeInteger(expectedVersion)||expectedVersion<1)return {ok:false,error:"Salve a minuta antes de importar."};
+  const resultado=await transaction(async():Promise<DraftSaveResult>=>{
+    const row=await get<Row>("SELECT content,version FROM nova_mesa_drafts WHERE id=? FOR UPDATE",[DRAFT_ID]);
+    if(!row)return {ok:false,error:"Minuta não encontrada."};
+    if(row.version!==expectedVersion)return {ok:false,conflict:true,version:row.version};
+    let importado:ReturnType<typeof importarMinuta>;
+    try{importado=importarMinuta(candidate,validateDraft(row.content));}
+    catch(error){return {ok:false,error:error instanceof Error?error.message:"Arquivo de importação inválido."};}
+    if(!importado.draft.nodes.length)return {ok:false,error:"O arquivo não contém dispositivos."};
+    const marco=JSON.stringify(validateDraft(row.content));
+    await all(`INSERT INTO nova_mesa_draft_versions (draft_id,version,content,author_id)
+      VALUES (?,?,?::jsonb,?) ON CONFLICT (draft_id,version) DO NOTHING RETURNING id`,[DRAFT_ID,row.version,marco,user.id]);
+    const nextVersion=row.version+1;
+    await all("UPDATE nova_mesa_drafts SET content=?::jsonb, version=?, updated_by=?, updated_at=now() WHERE id=? RETURNING id",
+      [JSON.stringify(importado.draft),nextVersion,user.id,DRAFT_ID]);
+    const detalhe=JSON.stringify({
+      versaoAnterior:row.version,
+      formato:importado.formato,
+      total:importado.estatisticas.total,
+      apreciados:importado.estatisticas.apreciados,
+      pontosRevisao:importado.estatisticas.pontosRevisao,
+      novos:importado.diff.novos.length,
+      removidos:importado.diff.removidos.length,
+    });
+    await all("INSERT INTO audit_logs (user_id, user_name, action, entity, entity_id, detail) VALUES (?, ?, ?, ?, ?, ?)",
+      [user.id,user.name,"Importou minuta consolidada","nova_mesa_draft",DRAFT_ID,detalhe]);
+    return {ok:true,version:nextVersion};
+  });
+  if(resultado.ok)avisarAtualizacao();
+  return resultado;
 }

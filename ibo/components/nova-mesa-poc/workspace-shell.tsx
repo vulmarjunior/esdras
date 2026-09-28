@@ -1,19 +1,46 @@
 "use client";
 
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import { useEffect, useImperativeHandle, useRef, useState, type ReactNode, type Ref } from "react";
 import { listConsultationDocuments, readConsultationDocument, type ConsultationItem } from "@/app/actions/nova-mesa-consulta";
 import { ConsultaForm } from "@/components/documentos/consulta-form";
-import { NovaMesaStatusMark } from "@/components/status-badge";
+import { NovaMesaStatusMark, ReviewMark } from "@/components/status-badge";
+import { PanelLeftClose, PanelRightClose } from "lucide-react";
 
-type OutlineEntry = { id:string; label:string; title:string; depth:number; status?:string };
-type Summary = { pendente:number; em_analise:number; aprovado:number };
+type OutlineEntry = { id:string; label:string; title:string; depth:number; status?:string; revisao?:boolean };
+type Summary = { pendente:number; em_analise:number; aprovado:number; revisoes:number };
 type Reference = { name:string; kind:"text"|"pdf"; text?:string; url?:string };
 
-export default function WorkspaceShell({children,outline,onNavigate,selectedLabel,summary}:{
-  children:ReactNode; outline:OutlineEntry[]; onNavigate:(id:string)=>void;selectedLabel:string|null;summary?:Summary;
+/** Ações de consulta que vivem no shell e são acionadas pela barra fixa do editor. */
+export type AcoesConsultaMesa = { abrirArquivoLocal:()=>void; abrirConsultaIA:()=>void };
+
+function EditorRevisao({texto,editavel,onSalvar,onResolver}:{
+  texto:string|null; editavel:boolean; onSalvar:(texto:string)=>void; onResolver:()=>void;
 }){
-  const [outlineOpen,setOutlineOpen]=useState(true);
-  const [supportOpen,setSupportOpen]=useState(false);
+  const [valor,setValor]=useState(texto??"");
+  return <div className="min-w-0 space-y-2 rounded-lg border border-amber-300 bg-amber-50/70 p-2 dark:border-amber-900 dark:bg-amber-950/20">
+    <h4 className="inline-flex items-center gap-1.5 text-xs font-semibold text-amber-800 dark:text-amber-300"><ReviewMark compact/>Ponto para revisão</h4>
+    <textarea value={valor} onChange={event=>setValor(event.target.value)} disabled={!editavel} rows={3}
+      aria-label="Texto do ponto para revisão"
+      placeholder="Alerta editorial deste dispositivo (ex.: definir quórum)."
+      className="w-full rounded border bg-background p-2 text-sm"/>
+    <div className="flex flex-wrap gap-2">
+      <button type="button" disabled={!editavel||!valor.trim()||valor.trim()===texto}
+        onClick={()=>onSalvar(valor.trim())}
+        className="rounded border border-amber-400 bg-amber-100 px-2 py-1 text-xs font-semibold text-amber-900 disabled:opacity-50">Salvar alerta</button>
+      {texto&&<button type="button" disabled={!editavel} onClick={onResolver}
+        className="rounded border px-2 py-1 text-xs disabled:opacity-50">Resolver (remover)</button>}
+    </div>
+    <p className="break-words text-[11px] leading-snug text-muted-foreground">O alerta permanece visível no documento até ser resolvido; ele não altera a apreciação nem a redação.</p>
+  </div>;
+}
+
+export default function WorkspaceShell({children,outline,onNavigate,selectedLabel,selectedId,summary,sumarioAberto,apoioAberto,onSumarioChange,onApoioChange,acoesRef,revisao,podeEditarRevisao,onSalvarRevisao,onResolverRevisao,apoioDispositivo}:{
+  children:ReactNode; outline:OutlineEntry[]; onNavigate:(id:string)=>void;selectedLabel:string|null;selectedId?:string|null;summary?:Summary;
+  sumarioAberto:boolean;apoioAberto:boolean;onSumarioChange:(aberto:boolean)=>void;onApoioChange:(aberto:boolean)=>void;acoesRef?:Ref<AcoesConsultaMesa>;revisao?:string|null;podeEditarRevisao?:boolean;
+  onSalvarRevisao?:(texto:string)=>void;onResolverRevisao?:()=>void;apoioDispositivo?:ReactNode;
+}){
+  const outlineOpen=sumarioAberto;
+  const supportOpen=apoioAberto;
   const [consultOpen,setConsultOpen]=useState(false);
   const [aiOpen,setAiOpen]=useState(false);
   const [reference,setReference]=useState<Reference|null>(null);
@@ -27,6 +54,10 @@ export default function WorkspaceShell({children,outline,onNavigate,selectedLabe
   const dialogRef=useRef<HTMLDialogElement>(null);
   const aiDialogRef=useRef<HTMLDialogElement>(null);
   const previousFocus=useRef<HTMLElement|null>(null);
+  useImperativeHandle(acoesRef,()=>({
+    abrirArquivoLocal:()=>fileRef.current?.click(),
+    abrirConsultaIA:()=>{setConsultOpen(false);setAiOpen(true);},
+  }),[]);
   useEffect(()=>()=>{if(reference?.url)URL.revokeObjectURL(reference.url);},[reference?.url]);
   useEffect(()=>{if(!consultOpen)return;previousFocus.current=document.activeElement as HTMLElement|null;dialogRef.current?.showModal();
     return()=>{dialogRef.current?.close();previousFocus.current?.focus();};
@@ -67,40 +98,51 @@ export default function WorkspaceShell({children,outline,onNavigate,selectedLabe
     <header className="mb-3 flex flex-wrap items-center justify-between gap-2">
       <div className="min-w-0"><h1 className="text-xl font-semibold">Mesa de Trabalho · Nova minuta</h1>
         <p className="text-sm text-muted-foreground">Minuta em elaboração · Salvamento manual no servidor</p></div>
-      <div className="flex flex-wrap gap-2">
-        <button type="button" className="rounded border px-3 py-2 text-sm" aria-expanded={outlineOpen} onClick={()=>setOutlineOpen(v=>!v)}>{outlineOpen?"Ocultar sumário":"Mostrar sumário"}</button>
-        <button type="button" className="rounded border px-3 py-2 text-sm" aria-expanded={supportOpen} onClick={()=>setSupportOpen(v=>!v)}>{supportOpen?"Ocultar apoio":"Mostrar apoio"}</button>
-        <button type="button" className="rounded border px-3 py-2 text-sm" onClick={()=>fileRef.current?.click()}>Consultar documento</button>
-        <button type="button" className="rounded border px-3 py-2 text-sm" onClick={()=>{setConsultOpen(false);setAiOpen(true);}}>Consultar com IA · Groq</button>
-        <input ref={fileRef} type="file" accept=".txt,.md,.pdf,text/plain,application/pdf" className="hidden" aria-label="Selecionar documento local de consulta"
-          onChange={event=>{void openFile(event.target.files?.[0]);event.target.value="";}}/>
-      </div>
+      <input ref={fileRef} type="file" accept=".txt,.md,.pdf,text/plain,application/pdf" className="hidden" aria-label="Selecionar documento local de consulta"
+        onChange={event=>{void openFile(event.target.files?.[0]);event.target.value="";}}/>
     </header>
-    <div className="flex min-w-0 flex-col gap-3 xl:flex-row xl:items-start">
-      {outlineOpen&&<nav aria-label="Sumário da minuta" className="min-w-0 rounded-xl border bg-card p-3 xl:sticky xl:top-4 xl:w-60 xl:shrink-0">
-        <h2 className="mb-2 font-semibold">Estrutura</h2>
-        {summary&&<p className="mb-2 text-xs leading-snug text-muted-foreground">{summary.aprovado} apreciados · {summary.em_analise} em análise · {summary.pendente} pendentes</p>}
+    <div className="flex min-w-0 flex-col gap-3 lg:flex-row lg:items-start">
+      {outlineOpen&&<nav aria-label="Sumário da minuta" className="min-w-0 rounded-xl border bg-card p-3 lg:sticky lg:top-16 lg:max-h-[calc(100vh-5rem)] lg:w-52 lg:shrink-0 lg:overflow-y-auto xl:w-60">
+        <div className="mb-2 flex items-center justify-between gap-2">
+          <h2 className="font-semibold">Estrutura</h2>
+          <button type="button" className="inline-flex items-center gap-1 rounded border px-2 py-1 text-xs" title="Ocultar sumário (reabra por «Mostrar sumário» na barra fixa)" onClick={()=>onSumarioChange(false)}><PanelLeftClose className="h-3.5 w-3.5"/>Ocultar</button>
+        </div>
+        {summary&&<p className="mb-2 text-xs leading-snug text-muted-foreground">{summary.aprovado} apreciados · {summary.em_analise} em análise · {summary.pendente} pendentes{summary.revisoes>0?" · "+summary.revisoes+(summary.revisoes>1?" pontos para revisão":" ponto para revisão"):""}</p>}
         <div className="max-h-[60vh] overflow-auto xl:max-h-[75vh]">
           {outline.length===0?<p className="text-sm text-muted-foreground">Insira um capítulo ou artigo para começar.</p>:
           outline.map(item=><button type="button" key={item.id} onClick={()=>onNavigate(item.id)}
             className="block w-full rounded px-2 py-1.5 text-left text-sm leading-snug hover:bg-muted focus-visible:outline-2"
             style={{paddingLeft:8+Math.min(item.depth,3)*10}} title={item.label+" "+item.title}>
-            <span className="inline-flex items-center gap-1.5 font-medium">{item.status&&item.status!=="pendente"&&<NovaMesaStatusMark status={item.status} compact/>}{item.label}</span> <span className="line-clamp-2 break-words text-muted-foreground">{item.title}</span></button>)}
+            <span className="inline-flex items-center gap-1.5 font-medium">{item.status&&item.status!=="pendente"&&<NovaMesaStatusMark status={item.status} compact/>}{item.label}{item.revisao&&<ReviewMark compact/>}</span> <span className="line-clamp-2 break-words text-muted-foreground">{item.title}</span></button>)}
         </div>
       </nav>}
       <div className={sideBySide?"flex min-w-0 flex-1 flex-col gap-3 2xl:flex-row":"min-w-0 flex-1"}>
         <div className="min-w-0 flex-1">{children}</div>
-        {sideBySide&&reader&&<div className="h-[75vh] min-w-0 overflow-hidden 2xl:sticky 2xl:top-4 2xl:w-[min(42vw,670px)] 2xl:shrink-0" role="region" aria-label="Consulta ao lado">{reader}</div>}
+        {sideBySide&&reader&&<div className="h-[75vh] min-w-0 overflow-hidden 2xl:sticky 2xl:top-16 2xl:w-[min(42vw,670px)] 2xl:shrink-0" role="region" aria-label="Consulta ao lado">{reader}</div>}
       </div>
-      {supportOpen&&!sideBySide&&<aside aria-label="Painel de apoio" className="min-w-0 rounded-xl border bg-card p-3 xl:sticky xl:top-4 xl:w-72 xl:shrink-0">
-        <h2 className="mb-3 font-semibold">Painel de apoio</h2>
+      {supportOpen&&!sideBySide&&<aside aria-label="Painel de apoio" className="min-w-0 rounded-xl border bg-card p-3 lg:sticky lg:top-16 lg:max-h-[calc(100vh-5rem)] lg:w-60 lg:shrink-0 lg:overflow-y-auto xl:w-72">
+        <div className="mb-3 flex items-center justify-between gap-2">
+          <h2 className="font-semibold">Painel de apoio</h2>
+          <button type="button" className="inline-flex items-center gap-1 rounded border px-2 py-1 text-xs" title="Ocultar apoio (reabra por «Mostrar apoio» na barra fixa)" onClick={()=>onApoioChange(false)}><PanelRightClose className="h-3.5 w-3.5"/>Ocultar</button>
+        </div>
         <section className="min-w-0 space-y-2 border-b pb-4">
           <h3 className="text-sm font-medium">Dispositivo em foco</h3>
           <p className="break-words text-sm text-muted-foreground">{selectedLabel??"Selecione um dispositivo no documento."}</p>
-          <p className="break-words text-xs text-muted-foreground">Comentários e alternativas por dispositivo ainda não foram integrados. O histórico geral está disponível na barra da minuta.</p>
+          {selectedId&&onSalvarRevisao?<EditorRevisao key={selectedId+":"+(revisao??"")} texto={revisao??null} editavel={podeEditarRevisao??false}
+            onSalvar={onSalvarRevisao} onResolver={onResolverRevisao??(()=>{})}/>:
+            <p className="break-words text-xs text-muted-foreground">Selecione um dispositivo no documento para ver ou criar um ponto para revisão. O histórico geral está disponível na barra da minuta.</p>}
+          {apoioDispositivo}
         </section>
         <section className="min-w-0 space-y-2 pt-4">
           <h3 className="text-sm font-medium">Documentos de consulta</h3>
+          <div className="grid grid-cols-2 gap-2">
+            <button type="button" disabled={openingId!==null} className="rounded border border-primary/40 bg-primary/10 px-2 py-2 text-xs font-semibold disabled:opacity-60"
+              title="Abrir o texto original do Estatuto vigente"
+              onClick={()=>{void openRegistered({id:"statute:current",title:"Estatuto vigente (versão histórica)",group:"Estatutos"});}}>Estatuto vigente</button>
+            <button type="button" disabled={openingId!==null} className="rounded border border-primary/40 bg-primary/10 px-2 py-2 text-xs font-semibold disabled:opacity-60"
+              title="Abrir a primeira proposta da reforma"
+              onClick={()=>{void openRegistered({id:"statute:initial",title:"Proposta inicial (primeira versão da reforma)",group:"Estatutos"});}}>Proposta inicial</button>
+          </div>
           <button type="button" className="w-full rounded border px-3 py-2 text-sm" onClick={()=>{setConsultOpen(false);setAiOpen(true);}}>Perguntar à IA · Groq</button>
           <button type="button" disabled={catalogLoading} className="w-full rounded border px-3 py-2 text-sm disabled:opacity-60"
             onClick={()=>{void loadCatalog();}}>{catalogLoading?"Carregando biblioteca…":"Documentos do Esdras"}</button>

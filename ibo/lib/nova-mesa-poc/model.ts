@@ -2,7 +2,8 @@ import { Alignment, Mark, normalizeRuns, plainText, TextRun, toRuns, markRange }
 /** Modelo experimental isolado: não usa nem modifica dispositivos históricos. */
 export type NodeType = "chapter" | "section" | "subsection" | "article" | "paragraph" | "inciso" | "alinea" | "free";
 export type NovaMesaStatus = "pendente" | "em_analise" | "aprovado";
-export type DraftNode = { id: string; type: NodeType; text: string; runs?: TextRun[]; alignment?: Alignment; status?: NovaMesaStatus; children: DraftNode[] };
+/** Ponto para revisão: alerta editorial independente da apreciação, removível após o debate. */
+export type DraftNode = { id: string; type: NodeType; text: string; runs?: TextRun[]; alignment?: Alignment; status?: NovaMesaStatus; revisao?: string; /** Ids do Estatuto registrado correspondentes (vigente/proposta inicial). */ vinculos?: string[]; children: DraftNode[] };
 export type Draft = { id: string; nodes: DraftNode[] };
 export type FlatRow = { node: DraftNode; siblings: DraftNode[]; parentId: string | null; articleNumber: number; chapterNumber: number; depth: number };
 
@@ -67,6 +68,25 @@ export function setStatus(draft:Draft,id:string,status:NovaMesaStatus):Draft {
   const visit=(nodes:DraftNode[]):DraftNode[]=>nodes.map(n=>n.id===id?{...n,status:next}:{...n,children:visit(n.children)});
   return {...draft,nodes:visit(draft.nodes)};
 }
+/** Texto do ponto para revisão em aberto, quando existir. */
+export const revisaoOf=(node:DraftNode):string|null=>node.revisao?.trim()?node.revisao.trim():null;
+/** Alerta editorial independente da apreciação: texto vazio remove a marcação. */
+export function setRevisao(draft:Draft,id:string,texto:string):Draft {
+  if(!findNode(draft.nodes,id))throw new Error("Dispositivo não encontrado");
+  const limpo=texto.trim(),next=limpo?limpo:undefined;
+  const visit=(nodes:DraftNode[]):DraftNode[]=>nodes.map(n=>n.id===id?{...n,revisao:next}:{...n,children:visit(n.children)});
+  return {...draft,nodes:visit(draft.nodes)};
+}
+/** Ids do Estatuto registrado vinculados ao dispositivo (correspondência confirmada). */
+export const vinculosOf=(node:DraftNode):string[]=>node.vinculos??[];
+/** Vínculos são lista sem duplicatas; lista vazia remove a marcação. */
+export function setVinculos(draft:Draft,id:string,ids:string[]):Draft {
+  if(!findNode(draft.nodes,id))throw new Error("Dispositivo não encontrado");
+  const limpos=[...new Set(ids.map(item=>item.trim()).filter(Boolean))];
+  const next=limpos.length?limpos:undefined;
+  const visit=(nodes:DraftNode[]):DraftNode[]=>nodes.map(n=>n.id===id?{...n,vinculos:next}:{...n,children:visit(n.children)});
+  return {...draft,nodes:visit(draft.nodes)};
+}
 export function setAlignment(draft:Draft,id:string,alignment:Alignment):Draft {
   if(!findNode(draft.nodes,id))throw new Error("Dispositivo não encontrado");
   const visit=(nodes:DraftNode[]):DraftNode[]=>nodes.map(n=>n.id===id?{...n,alignment}:{...n,children:visit(n.children)});
@@ -79,7 +99,8 @@ export function canContain(parent: NodeType | null, child: NodeType): boolean {
   if (child === "section") return parent === "chapter";
   if (child === "subsection") return parent === "section";
   if (child === "article") return parent === null || parent === "chapter" || parent === "section" || parent === "subsection";
-  if (child === "paragraph" || child === "inciso") return parent === "article";
+  if (child === "paragraph") return parent === "article";
+  if (child === "inciso") return parent === "article" || parent === "paragraph";
   if (child === "alinea") return parent === "inciso";
   return false;
 }

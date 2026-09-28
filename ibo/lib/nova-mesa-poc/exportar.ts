@@ -1,6 +1,6 @@
-import { flattenDraft, labelFor, statusOf, type Draft, type DraftNode, type NovaMesaStatus } from "./model";
+import { flattenDraft, labelFor, revisaoOf, statusOf, type Draft, type DraftNode, type NovaMesaStatus } from "./model";
 import type { Mark, TextRun } from "./rich-text";
-import { NOVAMESA_STATUS_LABELS } from "../labels";
+import { NOVAMESA_STATUS_LABELS, REVISAO_LABEL } from "../labels";
 
 export type OpcoesExportacao = { marcas?: boolean; sumario?: boolean; somenteApreciados?: boolean };
 export type MetaDocumento = { versao: number; data: Date };
@@ -15,9 +15,9 @@ const escapeHtml = (texto: string): string =>
 
 const escapeMd = (texto: string): string => texto.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 
-/** Mantém o dispositivo e seus ancestrais quando a subárvore tem algo apreciado. */
+/** Mantém o dispositivo e seus ancestrais quando a subárvore tem algo apreciado ou ponto para revisão. */
 const podar = (nodes: DraftNode[]): DraftNode[] => {
-  const manter = (node: DraftNode): boolean => statusOf(node) === "aprovado" || node.children.some(manter);
+  const manter = (node: DraftNode): boolean => statusOf(node) === "aprovado" || revisaoOf(node) !== null || node.children.some(manter);
   return nodes.filter(manter).map((node) => ({ ...node, children: podar(node.children) }));
 };
 
@@ -60,7 +60,7 @@ const conteudoVisivel = (draft: Draft, opcoes: OpcoesExportacao): DraftNode[] =>
 const legendaHtml = (): string =>
   `<ul class="legenda">${(["aprovado", "em_analise", "pendente"] as NovaMesaStatus[])
     .map((status) => `<li><span class="rubrica rubrica-${status}" aria-hidden="true">${SIMBOLOS[status]}</span>${NOVAMESA_STATUS_LABELS[status]}</li>`)
-    .join("")}</ul>`;
+    .join("")}<li><span class="rubrica rubrica-revisao" aria-hidden="true">●</span>${escapeHtml(REVISAO_LABEL)}</li></ul>`;
 
 const sumarioHtml = (rows: ReturnType<typeof flattenDraft>): string => {
   const itens = rows.filter((row) => row.node.type === "chapter" || row.node.type === "section");
@@ -99,6 +99,11 @@ body { margin: 0; background: #f4f2ee; color: #1f2937; font-family: "Lora", Geor
 .rubrica-aprovado { color: #059669; font-weight: 700; }
 .rubrica-em_analise { color: #2563eb; }
 .rubrica-pendente { color: #a8a29e; }
+.review-mark { margin-left: .3rem; color: #d97706; font-family: system-ui, sans-serif; font-size: .8rem; }
+.review { margin: .3rem 0 .7rem 1.2rem; padding: .45rem .7rem; border-left: 3px solid #f59e0b; background: #fffbeb; font-size: .78rem; color: #78350f; break-inside: avoid; page-break-inside: avoid; }
+.review summary { cursor: pointer; font-weight: 600; }
+.review p { margin: .3rem 0 0; }
+.rubrica-revisao { color: #d97706; }
 .rotulo { font-weight: 600; white-space: nowrap; }
 .texto { white-space: normal; }
 .rodape { margin: 2rem 0 0; padding-top: .6rem; border-top: 1px solid #e7e5e4; font-size: .7rem; color: #78716c; text-align: center; }
@@ -106,6 +111,7 @@ body { margin: 0; background: #f4f2ee; color: #1f2937; font-family: "Lora", Geor
   body { background: #fff; }
   .documento { max-width: none; padding: 0; box-shadow: none; }
   .dispositivo-apreciado { background: #ecfdf5 !important; print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+  .review { background: #fffbeb !important; print-color-adjust: exact; -webkit-print-color-adjust: exact; }
   .rubrica { print-color-adjust: exact; -webkit-print-color-adjust: exact; }
 }
 `;
@@ -124,7 +130,14 @@ export function corpoDocumento(draft: Draft, meta: MetaDocumento, opcoes: Opcoes
         : "";
       const rotulo = escapeHtml(labelFor(row.node, row.siblings, row.articleNumber, row.chapterNumber).trim());
       const alinhamento = row.node.alignment ?? (estrutura(row.node) ? "center" : "justify");
-      return `<div class="dispositivo${apreciado ? " dispositivo-apreciado" : ""}" style="margin-left:${Math.min(row.depth, 4) * 1.4}em">${rubrica}<span class="rotulo">${rotulo}</span><span class="texto" style="text-align:${alinhamento}">${runsHtml(row.node)}</span></div>`;
+      const revisao = revisaoOf(row.node);
+      const marcaRevisao = revisao
+        ? `<span class="review-mark" title="${escapeHtml(REVISAO_LABEL)}" aria-label="${escapeHtml(REVISAO_LABEL)}">●</span>`
+        : "";
+      const blocoRevisao = revisao
+        ? `\n<details class="review"><summary>${escapeHtml(REVISAO_LABEL)}</summary><p>${escapeHtml(revisao)}</p></details>`
+        : "";
+      return `<div class="dispositivo${apreciado ? " dispositivo-apreciado" : ""}" style="margin-left:${Math.min(row.depth, 4) * 1.4}em">${rubrica}<span class="rotulo">${rotulo}</span><span class="texto" style="text-align:${alinhamento}">${runsHtml(row.node)}</span>${marcaRevisao}</div>${blocoRevisao}`;
     })
     .join("\n");
   const vazio = opcoes.somenteApreciados ? "(Nenhum dispositivo apreciado pela comissão.)" : "(A minuta ainda não possui dispositivos.)";
@@ -175,7 +188,7 @@ export function paraMarkdown(draft: Draft, meta: MetaDocumento, opcoes: OpcoesEx
     const legenda = (["aprovado", "em_analise", "pendente"] as NovaMesaStatus[])
       .map((status) => `${SIMBOLOS[status]} ${NOVAMESA_STATUS_LABELS[status]}`)
       .join(" · ");
-    linhas.push(`**Legenda:** ${legenda}`, "");
+    linhas.push(`**Legenda:** ${legenda} · ⚠ ${REVISAO_LABEL}`, "");
   }
   if (opcoes.sumario) {
     const itens = rows.filter((row) => row.node.type === "chapter" || row.node.type === "section");
@@ -193,6 +206,7 @@ export function paraMarkdown(draft: Draft, meta: MetaDocumento, opcoes: OpcoesEx
     const status = statusOf(row.node);
     const marca = marcas && (!estrutura(row.node) || status !== "pendente") ? `${SIMBOLOS[status]} ` : "";
     const rotulo = labelFor(row.node, row.siblings, row.articleNumber, row.chapterNumber).trim();
+    const revisao = revisaoOf(row.node);
     if (row.node.type === "chapter") {
       linhas.push("", `## ${marca}${escapeMd(rotulo)}${row.node.text ? ` — ${escapeMd(row.node.text)}` : ""}`, "");
     } else if (row.node.type === "section" || row.node.type === "subsection") {
@@ -202,6 +216,7 @@ export function paraMarkdown(draft: Draft, meta: MetaDocumento, opcoes: OpcoesEx
     } else {
       linhas.push(`${"  ".repeat(Math.max(0, row.depth - 1))}${marca}**${escapeMd(rotulo)}** ${runsMarkdown(row.node)}`);
     }
+    if (revisao) linhas.push(`${"  ".repeat(Math.max(0, row.depth - 1))}> ⚠ **${REVISAO_LABEL}:** ${escapeMd(revisao)}`);
   }
   if (!rows.length) linhas.push(opcoes.somenteApreciados ? "(Nenhum dispositivo apreciado pela comissão.)" : "(A minuta ainda não possui dispositivos.)");
   linhas.push("", "---", `ESDRAS · versão ${meta.versao} · ${formatarDataHora(meta.data)}`);

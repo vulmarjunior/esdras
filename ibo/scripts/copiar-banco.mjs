@@ -84,6 +84,8 @@ const TABLES = [
   "library_books",
   "library_sections",
   "audit_logs",
+  "nova_mesa_drafts",
+  "nova_mesa_draft_versions",
 ];
 
 const RESET = process.argv.includes("--reset");
@@ -141,7 +143,7 @@ try {
   }
 
   for (const t of TABLES) {
-    if (t === "provisions") continue; // PK TEXT (slug), sem sequence
+    if (t === "provisions" || t === "nova_mesa_drafts") continue; // PK TEXT (slug/identificador), sem sequence
     await destino.query(
       `SELECT setval(pg_get_serial_sequence('${t}','id'),
          COALESCE((SELECT MAX(id)::bigint FROM ${t}), 1),

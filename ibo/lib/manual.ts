@@ -82,7 +82,7 @@ O trabalho segue o fluxo aprovado no projeto. Cada passo aponta para a tela corr
 A página inicial (**Início**) foi refeita para a nova minuta:
 
 - **Minuta do novo Estatuto** — cartão principal com o botão **Continuar na Mesa de Trabalho** (editores) ou **Visualizar a minuta** (demais perfis).
-- **Andamento da nova minuta** — número de capítulos, de artigos e a **apreciação dos dispositivos**: apreciados, em análise e pendentes, além do total de dispositivos.
+- **Andamento da nova minuta** — número de capítulos, de artigos e a **apreciação dos dispositivos**: apreciados, em análise, pendentes e pontos para revisão, além do total de dispositivos.
 - **Última gravação** — data e hora do último salvamento da minuta no servidor.
 - **Atalhos** — Documentos de consulta, Reuniões, Literatura de consulta e **Arquivo e legado**.
 
@@ -99,17 +99,18 @@ A **Mesa de Trabalho** é o ambiente principal da reforma. Nela o coordenador/re
 
 ### Estrutura da tela
 
-- **Sumário (Estrutura)**, à esquerda: capítulos, seções, subseções e artigos, com o resumo de apreciação (*X apreciados · Y em análise · Z pendentes*) e um ponto de estado nos itens em andamento ou apreciados. Clique para navegar.
+- **Sumário (Estrutura)**, à esquerda: os **capítulos** da minuta com seus títulos, o resumo de apreciação (*X apreciados · Y em análise · Z pendentes · N pontos para revisão*) e um ponto de estado nos capítulos em andamento ou apreciados. Clique para navegar até o capítulo.
 - **Documento contínuo**, no centro: a minuta inteira, com numeração derivada da posição (Art. 1º, Art. 2º…; capítulos e seções em romanos).
-- **Painel de apoio** (opcional), à direita: dispositivo em foco, documentos de consulta do Esdras e abertura de arquivo local.
+- **Painel de apoio**, à direita (**aberto por padrão**): dispositivo em foco (com o ponto para revisão), documentos de consulta do Esdras e abertura de arquivo local.
+- Na **barra fixa**: os botões **Sumário** e **Apoio** alternam os painéis (quando ocultos, viram **Mostrar sumário** / **Mostrar apoio**, destacados), ao lado dos botões de **documento** (consultar TXT/MD/PDF) e **IA · Groq**. Cada painel também tem **Ocultar** no próprio cabeçalho.
 
 ### Edição
 
-- Selecione um dispositivo clicando nele; a barra superior mostra o **dispositivo ativo** e suas ações.
+- Selecione um dispositivo clicando nele; a barra superior (fixa ao rolar) tem duas linhas: **documento** (status, Salvar agora, Salvar versão, + Inserir, Recarregar e Histórico) e **dispositivo ativo** (formatação, alinhamento, apreciação, mover e Mais ações).
 - Edite o texto direto no documento. Capítulos, seções e subseções são identificados pelo **título** e exibidos centralizados.
-- **Formatar** — negrito, itálico, sublinhado e alinhamento (esquerda, centro, direita, justificar).
+- **Formatar** — negrito, itálico, sublinhado e alinhamento por ícones (esquerda, centro, direita, justificar).
 - **Inserir** (+ Inserir dispositivo) — capítulo, seção, subseção, artigo, parágrafo, inciso, alínea ou texto livre; a sugestão de tipo aparece conforme o dispositivo ativo. Atalhos: **Ctrl+Alt+A** (artigo), **Ctrl+Alt+P** (parágrafo), **Ctrl+Alt+I** (inciso) e **Ctrl+Alt+L** (alínea).
-- **Mover** ↑/↓ move o dispositivo entre os irmãos; **Mover para capítulo…** transfere um artigo com todos os parágrafos, incisos e alíneas; **Retirar** remove o dispositivo ativo; **Desfazer estrutura** volta a última alteração estrutural.
+- **Mover** ↑/↓ move o dispositivo entre os irmãos. Em **Mais ações ▾** ficam **Mover para capítulo…** (transfere um artigo com todos os parágrafos, incisos e alíneas), **Retirar dispositivo** e **Desfazer estrutura** (volta a última alteração estrutural).
 
 ### Apreciação
 
@@ -125,12 +126,32 @@ Use a barra **Apreciação** para marcar o dispositivo ativo. **Editar o texto d
 
 > "Apreciado pela comissão" é um indicador editorial de progresso; a aprovação formal ocorre fora do sistema, pela assinatura da comissão no documento final.
 
+### Ponto para revisão
+
+O **Ponto para revisão** é um alerta editorial: uma marcação com observação que pode ser criada em **qualquer dispositivo** (apreciado ou não) e removida quando a comissão debate e resolve a questão.
+
+- Aparece como **● âmbar** ao lado do rótulo, no texto e no sumário; no ambiente de leitura e nas exportações vira um bloco **"Ponto para revisão"** com o texto.
+- Para criar ou editar: selecione o dispositivo (ou clique no ●) e use a seção **Ponto para revisão** no **painel de apoio** — escreva a observação e clique **Salvar alerta**; **Resolver (remover)** apaga a marcação.
+- O alerta **não altera a apreciação nem a redação** e é gravado junto com a minuta (autosave/histórico). Vários dispositivos podem ter alertas ao mesmo tempo.
+
+### Vínculos com o Estatuto e consulta pareada
+
+Cada dispositivo da nova minuta pode ser **vinculado** ao dispositivo correspondente do **Estatuto registrado** — de onde saem os textos **Vigente** (texto_vigente) e **Proposta inicial** (proposta_inicial). No painel de apoio, a seção **Vínculos com o Estatuto** permite:
+
+- **Aceitar sugestões** — o sistema compara o texto e propõe os dispositivos mais parecidos (com percentual); clique **Vincular** para confirmar;
+- **Buscar manualmente** por rótulo, número ou trecho e vincular;
+- **Remover** um vínculo; um dispositivo pode ter mais de um (fusão de artigos) e um mesmo dispositivo do Estatuto pode servir a vários;
+- **Sugerir vínculos em toda a minuta…** (coordenador) — calcula as correspondências, mostra a prévia e aplica em lote apenas as de **alta confiança**; as demais ficam listadas para revisão individual.
+
+O botão **Comparar…** abre, sem sair da Mesa, o dispositivo ativo em **Vigente × Redação atual** e **Proposta inicial × Redação atual**, com destaque das diferenças. Dispositivos sem vínculo aparecem como "sem correspondente no Estatuto registrado".
+
 ### Salvamento e histórico
 
 - O **autosave** grava a persistência corrente depois que você para de digitar; o indicador no topo mostra *alterações pendentes / salvando / salvo / falha*.
 - **Salvar agora** grava imediatamente; **Salvar versão** cria um marco recuperável no histórico sem interromper a edição.
 - **Histórico de versões** lista os marcos com autor e data, permite **pré-visualizar** e **Restaurar como nova versão** — nada é apagado.
 - **Recarregar** traz o texto do servidor; **Exportar cópia (JSON)** baixa uma cópia de segurança completa.
+- **Importar JSON…** substitui a minuta atual por um arquivo (cópia exportada ou documento consolidado) depois de uma **prévia com contagens e diferenças**; a versão anterior vira um **marco de segurança** no histórico e a operação fica registrada na auditoria.
 - Se outra sessão salvar antes de você, a Mesa avisa do **conflito** e não sobrescreve nada em silêncio: exporte a cópia JSON antes de recarregar. Ao sair com alterações pendentes, o navegador avisa.
 
 ### Exportar documento
@@ -141,17 +162,24 @@ O botão **Exportar documento…** (também disponível em **Visualizar nova min
 - **HTML** — arquivo único já estilizado, para arquivar ou enviar;
 - **Markdown** — texto portátil com a legenda de apreciação (✓/●/○), para colar em Word/Docs.
 
-Opções: **marcas de apreciação e legenda** (ligadas por padrão), **sumário** e **somente dispositivos apreciados**. A exportação usa a **versão salva** no servidor — o diálogo avisa quando há alterações pendentes.
+Opções: **marcas de apreciação e legenda** (ligadas por padrão), **sumário** e **somente dispositivos apreciados**. Os **pontos para revisão** aparecem sempre no documento exportado, em qualquer modo. A exportação usa a **versão salva** no servidor — o diálogo avisa quando há alterações pendentes.
 
 ### Consulta dentro da Mesa
 
-- **Consultar documento** abre um arquivo local (.txt, .md ou .pdf) para leitura ao lado do texto;
-- **Consultar com IA · Groq** responde com base nos documentos do Esdras (documentos de fé e literatura), sem alterar a minuta;
-- no painel de apoio, **Documentos do Esdras** lista o catálogo e abre qualquer documento em leitura ampla.
+Na **barra fixa**, o ícone de **documento** abre um arquivo local (.txt, .md ou .pdf) para leitura ao lado do texto; o ícone **IA · Groq** responde com base nos documentos do Esdras (documentos de fé e literatura), sem alterar a minuta.
 
-### Visualizar nova minuta
+- No painel de apoio, os botões **Estatuto vigente** e **Proposta inicial** abrem o **texto integral** no leitor amplo (com busca); **Documentos do Esdras** lista o catálogo completo e **Abrir arquivo para leitura** carrega um TXT, MD ou PDF local.
 
-**Mesa de Trabalho → Visualizar nova minuta** é somente leitura e acessível a todos os perfis autenticados: mostra o documento na versão salva, com o selo de apreciação nos dispositivos em análise ou apreciados, e o botão **Exportar documento…**.
+### Visualizar nova minuta (plataforma de acompanhamento)
+
+**Mesa de Trabalho → Visualizar nova minuta** é a plataforma de acompanhamento, somente leitura e aberta a todos os perfis: mostra a minuta na versão salva pelo redator, com o selo de apreciação, os **pontos para revisão** (● e bloco expansível) e o botão **Exportar documento…**. Inclui:
+
+- **Mostrar/Ocultar capítulos** abre o **Sumário** (com a marca de apreciação e de ponto para revisão); o resumo geral fica ao lado do botão;
+- os botões **Estatuto vigente** e **Proposta inicial** abrem o **texto integral** de cada documento em janela, com busca por trecho;
+- clique em qualquer dispositivo (no texto ou no sumário): a **Consulta comparativa** (à direita, em telas largas) mostra a **Redação atual** e a **Correspondência no Estatuto**; o botão **Comparar com o Estatuto…** abre a comparação em janela ampla (Vigente × Redação atual e Proposta inicial × Redação atual, com **Destacar diferenças**). Em telas menores, um botão fixo embaixo abre a comparação;
+- a página é atualizada automaticamente quando o redator salva (atualização em tempo real).
+
+> A consulta pareada depende dos **vínculos** com o Estatuto registrado, feitos pela coordenação na Mesa; dispositivos sem vínculo mostram o aviso de "sem correspondente".
 
 ### Mesa anterior (legado)
 
@@ -435,6 +463,9 @@ Estas telas são visíveis **somente para o Administrador** (menu **Administraç
 | **Nova minuta** | Documento do novo Estatuto em elaboração na Mesa de Trabalho, independente do Estatuto registrado e da proposta histórica. |
 | **Apreciação** | Estado editorial de cada dispositivo da nova minuta: *Pendente de análise*, *Em análise* ou *Apreciado pela comissão*. |
 | **Rubrica marginal** | Marca discreta na margem esquerda que indica a apreciação do dispositivo (○, ● ou ✓). |
+| **Ponto para revisão** | Alerta editorial da nova minuta (● âmbar): marcação com observação, criada e removida no painel de apoio; não altera a apreciação nem a redação. |
+| **Vínculo** | Correspondência entre um dispositivo da nova minuta e o do Estatuto registrado, que fornece os textos **Vigente** e **Proposta inicial** para consulta pareada. |
+| **Importar JSON** | Substituição da minuta atual por um arquivo exportado ou consolidado, com prévia de diferenças, marco de segurança e auditoria. |
 | **Versão (marco)** | Ponto recuperável do histórico da nova minuta, criado por "Salvar versão"; restaurar cria uma nova versão sem apagar as anteriores. |
 | **Ambiente anterior (legado)** | Conjunto das telas da proposta histórica, preservado em **Arquivo e legado**. |
 `,
@@ -458,8 +489,17 @@ Significa que o texto está pronto para integrar a proposta final. Não é uma v
 ### Como exporto o documento?
 Na **Mesa de Trabalho**, use **Exportar documento…** (no editor ou na visualização): **Imprimir/PDF** abre a folha limpa para salvar em PDF, **HTML** baixa o arquivo estilizado e **Markdown** baixa a versão portátil. Você pode ligar/desligar as marcas de apreciação e a legenda, incluir sumário ou exportar somente os dispositivos apreciados.
 
+### Como vejo o texto vigente e a proposta inicial de um dispositivo?
+Na **Visualizar nova minuta**, clique no dispositivo: a **Consulta do dispositivo** mostra a redação atual, o **Vigente** e a **Proposta inicial** (com "Destacar diferenças"). Na **Mesa**, o coordenador usa **Vínculos com o Estatuto** no painel de apoio para registrar as correspondências (com sugestões automáticas) e **Comparar…** para ver os textos lado a lado.
+
 ### Como marco que um dispositivo foi analisado?
 Na **nova minuta**, use a barra **Apreciação** e marque **Em análise** ou **Apreciado pela comissão** (editar o texto de um item apreciado devolve para "Em análise"). No ambiente anterior, atualize o **status** do dispositivo; o coordenador controla os status finais (Em discussão, Redação definida, Redação concluída).
+
+### Como registro e resolvo um ponto para revisão?
+Selecione o dispositivo (ou clique no **●**), abra a seção **Ponto para revisão** no painel de apoio, escreva a observação e clique **Salvar alerta**. Quando a comissão debater, clique **Resolver (remover)** para apagar a marcação. O alerta convive com a apreciação e aparece nas exportações.
+
+### Como importo uma minuta de um arquivo JSON?
+Na **Mesa de Trabalho**, clique **Importar JSON…**, escolha o arquivo e confira a **prévia** (dispositivos, apreciados, pontos para revisão e diferenças em relação à minuta atual). Ao confirmar, a minuta é substituída, a versão anterior vira um **marco de segurança** no histórico e a importação é registrada na auditoria. Disponível para coordenador/administrador.
 
 ### Perdi o acesso. Como redefino a senha?
 Peça ao **administrador** para redefinir. Ao redefinir, a troca de senha volta a ser obrigatória no seu próximo acesso.
