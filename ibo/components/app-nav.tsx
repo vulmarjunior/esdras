@@ -70,6 +70,15 @@ const NAV_TEMAS: NavTema[] = [
     ],
   },
   {
+    id: "compromisso",
+    label: "Compromisso",
+    icon: ClipboardCheck,
+    itens: [
+      { href: "/compromisso", label: "Redigir compromisso", icon: ClipboardCheck, editorOnly: true },
+      { href: "/compromisso/visualizar", label: "Acompanhar compromisso", icon: ScrollText },
+    ],
+  },
+  {
     id: "legado",
     label: "Arquivo e legado",
     icon: Archive,

@@ -1,7 +1,8 @@
 import { type Draft, type DraftNode, type NodeType, type NovaMesaStatus } from "./model";
+import { ESTATUTO, type DocumentoConfig } from "./documentos";
 import { validateDraft } from "./validate";
 
-export const DRAFT_ID = "estatuto-ibo-2026";
+export const DRAFT_ID = ESTATUTO.id;
 
 export type EstatisticasImportacao = {
   total: number;
@@ -121,7 +122,8 @@ function normalizarNode(valor: unknown, base: Map<string, DraftNode>, avisos: Se
   return node;
 }
 
-const pareceConsolidado = (raiz: Record<string, unknown>): boolean => {
+const pareceConsolidado = (raiz: Record<string, unknown>, documento: DocumentoConfig): boolean => {
+  if (!documento.aceitarConsolidado) return false;
   if (raiz.id !== DRAFT_ID || raiz.fonte_esdras !== undefined || typeof raiz.titulo === "string") return true;
   const visit = (nodes: unknown[]): boolean => {
     for (const node of nodes) {
@@ -134,8 +136,8 @@ const pareceConsolidado = (raiz: Record<string, unknown>): boolean => {
   return visit(Array.isArray(raiz.nodes) ? raiz.nodes : []);
 };
 
-/** Normaliza um arquivo (consolidado ou nativo) para o formato da minuta do Esdras. */
-export function importarMinuta(valor: unknown, base: Draft | null = null): ResultadoImportacao {
+/** Normaliza um arquivo (consolidado ou nativo) para o formato do documento do Esdras. */
+export function importarMinuta(valor: unknown, base: Draft | null = null, documento: DocumentoConfig = ESTATUTO): ResultadoImportacao {
   let conteudo: unknown = valor;
   if (typeof conteudo === "string") {
     if (conteudo.length > LIMITE_TEXTO) throw new Error("Minuta excede o tamanho permitido.");
@@ -148,14 +150,14 @@ export function importarMinuta(valor: unknown, base: Draft | null = null): Resul
   if (!ehObjeto(conteudo)) throw new Error("Minuta inválida: esperado um objeto com 'nodes'.");
   if (!Array.isArray(conteudo.nodes)) throw new Error("Minuta inválida: a lista 'nodes' não foi encontrada.");
   const avisos = new Set<string>();
-  const formato: ResultadoImportacao["formato"] = pareceConsolidado(conteudo) ? "consolidado" : "nativo";
-  if (formato === "consolidado" && conteudo.id !== DRAFT_ID) avisos.add("Identificação do arquivo ajustada para " + DRAFT_ID + ".");
+  const formato: ResultadoImportacao["formato"] = pareceConsolidado(conteudo, documento) ? "consolidado" : "nativo";
+  if (formato === "consolidado" && conteudo.id !== documento.id) avisos.add("Identificação do arquivo ajustada para " + documento.id + ".");
   if (conteudo.pontos_de_revisao !== undefined) avisos.add("A lista resumida 'pontos_de_revisao' do arquivo foi ignorada; os pontos entram por dispositivo.");
   const baseMapa = achatar(base);
   const draft = validateDraft({
-    id: DRAFT_ID,
+    id: documento.id,
     nodes: conteudo.nodes.map((node) => normalizarNode(node, baseMapa, avisos, 1)),
-  });
+  }, documento);
   return {
     draft,
     formato,

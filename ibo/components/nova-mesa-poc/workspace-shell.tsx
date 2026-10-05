@@ -4,6 +4,7 @@ import { useEffect, useImperativeHandle, useRef, useState, type ReactNode, type 
 import { listConsultationDocuments, readConsultationDocument, type ConsultationItem } from "@/app/actions/nova-mesa-consulta";
 import { ConsultaForm } from "@/components/documentos/consulta-form";
 import { NovaMesaStatusMark, ReviewMark } from "@/components/status-badge";
+import { ESTATUTO } from "@/lib/nova-mesa-poc/documentos";
 import { PanelLeftClose, PanelRightClose } from "lucide-react";
 
 type OutlineEntry = { id:string; label:string; title:string; depth:number; status?:string; revisao?:boolean };
@@ -34,10 +35,11 @@ function EditorRevisao({texto,editavel,onSalvar,onResolver}:{
   </div>;
 }
 
-export default function WorkspaceShell({children,outline,onNavigate,selectedLabel,selectedId,summary,sumarioAberto,apoioAberto,onSumarioChange,onApoioChange,acoesRef,revisao,podeEditarRevisao,onSalvarRevisao,onResolverRevisao,apoioDispositivo}:{
+export default function WorkspaceShell({children,outline,onNavigate,selectedLabel,selectedId,summary,sumarioAberto,apoioAberto,onSumarioChange,onApoioChange,acoesRef,revisao,podeEditarRevisao,onSalvarRevisao,onResolverRevisao,apoioDispositivo,titulo,subtitulo,consultaBotoes}:{
   children:ReactNode; outline:OutlineEntry[]; onNavigate:(id:string)=>void;selectedLabel:string|null;selectedId?:string|null;summary?:Summary;
   sumarioAberto:boolean;apoioAberto:boolean;onSumarioChange:(aberto:boolean)=>void;onApoioChange:(aberto:boolean)=>void;acoesRef?:Ref<AcoesConsultaMesa>;revisao?:string|null;podeEditarRevisao?:boolean;
   onSalvarRevisao?:(texto:string)=>void;onResolverRevisao?:()=>void;apoioDispositivo?:ReactNode;
+  titulo?:string;subtitulo?:string;consultaBotoes?:{id:string;label:string;title:string;tituloLeitura?:string}[];
 }){
   const outlineOpen=sumarioAberto;
   const supportOpen=apoioAberto;
@@ -96,8 +98,8 @@ export default function WorkspaceShell({children,outline,onNavigate,selectedLabe
   </section>:null;
   return <div className="mx-auto w-full max-w-[1920px] min-w-0 px-1 py-2 lg:px-3">
     <header className="mb-3 flex flex-wrap items-center justify-between gap-2">
-      <div className="min-w-0"><h1 className="text-xl font-semibold">Mesa de Trabalho · Nova minuta</h1>
-        <p className="text-sm text-muted-foreground">Minuta em elaboração · Salvamento manual no servidor</p></div>
+      <div className="min-w-0"><h1 className="text-xl font-semibold">{titulo??ESTATUTO.tituloPainel}</h1>
+        <p className="text-sm text-muted-foreground">{subtitulo??ESTATUTO.subtituloEditor}</p></div>
       <input ref={fileRef} type="file" accept=".txt,.md,.pdf,text/plain,application/pdf" className="hidden" aria-label="Selecionar documento local de consulta"
         onChange={event=>{void openFile(event.target.files?.[0]);event.target.value="";}}/>
     </header>
@@ -135,14 +137,11 @@ export default function WorkspaceShell({children,outline,onNavigate,selectedLabe
         </section>
         <section className="min-w-0 space-y-2 pt-4">
           <h3 className="text-sm font-medium">Documentos de consulta</h3>
-          <div className="grid grid-cols-2 gap-2">
-            <button type="button" disabled={openingId!==null} className="rounded border border-primary/40 bg-primary/10 px-2 py-2 text-xs font-semibold disabled:opacity-60"
-              title="Abrir o texto original do Estatuto vigente"
-              onClick={()=>{void openRegistered({id:"statute:current",title:"Estatuto vigente (versão histórica)",group:"Estatutos"});}}>Estatuto vigente</button>
-            <button type="button" disabled={openingId!==null} className="rounded border border-primary/40 bg-primary/10 px-2 py-2 text-xs font-semibold disabled:opacity-60"
-              title="Abrir a primeira proposta da reforma"
-              onClick={()=>{void openRegistered({id:"statute:initial",title:"Proposta inicial (primeira versão da reforma)",group:"Estatutos"});}}>Proposta inicial</button>
-          </div>
+          {(consultaBotoes??ESTATUTO.consultaBotoes).length>0&&<div className="grid grid-cols-2 gap-2">
+            {(consultaBotoes??ESTATUTO.consultaBotoes).map(item=><button key={item.id} type="button" disabled={openingId!==null} className="rounded border border-primary/40 bg-primary/10 px-2 py-2 text-xs font-semibold disabled:opacity-60"
+              title={item.title}
+              onClick={()=>{void openRegistered({id:item.id,title:item.tituloLeitura??item.label,group:"Estatutos"});}}>{item.label}</button>)}
+          </div>}
           <button type="button" className="w-full rounded border px-3 py-2 text-sm" onClick={()=>{setConsultOpen(false);setAiOpen(true);}}>Perguntar à IA · Groq</button>
           <button type="button" disabled={catalogLoading} className="w-full rounded border px-3 py-2 text-sm disabled:opacity-60"
             onClick={()=>{void loadCatalog();}}>{catalogLoading?"Carregando biblioteca…":"Documentos do Esdras"}</button>

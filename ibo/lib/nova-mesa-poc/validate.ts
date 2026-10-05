@@ -1,16 +1,16 @@
-import {canContain, type Draft, type DraftNode, type NovaMesaStatus, type NodeType} from "./model";
-import {plainText, type Mark} from "./rich-text";
-const allowedTypes:NodeType[]=["chapter","section","subsection","article","paragraph","inciso","alinea","free"];
+import { canContain, type Draft, type DraftNode, type NovaMesaStatus, type NodeType } from "./model";
+import { ESTATUTO, type DocumentoConfig } from "./documentos";
+import { plainText, type Mark } from "./rich-text";
 const allowedMarks:Mark[]=["bold","italic","underline"];
 const allowedAlignments=["left","center","right","justify"];
 const allowedStatus:NovaMesaStatus[]=["pendente","em_analise","aprovado"];
 /** Revalida a árvore recebida da rede: typescript no cliente não é controle de segurança. */
-export function validateDraft(value:unknown):Draft{
+export function validateDraft(value:unknown,documento:DocumentoConfig=ESTATUTO):Draft{
   const raw=JSON.stringify(value);
   if(!raw||raw.length>1_000_000)throw new Error("Minuta excede o tamanho permitido.");
   if(!value||typeof value!=="object"||Array.isArray(value))throw new Error("Minuta inválida.");
   const draft=value as Partial<Draft>;
-  if(draft.id!=="estatuto-ibo-2026"||!Array.isArray(draft.nodes))throw new Error("Identificação da minuta inválida.");
+  if(draft.id!==documento.id||!Array.isArray(draft.nodes))throw new Error("Identificação da minuta inválida.");
   const ids=new Set<string>();let count=0;
   const visit=(nodes:unknown[],parent:NodeType|null,depth:number):DraftNode[]=>{
     if(depth>12||nodes.length>10000)throw new Error("Estrutura excessiva.");
@@ -20,7 +20,7 @@ export function validateDraft(value:unknown):Draft{
       const node=value as DraftNode&{approved?:unknown};
       if(typeof node.id!=="string"||node.id.length>120||!node.id||ids.has(node.id))throw new Error("ID inválido ou duplicado.");
       ids.add(node.id);if(++count>10000)throw new Error("Minuta excede o limite de dispositivos.");
-      if(!allowedTypes.includes(node.type)||!canContain(parent,node.type))throw new Error("Hierarquia inválida.");
+      if(!documento.tipos.includes(node.type)||!canContain(parent,node.type))throw new Error("Hierarquia inválida.");
       if(typeof node.text!=="string"||node.text.length>100000||!Array.isArray(node.children))throw new Error("Texto ou estrutura inválida.");
       let status:NovaMesaStatus="pendente";
       if(node.status!==undefined){
@@ -49,6 +49,7 @@ export function validateDraft(value:unknown):Draft{
         if(revisao)clean.revisao=revisao;
       }
       if(node.vinculos!==undefined){
+        if(!documento.vinculos)throw new Error("Vínculos não se aplicam a este documento.");
         if(!Array.isArray(node.vinculos)||node.vinculos.length>10)throw new Error("Vínculos inválidos.");
         const vinculos=[...new Set(node.vinculos.map(item=>{
           if(typeof item!=="string"||item.length>120)throw new Error("Vínculo inválido.");
@@ -60,5 +61,5 @@ export function validateDraft(value:unknown):Draft{
     }
     return normalized;
   };
-  return {id:"estatuto-ibo-2026",nodes:visit(draft.nodes,null,0)};
+  return {id:documento.id,nodes:visit(draft.nodes,null,0)};
 }

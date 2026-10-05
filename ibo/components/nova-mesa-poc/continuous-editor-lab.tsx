@@ -5,8 +5,9 @@ import {loadNovaMesaDraft,saveNovaMesaDraft,checkpointNovaMesaVersion,listNovaMe
 import {listarCandidatosVinculo} from "@/app/actions/nova-mesa-vinculos";
 import {
   canContain, Draft, DraftNode, findNode, flattenDraft, formatSelection, insertAfter,
-  labelFor, moveNode, newNode, NodeType, NovaMesaStatus, removeNode, revisaoOf, setAlignment, setRevisao, setRichText, setStatus, setVinculos, statusOf, vinculosOf,
+  moveNode, newNode, NodeType, NovaMesaStatus, removeNode, revisaoOf, setAlignment, setRevisao, setRichText, setStatus, setVinculos, statusOf, vinculosOf,
 } from "@/lib/nova-mesa-poc/model";
+import { NOMES_TIPO_DOCUMENTO, documentoOuPadrao } from "@/lib/nova-mesa-poc/documentos";
 import {rotuloCandidato,sugerirLote,sugerirVinculos,type CandidatoVinculo} from "@/lib/nova-mesa-poc/vinculos";
 import { NOVAMESA_STATUS_LABELS } from "@/lib/labels";
 import { NovaMesaStatusMark, ReviewMark } from "@/components/status-badge";
@@ -19,13 +20,8 @@ import ImportarDocumento from "./importar-dialog";
 import VinculosPanel from "./vinculos-panel";
 import CompararEstatuto from "./comparar-estatuto";
 
-const names: Record<NodeType,string> = {
-  chapter:"Capítulo", section:"Seção", subsection:"Subseção", article:"Artigo", paragraph:"Parágrafo",
-  inciso:"Inciso", alinea:"Alínea", free:"Texto livre",
-};
 const STATUS_CURTO: Record<NovaMesaStatus,string> = { pendente:"Pendente", em_analise:"Em análise", aprovado:"Apreciado" };
 const ALINHAMENTO_LABELS: Record<Alignment,string> = { left:"Alinhar à esquerda", center:"Centralizar", right:"Alinhar à direita", justify:"Justificar" };
-const initial:Draft={id:"estatuto-ibo-2026",nodes:[]};
 type Location={id:string,parentId:string|null};
 function bodyFrom(target:Node|null):HTMLElement|null{
   const element=target?.nodeType===Node.ELEMENT_NODE ? target as Element : target?.parentElement;
@@ -57,8 +53,10 @@ function renderRuns(body:HTMLElement,runs:TextRun[]){
   }
   body.replaceChildren(fragment);
 }
-export default function ContinuousEditorLab({canEdit}:{canEdit:boolean}){
-  const [draft,setDraft]=useState<Draft>(initial);
+export default function ContinuousEditorLab({canEdit,documentoId}:{canEdit:boolean;documentoId?:string}){
+  const doc=documentoOuPadrao(documentoId);
+  const names={...NOMES_TIPO_DOCUMENTO,...doc.nomes};
+  const [draft,setDraft]=useState<Draft>(()=>({id:doc.id,nodes:[]}));
   const live=useRef<Draft>(draft);
   const [selected,setSelected]=useState<Location|null>(null);
   const [hovered,setHovered]=useState<string|null>(null);
@@ -104,12 +102,13 @@ export default function ContinuousEditorLab({canEdit}:{canEdit:boolean}){
     return()=>{document.removeEventListener("pointerdown",closeOutside);document.removeEventListener("keydown",closeEscape);};
   },[acoesOpen]);
   useEffect(()=>{
+    if(!doc.vinculos)return;
     let ativo=true;
     void listarCandidatosVinculo()
       .then((itens)=>{if(ativo)setCandidatos(itens);})
       .catch(()=>{if(ativo)setCandidatosErro("Não foi possível carregar o Estatuto registrado.");});
     return ()=>{ativo=false;};
-  },[]);
+  },[doc.vinculos]);
   const selectedRef=useRef<Location|null>(null);
   const [notice,setNotice]=useState("");
   const [revision,setRevision]=useState(0);
@@ -145,7 +144,7 @@ export default function ContinuousEditorLab({canEdit}:{canEdit:boolean}){
     if(dirtyRef.current)return;
     setLoading(true);setLoadingError("");
     try{
-      const snapshot=await loadNovaMesaDraft();
+      const snapshot=await loadNovaMesaDraft(doc.id);
       live.current=snapshot.draft;versionRef.current=snapshot.version;setVersion(snapshot.version);
       setDraft(snapshot.draft);setRevision(n=>n+1);setUndo([]);setSelected(null);selectedRef.current=null;
       dirtyRef.current=false;setDirty(false);setConflict(false);setSaveError("");
@@ -167,7 +166,7 @@ export default function ContinuousEditorLab({canEdit}:{canEdit:boolean}){
     savingRef.current=true;setSaving(true);setSaveError("");
     const snapshot=live.current,sequence=editCount.current;
     try{
-      const result=await saveNovaMesaDraft(snapshot,versionRef.current);
+      const result=await saveNovaMesaDraft(snapshot,versionRef.current,doc.id);
       if(result.ok){
         versionRef.current=result.version;setVersion(result.version);
         if(sequence!==editCount.current&&autoEnabled.current){if(autoTimer.current)clearTimeout(autoTimer.current);autoTimer.current=setTimeout(()=>{autoTimer.current=null;void saveRef.current();},2500);}
@@ -190,10 +189,10 @@ export default function ContinuousEditorLab({canEdit}:{canEdit:boolean}){
         setSaveError("Não foi possível registrar o marco. Confira o salvamento da redação e tente novamente.");
         return;
       }
-      const result=await checkpointNovaMesaVersion(versionRef.current);
+      const result=await checkpointNovaMesaVersion(versionRef.current,doc.id);
       if(result.ok){
         setNotice("Marco histórico registrado · revisão "+result.version+".");
-        if(historyOpen)setVersions(await listNovaMesaVersions());
+        if(historyOpen)setVersions(await listNovaMesaVersions(doc.id));
       }else if("conflict" in result){
         setConflict(true);setSaveError("Outra sessão alterou a minuta. O marco não foi criado; preserve sua cópia antes de recarregar.");
       }else setSaveError(result.error);
@@ -202,13 +201,13 @@ export default function ContinuousEditorLab({canEdit}:{canEdit:boolean}){
   };
   const showHistory=async()=>{
     setHistoryOpen(true);setHistoryLoading(true);setHistoryError("");setPreview(null);
-    try{setVersions(await listNovaMesaVersions());}
+    try{setVersions(await listNovaMesaVersions(doc.id));}
     catch{setHistoryError("Não foi possível carregar as versões do servidor.");}
     finally{setHistoryLoading(false);}
   };
   const showVersion=async(number:number)=>{
     setHistoryLoading(true);setHistoryError("");
-    try{setPreview({version:number,draft:await readNovaMesaVersion(number)});}
+    try{setPreview({version:number,draft:await readNovaMesaVersion(number,doc.id)});}
     catch{setHistoryError("Não foi possível abrir esta versão.");}
     finally{setHistoryLoading(false);}
   };
@@ -217,7 +216,7 @@ export default function ContinuousEditorLab({canEdit}:{canEdit:boolean}){
     if(!window.confirm("Restaurar a versão "+preview.version+"? A redação atual será preservada no histórico e uma nova versão será criada."))return;
     setHistoryLoading(true);setHistoryError("");
     try{
-      const result=await restoreNovaMesaVersion(preview.version,versionRef.current);
+      const result=await restoreNovaMesaVersion(preview.version,versionRef.current,doc.id);
       if(result.ok){setHistoryOpen(false);setPreview(null);await load();setNotice("Versão restaurada como nova revisão "+result.version+".");}
       else if("conflict" in result){setConflict(true);setHistoryError("Outra sessão alterou a minuta. A restauração foi interrompida.");}
       else setHistoryError(result.error);
@@ -256,7 +255,7 @@ export default function ContinuousEditorLab({canEdit}:{canEdit:boolean}){
 
   const add=(type:NodeType)=>{
     setInsertOpen(false);
-    if(!editable)return;
+    if(!editable||!doc.tipos.includes(type))return;
     const current=selectedRef.current;
     const existing=current?findNode(live.current.nodes,current.id):undefined;
     const ancestry:DraftNode[]=[];
@@ -288,14 +287,29 @@ export default function ContinuousEditorLab({canEdit}:{canEdit:boolean}){
   const vinculosAtivos=activeRow?vinculosOf(activeRow.node):[];
   const sugestoesAtivas=activeRow&&candidatos?sugerirVinculos(activeRow.node,candidatos,{limite:3}):[];
   const candidatosAtivos=vinculosAtivos.map(id=>candidatoMapa.get(id)).filter((candidato):candidato is CandidatoVinculo=>!!candidato);
-  const suggested:NodeType=activeRow?.node.type==="inciso"?"inciso":activeRow?.node.type==="alinea"?"alinea":activeRow?.node.type==="paragraph"?"paragraph":activeRow?.node.type==="article"?(activeRow.node.children.some(n=>n.type==="inciso")?"inciso":activeRow.node.children.some(n=>n.type==="paragraph")?"paragraph":"article"):activeRow?.node.type==="chapter"?"article":activeRow?.node.type==="section"?"article":activeRow?.node.type==="subsection"?"article":"chapter";
-  const contextualTypes=([suggested,"article","paragraph","inciso","alinea","chapter","section","subsection","free"] as NodeType[]).filter((type,index,array)=>array.indexOf(type)===index);
+  const tiposDoc=doc.tipos;
+  const suggested:NodeType=(()=>{
+    const tipoAtivo=activeRow?.node.type;
+    if(!tipoAtivo)return tiposDoc.includes("chapter")?"chapter":tiposDoc[0];
+    if(tipoAtivo==="inciso"&&tiposDoc.includes("inciso"))return "inciso";
+    if(tipoAtivo==="alinea"&&tiposDoc.includes("alinea"))return "alinea";
+    if(tipoAtivo==="paragraph"&&tiposDoc.includes("paragraph"))return "paragraph";
+    if(tipoAtivo==="article"){
+      if(tiposDoc.includes("inciso")&&activeRow!.node.children.some(n=>n.type==="inciso"))return "inciso";
+      if(tiposDoc.includes("paragraph")&&activeRow!.node.children.some(n=>n.type==="paragraph"))return "paragraph";
+      return "article";
+    }
+    if(tipoAtivo==="chapter"||tipoAtivo==="section"||tipoAtivo==="subsection")
+      return tiposDoc.includes("article")?"article":"free";
+    return tiposDoc.includes("chapter")?"chapter":tiposDoc[0];
+  })();
+  const contextualTypes=([suggested,...tiposDoc] as NodeType[]).filter((type,index,array)=>array.indexOf(type)===index);
   useEffect(()=>{
     const keydown=(event:KeyboardEvent)=>{
       if(event.defaultPrevented||event.repeat||event.isComposing||!event.ctrlKey||!event.altKey||event.shiftKey)return;
       const mapping:Record<string,NodeType>={a:"article",p:"paragraph",i:"inciso",l:"alinea"};
       const type=mapping[event.key.toLowerCase()];
-      if(!type||!canEdit||loading||loadingError||conflict||savingRef.current)return;
+      if(!type||!doc.tipos.includes(type)||!canEdit||loading||loadingError||conflict||savingRef.current)return;
       event.preventDefault();add(type);
     };
     window.addEventListener("keydown",keydown);return()=>window.removeEventListener("keydown",keydown);
@@ -401,12 +415,12 @@ export default function ContinuousEditorLab({canEdit}:{canEdit:boolean}){
   const download=()=>{
     const blob=new Blob([JSON.stringify(live.current,null,2)],{type:"application/json"});
     const url=URL.createObjectURL(blob);
-    const anchor=document.createElement("a");anchor.href=url;anchor.download="esdras-minuta-copia.json";
+    const anchor=document.createElement("a");anchor.href=url;anchor.download=`esdras-${doc.arquivo}-copia.json`;
     anchor.click();URL.revokeObjectURL(url);setSavedLocal(true);
     setNotice("Cópia JSON exportada. Não substitui salvamento no servidor.");
   };
   const outline=rows.filter(row=>row.node.type==="chapter").map(row=>({
-    id:row.node.id,label:labelFor(row.node,row.siblings,row.articleNumber,row.chapterNumber).trim(),
+    id:row.node.id,label:doc.rotular(row.node,row.siblings,row.articleNumber,row.chapterNumber).trim(),
     title:row.node.text,depth:row.depth,status:statusOf(row.node),revisao:revisaoOf(row.node)!==null,
   }));
   const navigate=(id:string)=>{
@@ -457,15 +471,16 @@ export default function ContinuousEditorLab({canEdit}:{canEdit:boolean}){
     setNotice(lotePrevia.alta.length?`${lotePrevia.alta.length} vínculo(s) de alta confiança aplicado(s).`:"Nenhum vínculo de alta confiança encontrado.");
   };
   return <WorkspaceShell outline={outline} onNavigate={navigate} summary={resumo}
+    titulo={doc.tituloPainel} subtitulo={doc.subtituloEditor} consultaBotoes={doc.consultaBotoes}
     selectedLabel={selected?names[findNode(draft.nodes,selected.id)?.type??"free"]:null}
     selectedId={selected?.id??null}
     sumarioAberto={sumarioAberto} apoioAberto={apoioAberto} onSumarioChange={setSumarioAberto} onApoioChange={setApoioAberto} acoesRef={acoesConsulta}
     revisao={activeRow?revisaoOf(activeRow.node):null}
     podeEditarRevisao={editable}
     onSalvarRevisao={salvarRevisao} onResolverRevisao={resolverRevisao}
-    apoioDispositivo={<VinculosPanel candidatos={candidatos} erro={candidatosErro} vinculos={vinculosAtivos} sugestoes={sugestoesAtivas}
+    apoioDispositivo={doc.vinculos?<VinculosPanel candidatos={candidatos} erro={candidatosErro} vinculos={vinculosAtivos} sugestoes={sugestoesAtivas}
       podeEditar={editable} dispositivoAtivo={!!selected} onVincular={adicionarVinculo} onRemover={removerVinculo}
-      onSugerirLote={abrirSugestaoLote} onComparar={()=>setCompararAberto(true)}/>}>
+      onSugerirLote={abrirSugestaoLote} onComparar={()=>setCompararAberto(true)}/>:undefined}>
     <main className="min-w-0">
 
 
@@ -477,7 +492,7 @@ export default function ContinuousEditorLab({canEdit}:{canEdit:boolean}){
         <button type="button" disabled={!canEdit||loading||!!loadingError||conflict||saving||marking} className="rounded border border-primary/40 bg-primary/10 px-3 py-1.5 font-semibold text-foreground disabled:opacity-50" onClick={()=>{if(dirtyRef.current){if(autoTimer.current){clearTimeout(autoTimer.current);autoTimer.current=null;}void save();}else setNotice("Todas as alterações já estão salvas no servidor · versão "+versionRef.current+".");}}>{saving?"Salvando…":"Salvar agora"}</button>
         <button type="button" disabled={!canEdit||loading||!!loadingError||conflict||saving||marking} className="rounded border px-3 py-1.5 font-semibold disabled:opacity-50" onClick={()=>{void saveVersion();}}>{marking?"Registrando…":"Salvar versão"}</button>
         <button ref={insertButtonRef} type="button" disabled={!editable} aria-expanded={insertOpen} aria-controls="nova-mesa-insert-menu" className="rounded border border-blue-500 bg-blue-50 px-3 py-1.5 font-semibold text-blue-900 disabled:opacity-50" onClick={()=>{const bar=stickyBarRef.current?.getBoundingClientRect(),button=insertButtonRef.current?.getBoundingClientRect();if(bar&&button)setInsertLeft(Math.max(8,Math.min(button.left-bar.left,bar.width-360)));setInsertOpen(v=>!v);}}>+ Inserir dispositivo</button>
-        <span className="rounded bg-muted px-2 py-1 font-medium">{activeRow?labelFor(activeRow.node,activeRow.siblings,activeRow.articleNumber,activeRow.chapterNumber).trim()+" · "+names[activeRow.node.type]+" ativo":"Nenhum dispositivo ativo"}</span>
+        <span className="rounded bg-muted px-2 py-1 font-medium">{activeRow?doc.rotular(activeRow.node,activeRow.siblings,activeRow.articleNumber,activeRow.chapterNumber).trim()+" · "+names[activeRow.node.type]+" ativo":"Nenhum dispositivo ativo"}</span>
         <span className="h-5 w-px bg-border" aria-hidden="true"/>
         <div role="group" aria-label="Painéis e consulta" className="flex items-center gap-1">
           <button type="button" aria-pressed={sumarioAberto} title={sumarioAberto?"Ocultar sumário":"Mostrar sumário"}
@@ -542,7 +557,7 @@ export default function ContinuousEditorLab({canEdit}:{canEdit:boolean}){
         <p className="text-xs text-muted-foreground">O artigo e todos os seus parágrafos, incisos e alíneas serão movidos juntos.</p>
         <label className="block text-xs font-medium">Capítulo de destino
           <select className="mt-1 w-full rounded border bg-background p-2 text-sm" value={targetChapter} onChange={event=>{setTargetChapter(event.target.value);setTargetAfter("__end__");}}>
-            {chapters.map(row=><option key={row.node.id} value={row.node.id}>{labelFor(row.node,row.siblings,row.articleNumber,row.chapterNumber)} — {row.node.text||"Sem título"}</option>)}
+            {chapters.map(row=><option key={row.node.id} value={row.node.id}>{doc.rotular(row.node,row.siblings,row.articleNumber,row.chapterNumber)} — {row.node.text||"Sem título"}</option>)}
           </select>
         </label>
         <label className="block text-xs font-medium">Posição no capítulo
@@ -558,15 +573,15 @@ export default function ContinuousEditorLab({canEdit}:{canEdit:boolean}){
       {insertOpen&&<div id="nova-mesa-insert-menu" ref={insertMenuRef} style={{left:insertLeft}} className="absolute top-full z-50 mt-1 grid max-h-[min(65vh,450px)] w-[min(360px,calc(100vw-32px))] grid-cols-2 gap-1.5 overflow-y-auto rounded-lg border bg-background p-3 shadow-xl" role="group" aria-label="Inserir dispositivo"><span className="col-span-2 mb-1 text-xs text-muted-foreground">Sugestão: {names[suggested]}. Escolha o dispositivo para continuar a redação.</span>{contextualTypes.map(type=><button type="button" key={type} disabled={!editable} className={"rounded border px-2 py-2 text-left text-sm disabled:opacity-50 "+(type===suggested?"border-blue-500 bg-blue-50 font-semibold text-blue-900":"")} onClick={()=>add(type)}>+ {names[type]}{type===suggested?" · sugerido":""}</button>)}</div>}
     </div>
 
-    {compararAberto&&activeRow&&<section aria-label="Comparar com o Estatuto" className="mb-4 min-w-0 rounded-lg border p-4">
+    {doc.vinculos&&compararAberto&&activeRow&&<section aria-label="Comparar com o Estatuto" className="mb-4 min-w-0 rounded-lg border p-4">
       <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-        <h2 className="font-semibold">Comparar com o Estatuto · {labelFor(activeRow.node,activeRow.siblings,activeRow.articleNumber,activeRow.chapterNumber).trim()}</h2>
+        <h2 className="font-semibold">Comparar com o Estatuto · {doc.rotular(activeRow.node,activeRow.siblings,activeRow.articleNumber,activeRow.chapterNumber).trim()}</h2>
         <button type="button" className="rounded border px-3 py-1" onClick={()=>setCompararAberto(false)}>Fechar</button>
       </div>
       <CompararEstatuto redacaoAtual={activeRow.node.text} candidatos={candidatosAtivos}/>
     </section>}
 
-    {loteAberto&&lotePrevia&&<section aria-label="Sugestões de vínculo" className="mb-4 min-w-0 rounded-lg border p-4">
+    {doc.vinculos&&loteAberto&&lotePrevia&&<section aria-label="Sugestões de vínculo" className="mb-4 min-w-0 rounded-lg border p-4">
       <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
         <h2 className="font-semibold">Sugerir vínculos com o Estatuto</h2>
         <button type="button" className="rounded border px-3 py-1" onClick={()=>setLoteAberto(false)}>Fechar</button>
@@ -574,14 +589,14 @@ export default function ContinuousEditorLab({canEdit}:{canEdit:boolean}){
       <p className="mb-2 text-sm text-muted-foreground">Alta confiança: <strong>{lotePrevia.alta.length}</strong> · para revisar: <strong>{lotePrevia.revisar.length}</strong> · sem sugestão: <strong>{lotePrevia.semSugestao.length}</strong>. Dispositivos já vinculados não são alterados.</p>
       {lotePrevia.alta.length>0&&<div className="mb-3 max-h-60 min-w-0 space-y-1 overflow-y-auto rounded border p-2 text-xs">
         {lotePrevia.alta.slice(0,40).map(item=>{const row=rows.find(entry=>entry.node.id===item.nodeId);const candidato=candidatoMapa.get(item.sugestao.id);return <p key={item.nodeId}>
-          <strong>{row?labelFor(row.node,row.siblings,row.articleNumber,row.chapterNumber).trim():item.nodeId}</strong> → {candidato?rotuloCandidato(candidato):item.sugestao.id} {item.sugestao.igual?"(texto igual)":"("+Math.round(item.sugestao.score*100)+"%)"}
+          <strong>{row?doc.rotular(row.node,row.siblings,row.articleNumber,row.chapterNumber).trim():item.nodeId}</strong> → {candidato?rotuloCandidato(candidato):item.sugestao.id} {item.sugestao.igual?"(texto igual)":"("+Math.round(item.sugestao.score*100)+"%)"}
         </p>;})}
         {lotePrevia.alta.length>40&&<p className="text-muted-foreground">… e mais {lotePrevia.alta.length-40}.</p>}
       </div>}
       {lotePrevia.revisar.length>0&&<div className="mb-3 max-h-40 min-w-0 space-y-0.5 overflow-y-auto rounded border border-dashed p-2 text-xs">
         <p className="font-semibold text-muted-foreground">Para revisar individualmente (clique para abrir o dispositivo)</p>
         {lotePrevia.revisar.slice(0,20).map(item=>{const row=rows.find(entry=>entry.node.id===item.nodeId);const candidato=candidatoMapa.get(item.sugestao.id);return <button type="button" key={item.nodeId} className="block w-full rounded px-1 py-0.5 text-left hover:bg-muted" onClick={()=>navigate(item.nodeId)}>
-          <strong>{row?labelFor(row.node,row.siblings,row.articleNumber,row.chapterNumber).trim():item.nodeId}</strong> → {candidato?rotuloCandidato(candidato):item.sugestao.id} ({Math.round(item.sugestao.score*100)}%)
+          <strong>{row?doc.rotular(row.node,row.siblings,row.articleNumber,row.chapterNumber).trim():item.nodeId}</strong> → {candidato?rotuloCandidato(candidato):item.sugestao.id} ({Math.round(item.sugestao.score*100)}%)
         </button>;})}
         {lotePrevia.revisar.length>20&&<p className="text-muted-foreground">… e mais {lotePrevia.revisar.length-20}.</p>}
       </div>}
@@ -590,14 +605,14 @@ export default function ContinuousEditorLab({canEdit}:{canEdit:boolean}){
       </button>
     </section>}
 
-    {historyOpen&&<section aria-label="Histórico de versões da nova minuta" className="mb-4 min-w-0 rounded-lg border p-4">
+    {historyOpen&&<section aria-label="Histórico de versões" className="mb-4 min-w-0 rounded-lg border p-4">
       <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
         <h2 className="font-semibold">Histórico da minuta · Somente leitura</h2>
         <button type="button" className="rounded border px-3 py-1" onClick={()=>{setHistoryOpen(false);setPreview(null);}}>Fechar</button>
       </div>
       {historyError&&<p role="alert" className="mb-2 text-sm text-red-700">{historyError}</p>}
       {historyLoading&&<p role="status" className="text-sm">Carregando histórico…</p>}
-      {!historyLoading&&versions.length===0&&<p className="text-sm text-muted-foreground">Nenhuma versão salva nesta minuta.</p>}
+      {!historyLoading&&versions.length===0&&<p className="text-sm text-muted-foreground">Nenhuma versão salva neste documento.</p>}
       <div className="mb-3 max-h-40 min-w-0 space-y-1 overflow-y-auto">
         {versions.map(item=><button type="button" key={item.version} disabled={historyLoading}
           className="block w-full rounded border px-3 py-2 text-left text-sm disabled:opacity-50"
@@ -608,7 +623,7 @@ export default function ContinuousEditorLab({canEdit}:{canEdit:boolean}){
         <div className="max-h-72 min-w-0 overflow-auto whitespace-pre-wrap break-words rounded bg-muted p-3 text-sm">
           {flattenDraft(preview.draft).map(row=><p key={row.node.id} className="mb-2" style={{paddingLeft:Math.min(row.depth,4)*12}}>
             <NovaMesaStatusMark status={statusOf(row.node)} compact className="mr-1 align-middle"/>
-            <strong>{labelFor(row.node,row.siblings,row.articleNumber,row.chapterNumber)}</strong>{row.node.text}
+            <strong>{doc.rotular(row.node,row.siblings,row.articleNumber,row.chapterNumber)}</strong>{row.node.text}
           </p>)}
         </div>
         <button type="button" className="mt-3 rounded border px-3 py-2 text-sm disabled:opacity-50"
@@ -620,8 +635,8 @@ export default function ContinuousEditorLab({canEdit}:{canEdit:boolean}){
 
     <div className="mb-2 flex flex-wrap items-center gap-1.5">
       <button type="button" className="rounded border px-3 py-1" onClick={download}>Exportar cópia (JSON)</button>
-      <ExportarDocumento versao={version} dirty={dirty}/>
-      <ImportarDocumento versao={version} dirty={dirty} draft={draft} onImportado={async(novaVersao)=>{dirtyRef.current=false;setDirty(false);await load();setNotice("Minuta importada · versão "+novaVersao+".");}}/>
+      <ExportarDocumento versao={version} dirty={dirty} documentoId={doc.id}/>
+      {canEdit&&<ImportarDocumento versao={version} dirty={dirty} draft={draft} documentoId={doc.id} onImportado={async(novaVersao)=>{dirtyRef.current=false;setDirty(false);await load();setNotice("Minuta importada · versão "+novaVersao+".");}}/>}
       <span className="text-xs text-amber-700">{savedLocal?"Cópia JSON exportada; alterações posteriores requerem nova exportação.":dirty?"Alterações locais pendentes: salve antes de sair.":"Use Exportar JSON para criar uma cópia independente."}</span>
 
 
@@ -632,8 +647,8 @@ export default function ContinuousEditorLab({canEdit}:{canEdit:boolean}){
         const row=rows.find(entry=>entry.node.id===id);if(row)choose({id:row.node.id,parentId:row.parentId});}}
       onMouseUp={()=>{const selection=window.getSelection();const id=bodyFrom(selection?.anchorNode??null)?.dataset.bodyId;
         const row=rows.find(entry=>entry.node.id===id);if(row)choose({id:row.node.id,parentId:row.parentId});}}
-      aria-label="Minuta do Estatuto editável" className="min-h-[70vh] min-w-0 overflow-x-auto rounded-xl border bg-white px-5 py-7 text-zinc-900 shadow-sm outline-offset-2 sm:px-10 sm:py-9 lg:px-12">
-      <h2 contentEditable={false} className="mb-6 select-none text-center text-xl font-bold">NOVO ESTATUTO · MINUTA EM ELABORAÇÃO</h2>
+      aria-label={doc.titulo+" editável"} className="min-h-[70vh] min-w-0 overflow-x-auto rounded-xl border bg-white px-5 py-7 text-zinc-900 shadow-sm outline-offset-2 sm:px-10 sm:py-9 lg:px-12">
+      <h2 contentEditable={false} className="mb-6 select-none text-center text-xl font-bold">{doc.tituloEditor}</h2>
       {rows.length===0&&<p contentEditable={false} className="text-sm text-zinc-500">Insira um capítulo ou artigo para começar.</p>}
       {rows.map(row=>{const status=statusOf(row.node);return <div key={row.node.id} data-node-id={row.node.id} onMouseEnter={()=>setHovered(row.node.id)} onMouseLeave={()=>setHovered(current=>current===row.node.id?null:current)}
         className={"group relative my-3 flex items-start gap-2 rounded-md border-l-4 py-2 pl-1 pr-1 transition-colors "+(selected?.id===row.node.id?"border-blue-600 bg-blue-50/70 ring-1 ring-blue-200":hovered===row.node.id?"border-slate-300 bg-slate-50":status==="aprovado"?"border-emerald-200 bg-emerald-50/40":"border-transparent")}
@@ -641,13 +656,13 @@ export default function ContinuousEditorLab({canEdit}:{canEdit:boolean}){
         <span contentEditable={false} className="mt-0.5 flex w-5 shrink-0 select-none justify-center"><NovaMesaStatusMark status={status}/></span>
         <div className="min-w-0 flex-1">
         {selected?.id===row.node.id&&<div contentEditable={false} className="mb-1 flex flex-wrap items-center gap-2 text-xs text-blue-800"><strong>{names[row.node.type]} ativo</strong><span className="font-medium text-blue-700">{NOVAMESA_STATUS_LABELS[status]}</span><button type="button" disabled={!editable} className="rounded border border-blue-400 bg-white px-2 py-1 font-semibold disabled:opacity-50" onMouseDown={event=>event.preventDefault()} onClick={()=>{setInsertOpen(v=>!v);}}>+ Inserir após / dentro</button><button type="button" disabled={!editable} className="rounded border bg-white px-2 py-1 disabled:opacity-50" onMouseDown={event=>event.preventDefault()} onClick={()=>add(suggested)}>+ {names[suggested]} sugerido</button></div>}
-        <span contentEditable={false} className="select-none font-semibold">{labelFor(row.node,row.siblings,row.articleNumber,row.chapterNumber)}</span>
+        <span contentEditable={false} className="select-none font-semibold">{doc.rotular(row.node,row.siblings,row.articleNumber,row.chapterNumber)}</span>
         {revisaoOf(row.node)&&<button type="button" contentEditable={false} title={"Ponto para revisão: "+revisaoOf(row.node)} aria-label="Ponto para revisão — abrir no painel de apoio"
           className="mx-1 mt-1 inline-flex shrink-0 align-middle" onMouseDown={event=>event.preventDefault()}
           onClick={()=>{choose({id:row.node.id,parentId:row.parentId});setApoioAberto(true);}}><ReviewMark/></button>}
         <span contentEditable={editable} suppressContentEditableWarning onInput={onInput} onBeforeInput={event=>onBeforeInput(event.nativeEvent as InputEvent)} onPaste={onPaste} data-body-id={row.node.id} data-poc-body="true" className={"inline-block min-w-[55%] whitespace-pre-wrap align-top outline-offset-2 "+(["chapter","section","subsection"].includes(row.node.type)?"font-bold":"")}
           style={{textAlign:row.node.alignment??(["chapter","section","subsection"].includes(row.node.type)?"center":"justify")}} data-placeholder={row.node.type==="free"?"Texto livre reservado":"Redação pendente"}></span>
-        {row.node.type==="free"&&<span contentEditable={false} className="ml-2 select-none text-xs text-amber-700">Provisório · reservado</span>}
+        {doc.rotuloProvisorio&&row.node.type==="free"&&<span contentEditable={false} className="ml-2 select-none text-xs text-amber-700">{doc.rotuloProvisorio}</span>}
         </div>
       </div>;})}
     </div>

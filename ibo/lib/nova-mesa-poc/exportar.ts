@@ -1,4 +1,5 @@
-import { flattenDraft, labelFor, revisaoOf, statusOf, type Draft, type DraftNode, type NovaMesaStatus } from "./model";
+import { flattenDraft, revisaoOf, statusOf, type Draft, type DraftNode, type FlatRow, type NovaMesaStatus } from "./model";
+import { ESTATUTO, type DocumentoConfig } from "./documentos";
 import type { Mark, TextRun } from "./rich-text";
 import { NOVAMESA_STATUS_LABELS, REVISAO_LABEL } from "../labels";
 
@@ -54,6 +55,12 @@ const runsMarkdown = (node: DraftNode): string => {
 
 const estrutura = (node: DraftNode): boolean => ["chapter", "section", "subsection"].includes(node.type);
 
+const rotuloLinha = (row: FlatRow, documento: DocumentoConfig): string =>
+  documento.rotular(row.node, row.siblings, row.articleNumber, row.chapterNumber);
+
+const entraNoSumario = (row: FlatRow, documento: DocumentoConfig): boolean =>
+  row.node.type === "chapter" || row.node.type === "section" || (documento.sumarioIncluiArtigos && row.node.type === "article");
+
 const conteudoVisivel = (draft: Draft, opcoes: OpcoesExportacao): DraftNode[] =>
   (opcoes.somenteApreciados ? podar(draft.nodes) : draft.nodes);
 
@@ -62,12 +69,12 @@ const legendaHtml = (): string =>
     .map((status) => `<li><span class="rubrica rubrica-${status}" aria-hidden="true">${SIMBOLOS[status]}</span>${NOVAMESA_STATUS_LABELS[status]}</li>`)
     .join("")}<li><span class="rubrica rubrica-revisao" aria-hidden="true">●</span>${escapeHtml(REVISAO_LABEL)}</li></ul>`;
 
-const sumarioHtml = (rows: ReturnType<typeof flattenDraft>): string => {
-  const itens = rows.filter((row) => row.node.type === "chapter" || row.node.type === "section");
+const sumarioHtml = (rows: ReturnType<typeof flattenDraft>, documento: DocumentoConfig): string => {
+  const itens = rows.filter((row) => entraNoSumario(row, documento));
   if (!itens.length) return "";
   return `<nav class="sumario"><h2>Sumário</h2><ul>${itens
     .map((row) => {
-      const rotulo = escapeHtml(labelFor(row.node, row.siblings, row.articleNumber, row.chapterNumber).trim());
+      const rotulo = escapeHtml(rotuloLinha(row, documento).trim());
       const titulo = row.node.text ? ` — ${escapeHtml(row.node.text)}` : "";
       return `<li style="margin-left:${Math.min(row.depth, 3)}em">${rotulo}${titulo}</li>`;
     })
@@ -117,7 +124,7 @@ body { margin: 0; background: #f4f2ee; color: #1f2937; font-family: "Lora", Geor
 `;
 
 /** Corpo do documento (cabeçalho, legenda, sumário e dispositivos) compartilhado pela impressão e pelo HTML exportado. */
-export function corpoDocumento(draft: Draft, meta: MetaDocumento, opcoes: OpcoesExportacao = {}): string {
+export function corpoDocumento(draft: Draft, meta: MetaDocumento, opcoes: OpcoesExportacao = {}, documento: DocumentoConfig = ESTATUTO): string {
   const marcas = opcoes.marcas !== false;
   const rows = flattenDraft({ id: draft.id, nodes: conteudoVisivel(draft, opcoes) });
   const linhas = rows
@@ -128,7 +135,7 @@ export function corpoDocumento(draft: Draft, meta: MetaDocumento, opcoes: Opcoes
       const rubrica = marcar
         ? `<span class="rubrica rubrica-${status}" title="${escapeHtml(NOVAMESA_STATUS_LABELS[status])}" aria-label="${escapeHtml(NOVAMESA_STATUS_LABELS[status])}">${SIMBOLOS[status]}</span>`
         : "";
-      const rotulo = escapeHtml(labelFor(row.node, row.siblings, row.articleNumber, row.chapterNumber).trim());
+      const rotulo = escapeHtml(rotuloLinha(row, documento).trim());
       const alinhamento = row.node.alignment ?? (estrutura(row.node) ? "center" : "justify");
       const revisao = revisaoOf(row.node);
       const marcaRevisao = revisao
@@ -145,43 +152,43 @@ export function corpoDocumento(draft: Draft, meta: MetaDocumento, opcoes: Opcoes
 <header class="cabecalho">
 <p class="instituicao">Igreja Batista Olaria</p>
 <p class="comissao">Comissão de Reforma do Estatuto Social</p>
-<h1>Minuta do Estatuto Social</h1>
+<h1>${escapeHtml(documento.titulo)}</h1>
 <p class="meta">Versão ${meta.versao} · gerada em ${escapeHtml(formatarDataHora(meta.data))} · ESDRAS</p>
-<p class="aviso">Documento de trabalho — minuta em elaboração; não é a versão final.</p>
+<p class="aviso">${escapeHtml(documento.aviso)}</p>
 ${marcas ? legendaHtml() : ""}
 </header>
-${opcoes.sumario ? sumarioHtml(rows) : ""}
+${opcoes.sumario ? sumarioHtml(rows, documento) : ""}
 <article class="minuta">${linhas || `<p>${vazio}</p>`}</article>
 <p class="rodape">ESDRAS · versão ${meta.versao} · ${escapeHtml(formatarDataHora(meta.data))}</p>
 </main>`;
 }
 
-export function paraHtml(draft: Draft, meta: MetaDocumento, opcoes: OpcoesExportacao = {}): string {
+export function paraHtml(draft: Draft, meta: MetaDocumento, opcoes: OpcoesExportacao = {}, documento: DocumentoConfig = ESTATUTO): string {
   return `<!doctype html>
 <html lang="pt-BR">
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Minuta do Estatuto Social — versão ${meta.versao}</title>
+<title>${escapeHtml(documento.titulo)} — versão ${meta.versao}</title>
 <style>${ESTILO_DOCUMENTO}</style>
 </head>
 <body>
-${corpoDocumento(draft, meta, opcoes)}
+${corpoDocumento(draft, meta, opcoes, documento)}
 </body>
 </html>`;
 }
 
-export function paraMarkdown(draft: Draft, meta: MetaDocumento, opcoes: OpcoesExportacao = {}): string {
+export function paraMarkdown(draft: Draft, meta: MetaDocumento, opcoes: OpcoesExportacao = {}, documento: DocumentoConfig = ESTATUTO): string {
   const marcas = opcoes.marcas !== false;
   const rows = flattenDraft({ id: draft.id, nodes: conteudoVisivel(draft, opcoes) });
   const linhas: string[] = [
-    "# Minuta do Estatuto Social",
+    `# ${documento.titulo}`,
     "",
     "**Igreja Batista Olaria** · Comissão de Reforma do Estatuto Social",
     "",
     `Versão ${meta.versao} · gerada em ${formatarDataHora(meta.data)} · ESDRAS`,
     "",
-    "> Documento de trabalho — minuta em elaboração; não é a versão final.",
+    `> ${documento.aviso}`,
     "",
   ];
   if (marcas) {
@@ -191,11 +198,11 @@ export function paraMarkdown(draft: Draft, meta: MetaDocumento, opcoes: OpcoesEx
     linhas.push(`**Legenda:** ${legenda} · ⚠ ${REVISAO_LABEL}`, "");
   }
   if (opcoes.sumario) {
-    const itens = rows.filter((row) => row.node.type === "chapter" || row.node.type === "section");
+    const itens = rows.filter((row) => entraNoSumario(row, documento));
     if (itens.length) {
       linhas.push("## Sumário", "");
       for (const row of itens) {
-        const rotulo = labelFor(row.node, row.siblings, row.articleNumber, row.chapterNumber).trim();
+        const rotulo = rotuloLinha(row, documento).trim();
         const titulo = row.node.text ? ` — ${escapeMd(row.node.text)}` : "";
         linhas.push(`${"  ".repeat(Math.min(row.depth, 3))}- ${escapeMd(rotulo)}${titulo}`);
       }
@@ -205,7 +212,7 @@ export function paraMarkdown(draft: Draft, meta: MetaDocumento, opcoes: OpcoesEx
   for (const row of rows) {
     const status = statusOf(row.node);
     const marca = marcas && (!estrutura(row.node) || status !== "pendente") ? `${SIMBOLOS[status]} ` : "";
-    const rotulo = labelFor(row.node, row.siblings, row.articleNumber, row.chapterNumber).trim();
+    const rotulo = rotuloLinha(row, documento).trim();
     const revisao = revisaoOf(row.node);
     if (row.node.type === "chapter") {
       linhas.push("", `## ${marca}${escapeMd(rotulo)}${row.node.text ? ` — ${escapeMd(row.node.text)}` : ""}`, "");
