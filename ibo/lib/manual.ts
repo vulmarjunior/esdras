@@ -176,7 +176,7 @@ Na **barra fixa**, o ícone de **documento** abre um arquivo local (.txt, .md ou
 
 - **Mostrar/Ocultar capítulos** abre o **Sumário** (com a marca de apreciação e de ponto para revisão); o resumo geral fica ao lado do botão;
 - os botões **Estatuto vigente** e **Proposta inicial** abrem o **texto integral** de cada documento em janela, com busca por trecho;
-- o botão **Documentos** lista os **compromissos de membresia** (versão integral e adaptada para crianças e adolescentes, em apreciação pela comissão) e os documentos doutrinários, abrindo cada um em janela com busca;
+- o botão **Documentos** lista o **compromisso de membresia na linguagem adaptada para crianças e adolescentes** e os documentos doutrinários, abrindo cada um em janela com busca;
 - clique em qualquer dispositivo (no texto ou no sumário): a **Consulta comparativa** (à direita, em telas largas) mostra a **Redação atual** e a **Correspondência no Estatuto**; o botão **Comparar com o Estatuto…** abre a comparação em janela ampla (Vigente × Redação atual e Proposta inicial × Redação atual, com **Destacar diferenças**). Em telas menores, um botão fixo embaixo abre a comparação;
 - a página é atualizada automaticamente quando o redator salva (atualização em tempo real).
 
@@ -186,9 +186,24 @@ Na **barra fixa**, o ícone de **documento** abre um arquivo local (.txt, .md ou
 
 Os recursos do ambiente anterior continuam preservados em **Arquivo e legado → Mesa anterior** (coordenador/administrador): edição por capítulo, status de análise, concordância editorial, vínculos com o Estatuto registrado (origem e correspondências), revogação/reversão, marcos e conferência. Essas ferramentas operam sobre a **proposta histórica**, não sobre a nova minuta.
 `,
-  },
-  {
-    id: "dispositivo",
+},
+{
+  id: "compromisso",
+  titulo: "O Compromisso de Membresia",
+  markdown: `
+O **Compromisso de Membresia** tem um ambiente próprio, com o mesmo motor da Mesa: **Compromisso → Redigir compromisso** (coordenador/administrador) e **Compromisso → Acompanhar compromisso** (todos os perfis, somente leitura).
+
+- O documento é **independente do Estatuto** e saiu da biblioteca de consulta (**Consulta → Documentos**), pois é debatido e editado pela comissão como a própria minuta.
+- Estrutura: **capítulos** (CAPÍTULO I…) e **seções numeradas** (1., 2., …); o preâmbulo, a declaração do candidato e o registro aparecem como texto livre.
+- A edição usa os mesmos recursos da minuta: edição contínua no documento, formatação, inserção, movimentação, **apreciação em três estados**, **ponto para revisão**, autosave, **histórico de versões** e **exportação** (Imprimir/PDF, HTML e Markdown).
+- Como o texto é próprio da membresia, não há vínculos nem comparação com o Estatuto; a consulta aos documentos do Esdras continua no painel de apoio.
+- A carga inicial veio de **Documentos fonte/Compromisso_de_Membresia_IBO_versao_definitiva.txt**; a partir do primeiro salvamento, o texto oficial passa a ser o registrado no sistema, com histórico e auditoria.
+
+> O **compromisso adaptado para crianças e adolescentes** permanece na biblioteca de consulta (**Consulta → Documentos**), em apreciação pela comissão.
+`,
+},
+{
+  id: "dispositivo",
     titulo: "A tela do dispositivo (abas)",
     markdown: `
 A tela clássica do dispositivo pertence ao **ambiente anterior** e funciona como consulta e contingência (aberta pelos links da Proposta anterior, do Acompanhamento anterior ou pelo histórico dos dispositivos já existentes). O trabalho fica organizado em quatro abas:

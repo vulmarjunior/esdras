@@ -238,5 +238,4 @@ gravar("fe-mensagem-2000.json", parseFeMensagem());
 gravar("cbb-declaracao.json", parseSecaoDocumentosDeFe(1));
 gravar("principios-batistas.json", parseSecaoDocumentosDeFe(2));
 gravar("pacto-igrejas.json", parseSecaoDocumentosDeFe(3, "Pacto das Igrejas Batistas"));
-gravar("compromisso-membresia.json", parseCompromisso("Compromisso_de_Membresia_IBO_versao_final.txt"));
 gravar("compromisso-membresia-criancas.json", parseCompromisso("Compromisso_de_Membresia_IBO_Criancas_e_Adolescentes.txt"));

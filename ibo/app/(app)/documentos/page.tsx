@@ -16,8 +16,8 @@ export default async function DocumentosPage() {
       <div>
         <h2 className="text-2xl font-semibold tracking-tight">Documentos para consulta</h2>
         <p className="text-sm text-muted-foreground">
-          Textos integrais dos documentos confessionais, de princípios e dos compromissos de membresia em apreciação
-          pela comissão, usados como fundamento doutrinário da reforma estatutária.
+          Textos integrais dos documentos confessionais, de princípios e do compromisso de membresia adaptado para
+          crianças e adolescentes, usados como fundamento doutrinário da reforma estatutária.
         </p>
       </div>
 
