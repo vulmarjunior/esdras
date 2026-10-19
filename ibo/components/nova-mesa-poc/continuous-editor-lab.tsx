@@ -135,7 +135,9 @@ export default function ContinuousEditorLab({canEdit,documentoId}:{canEdit:boole
   const autoTimer=useRef<ReturnType<typeof setTimeout>|null>(null);
   const saveRef=useRef<()=>Promise<boolean>>(async()=>false);
   const autoEnabled=useRef(false);
-  const editable=canEdit&&!loading&&!loadingError&&!conflict&&!saving&&!marking;
+  // A persistência em segundo plano não deve desativar contentEditable nem interromper a digitação.
+  // Operações de marco, conflitos e carregamento continuam bloqueando a edição.
+  const editable=canEdit&&!loading&&!loadingError&&!conflict&&!marking;
   const markDirty=()=>{editCount.current++;dirtyRef.current=true;setDirty(true);setSaveError("");
     if(autoTimer.current)clearTimeout(autoTimer.current);
     if(autoEnabled.current)autoTimer.current=setTimeout(()=>{autoTimer.current=null;void saveRef.current();},2500);
